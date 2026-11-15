@@ -41,9 +41,10 @@ pub fn disk_paths(metadata: &TorrentMetadata) -> Vec<Option<PathBuf>> {
     let many = info.files.is_some();
     let top = metadata.info.name().map(|n| safe_part(&n)).unwrap_or_else(|| "torrent".into());
     metadata
-        .file_infos
-        .iter()
-        .map(|f| {
+        .info
+        .iter_file_details()
+        .zip(metadata.file_infos.iter())
+        .map(|(fd, f)| {
             if f.attrs.padding {
                 return None;
             }
@@ -51,8 +52,8 @@ pub fn disk_paths(metadata: &TorrentMetadata) -> Vec<Option<PathBuf>> {
             if many {
                 p.push(&top);
             }
-            for part in f.relative_filename.iter() {
-                p.push(safe_part(&part.to_string_lossy()));
+            for part in fd.filename.iter_components() {
+                p.push(safe_part(&part));
             }
             Some(p)
         })
