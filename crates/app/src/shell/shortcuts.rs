@@ -62,3 +62,7 @@ pub(super) fn style_about(look: &Look) {
         }
     });
 }
+
+pub(super) fn about_alive() -> bool {
+    ABOUT.with(|a| a.borrow().as_ref().and_then(|w| w.upgrade()).is_some())
+}

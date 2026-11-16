@@ -1,9 +1,9 @@
 use crate::{browser, grab, options, scheduler, tray};
 use crate::{
-    AddDialog, BatchDialog, BrowserDialog, CatRow, CategoryDialog, ColDef, ColumnsDialog, CompleteDialog,
-    CountdownDialog, DetailsDialog, DownloadRow, DuplicateDialog, FindDialog, GrabberDialog, LinkRow, MainWindow,
-    PlaylistDialog, PropertiesDialog, QueueRow, RefreshDialog, SchedulerDialog, SegView, SettingsDialog, TipDialog,
-    TorrentDialog, UpdateDialog,
+    AboutDialog, AddDialog, BatchDialog, BrowserDialog, CatRow, CategoryDialog, ColDef, ColumnsDialog,
+    CompleteDialog, CountdownDialog, DetailsDialog, DownloadRow, DuplicateDialog, FindDialog, GrabberDialog,
+    LinkRow, MainWindow, PlaylistDialog, PropertiesDialog, QueueRow, RefreshDialog, SchedulerDialog, SegView,
+    SettingsDialog, TipDialog, TorrentDialog, UpdateDialog,
 };
 use slint::{VecModel, Weak};
 use std::cell::{Cell, RefCell};
@@ -82,9 +82,33 @@ pub(crate) struct Selection {
     pub(crate) anchor: Option<u64>,
 }
 
+/// Strong Slint dialog handles kept alive for the lifetime of `Ui`.
+pub(crate) struct DialogHandles {
+    pub(crate) _add: AddDialog,
+    pub(crate) _batch: BatchDialog,
+    pub(crate) _settings: SettingsDialog,
+    pub(crate) _complete: CompleteDialog,
+    pub(crate) _columns: ColumnsDialog,
+    pub(crate) _category: CategoryDialog,
+    pub(crate) _find: FindDialog,
+    pub(crate) _props: PropertiesDialog,
+    pub(crate) _dup: DuplicateDialog,
+    pub(crate) _countdown: CountdownDialog,
+    pub(crate) _sched: SchedulerDialog,
+    pub(crate) _grabber: GrabberDialog,
+    pub(crate) _tips: TipDialog,
+    pub(crate) _refresh: RefreshDialog,
+    pub(crate) _playlist: PlaylistDialog,
+    pub(crate) _torrent: TorrentDialog,
+    pub(crate) _browsers: BrowserDialog,
+    pub(crate) _updater: UpdateDialog,
+    pub(crate) _about: AboutDialog,
+}
+
 /// Things that only live on the UI thread.
 #[derive(Clone)]
 pub(crate) struct Ui {
+    pub(crate) _dialogs: Rc<DialogHandles>,
     pub(crate) ctx: Ctx,
     pub(crate) rows: Rc<VecModel<DownloadRow>>,
     pub(crate) queues: Rc<VecModel<QueueRow>>,
@@ -131,4 +155,29 @@ pub(crate) struct Ui {
     pub(crate) columns_model: Rc<VecModel<ColDef>>,
     pub(crate) browser_list: Rc<RefCell<Vec<browser::Browser>>>,
     pub(crate) tray: Rc<RefCell<Option<tray::Tray>>>,
+}
+
+impl Ui {
+    pub(super) fn all_dialogs_alive(&self) -> bool {
+        self.ctx.main.upgrade().is_some()
+            && self.ctx.add.upgrade().is_some()
+            && self.batch.upgrade().is_some()
+            && self.settings_dlg.upgrade().is_some()
+            && self.complete.upgrade().is_some()
+            && self.columns.upgrade().is_some()
+            && self.category.upgrade().is_some()
+            && self.find.upgrade().is_some()
+            && self.props.upgrade().is_some()
+            && self.dup.upgrade().is_some()
+            && self.countdown.upgrade().is_some()
+            && self.sched.upgrade().is_some()
+            && self.grabber.upgrade().is_some()
+            && self.tips.upgrade().is_some()
+            && self.refresh_dlg.upgrade().is_some()
+            && self.playlist.upgrade().is_some()
+            && self.torrent.upgrade().is_some()
+            && self.browsers.upgrade().is_some()
+            && self.updater.upgrade().is_some()
+            && super::shortcuts::about_alive()
+    }
 }

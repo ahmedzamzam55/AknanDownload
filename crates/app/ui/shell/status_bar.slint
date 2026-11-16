@@ -76,8 +76,9 @@ export component StatusBar inherits Rectangle {
 }
 
 export component ToolTipOverlay inherits Rectangle {
-    width: 100%;
-    height: 100%;
+    in property <length> win-width;
+    width: 0px;
+    height: 0px;
     Timer {
         interval: 600ms;
         running: ToolTip.pending;
@@ -87,7 +88,7 @@ export component ToolTipOverlay inherits Rectangle {
         }
     }
     if ToolTip.shown && ToolTip.text != "": Rectangle {
-        x: min(ToolTip.x, root.width - self.width - 6px);
+        x: min(ToolTip.x, root.win-width - self.width - 6px);
         y: ToolTip.y;
         width: min(320px, tip-box.preferred-width);
         height: tip-box.preferred-height;

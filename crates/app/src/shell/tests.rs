@@ -47,4 +47,29 @@ mod name_tests {
         assert_eq!(with_extension_of("setup", ""), "setup");
         assert_eq!(with_extension_of("v1.2", "x.zip"), "v1.2");
     }
+
+    #[test]
+    fn toolbar_actions_map_to_handlers() {
+        let tb = include_str!("../../ui/shell/toolbar.slint");
+        let app = include_str!("../../ui/app.slint");
+        let wire = [include_str!("main_wire.rs"), include_str!("main_menu.rs")].concat();
+        let mut rest = tb;
+        let mut count = 0usize;
+        while let Some(i) = rest.find("root.act(\"") {
+            let after = &rest[i + "root.act(\"".len()..];
+            let Some(end) = after.find('"') else { break };
+            let act = &after[..end];
+            rest = &after[end + 1..];
+            let needle = format!("c == \"{act}\"");
+            let Some(pos) = app.find(&needle) else {
+                panic!("missing act dispatch in app.slint for {act}");
+            };
+            let stmt = &app[pos..app[pos..].find('}').map(|n| pos + n).unwrap_or(app.len())];
+            assert!(stmt.contains(&format!("root.{act}(")), "unexpected target for {act}: {stmt}");
+            let cb = format!("on_{}", act.replace('-', "_"));
+            assert!(wire.contains(&cb), "missing Rust callback {cb} for toolbar action {act}");
+            count += 1;
+        }
+        assert!(count >= 13, "expected toolbar actions, saw {count}");
+    }
 }

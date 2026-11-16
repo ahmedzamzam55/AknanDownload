@@ -5,7 +5,7 @@ use super::complete::wire_complete;
 use super::look::apply_theme;
 use super::main_wire::wire_main;
 use super::shortcuts::wire_about;
-use super::state::{AddState, Ctx, Selection, Ui};
+use super::state::{AddState, Ctx, DialogHandles, Selection, Ui};
 use super::window::set_language;
 use crate::{
     autostart, browser, extra, grab, i18n, options, playlist, scheduler, torrent_ui, tray, update, AboutDialog,
@@ -91,6 +91,27 @@ pub(super) fn build_ui(mgr: &Arc<Manager>, rt: &tokio::runtime::Runtime) -> anyh
         columns_model: Rc::new(VecModel::default()),
         browser_list: Rc::new(RefCell::new(Vec::new())),
         tray: Rc::new(RefCell::new(None)),
+        _dialogs: Rc::new(DialogHandles {
+            _add: add,
+            _batch: batch,
+            _settings: settings_dlg,
+            _complete: complete,
+            _columns: columns,
+            _category: category,
+            _find: find,
+            _props: props,
+            _dup: dup,
+            _countdown: countdown,
+            _sched: sched,
+            _grabber: grabber,
+            _tips: tips,
+            _refresh: refresh_dlg,
+            _playlist: playlist_dlg,
+            _torrent: torrent_dlg,
+            _browsers: browsers_dlg,
+            _updater: updater_dlg,
+            _about: about_dlg,
+        }),
     };
     main.set_rows(ModelRc::from(ui.rows.clone()));
     main.set_columns(ModelRc::from(ui.columns_model.clone()));
@@ -132,5 +153,6 @@ pub(super) fn build_ui(mgr: &Arc<Manager>, rt: &tokio::runtime::Runtime) -> anyh
     playlist::wire(&ui);
     torrent_ui::wire(&ui);
     browser::wire(&ui);
+    assert!(ui.all_dialogs_alive(), "all Slint dialog handles must stay alive");
     Ok((main, ui, has_tray))
 }

@@ -166,5 +166,5 @@ export component MainWindow inherits ThemedWindow {
         move-selection(d, s) => { root.move-selection(d, s); } row-clicked(id, c, s) => { root.row-clicked(id, c, s); }
         row-action(id, a) => { root.row-action(id, a); } column-resized(i, w) => { root.column-resized(i, w); } column-dropped(i, x) => { root.column-dropped(i, x); }
     }
-    ToolTipOverlay { }
+    ToolTipOverlay { win-width: root.width; }
 }
