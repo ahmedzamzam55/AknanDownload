@@ -33,6 +33,7 @@ if (typeof importScripts === "function" && typeof __aknanBgModulesLoaded === "un
     "bg/takeover.js",
     "bg/intercept.js",
     "bg/tab-media.js",
+    "bg/hls-sniff.js",
     "bg/sniffer.js",
     "bg/resolve.js",
     "bg/menus.js",
@@ -68,6 +69,7 @@ try {
   const loads = { urls: ["<all_urls>"], types: ["main_frame", "sub_frame"] };
   chrome.webRequest.onBeforeRequest.addListener(onFormBeforeRequest, loads, ["requestBody"]);
   chrome.webRequest.onBeforeSendHeaders.addListener(onFormBeforeSendHeaders, loads, ["requestHeaders"]);
+  chrome.webRequest.onBeforeRequest.addListener(onSubFrameBeforeNavigate, { urls: ["<all_urls>"], types: ["sub_frame"] });
 } catch (_) {
   /* no form data here: such downloads stay in the browser */
 }

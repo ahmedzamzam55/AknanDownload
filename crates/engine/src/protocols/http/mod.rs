@@ -19,6 +19,7 @@ pub use client::{
 pub use probe::{probe, probe_quick};
 pub use refresh::{add_cookies, drop_kept, is_bot_check, meta_refresh, refresh_target, take_kept, KEEP_FOR};
 pub use request::{request, SendOrdered};
+pub(crate) use request::looks_like_hls;
 pub use status::{
     http_status_of, is_link_gone, is_network_error, is_passing_error, reconnect_delay, relink_delay,
     retry_delay, wants_captcha, ConnGuard, HttpStatus, NetDrop, Progress, Shared, CAPTCHA,

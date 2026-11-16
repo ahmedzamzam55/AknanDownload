@@ -46,6 +46,7 @@ const OWN_FILES = [
   "bg/takeover.js",
   "bg/intercept.js",
   "bg/tab-media.js",
+  "bg/hls-sniff.js",
   "bg/sniffer.js",
   "bg/resolve.js",
   "bg/menus.js",

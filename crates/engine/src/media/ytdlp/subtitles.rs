@@ -8,7 +8,17 @@ use std::process::Command;
 /// The arguments for looking at one page. `--ignore-config`: settings files
 /// of yt-dlp on the computer (which could add `--exec` and the like) are not
 /// read; `--`: the address can never be taken for an option.
+#[cfg(test)]
 pub(super) fn resolve_args(page_url: &str, cookie_file: Option<&Path>, referer: Option<&str>) -> Vec<std::ffi::OsString> {
+    resolve_args_with(page_url, cookie_file, referer, &[])
+}
+
+pub(super) fn resolve_args_with(
+    page_url: &str,
+    cookie_file: Option<&Path>,
+    referer: Option<&str>,
+    extra: &[(String, String)],
+) -> Vec<std::ffi::OsString> {
     let mut a: Vec<std::ffi::OsString> = ["--ignore-config", "-J", "--no-playlist", "--no-warnings", "--no-progress", "--no-cache-dir", "--socket-timeout", "20"]
         .iter()
         .map(Into::into)
@@ -21,6 +31,18 @@ pub(super) fn resolve_args(page_url: &str, cookie_file: Option<&Path>, referer: 
     if let Some(r) = referer.filter(|r| r.starts_with("https://") || r.starts_with("http://")) {
         a.push("--referer".into());
         a.push(r.into());
+    }
+    for (k, v) in extra {
+        if k.is_empty() || v.is_empty() || k.contains(['\r', '\n', ':']) || v.contains(['\r', '\n']) {
+            continue;
+        }
+        if k.eq_ignore_ascii_case("user-agent") {
+            a.push("--user-agent".into());
+            a.push(v.into());
+        } else if !matches!(k.to_ascii_lowercase().as_str(), "cookie" | "referer" | "range" | "host" | "accept" | "accept-encoding") {
+            a.push("--add-header".into());
+            a.push(format!("{k}:{v}").into());
+        }
     }
     a.push("--".into());
     a.push(page_url.into());
@@ -59,9 +81,15 @@ pub(super) fn ytdlp_command(tool: &Path) -> Command {
     cmd
 }
 
-pub(super) fn run_ytdlp(tool: &Path, page_url: &str, cookie_file: Option<&Path>, referer: Option<&str>) -> anyhow::Result<Value> {
+pub(super) fn run_ytdlp(
+    tool: &Path,
+    page_url: &str,
+    cookie_file: Option<&Path>,
+    referer: Option<&str>,
+    extra: &[(String, String)],
+) -> anyhow::Result<Value> {
     let mut cmd = ytdlp_command(tool);
-    cmd.args(resolve_args(page_url, cookie_file, referer));
+    cmd.args(resolve_args_with(page_url, cookie_file, referer, extra));
     let out = cmd.output().context("could not start yt-dlp")?;
     if !out.status.success() {
         let err = String::from_utf8_lossy(&out.stderr);

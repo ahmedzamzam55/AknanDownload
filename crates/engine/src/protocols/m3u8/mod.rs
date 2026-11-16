@@ -60,28 +60,17 @@ pub fn parse_attrs(s: &str) -> HashMap<String, String> {
     out
 }
 
-fn resolve(base: &str, rel: &str) -> anyhow::Result<String> {
+pub(super) fn resolve(base: &str, rel: &str) -> anyhow::Result<String> {
     let base = url::Url::parse(base)?;
     Ok(base.join(rel.trim())?.to_string())
 }
 
-/// For a master playlist, return the URL of the highest quality variant.
+mod master;
+pub use master::{parse_master, Variant};
+
+/// For a master playlist, return the URL of the highest bandwidth variant.
 pub fn best_variant(base: &str, text: &str) -> anyhow::Result<Option<String>> {
-    let mut best: Option<(u64, String)> = None;
-    let mut pending_bw: Option<u64> = None;
-    for line in text.lines().map(str::trim) {
-        if let Some(attrs) = line.strip_prefix("#EXT-X-STREAM-INF:") {
-            let a = parse_attrs(attrs);
-            pending_bw = Some(a.get("BANDWIDTH").and_then(|b| b.parse().ok()).unwrap_or(0));
-        } else if !line.is_empty() && !line.starts_with('#') {
-            if let Some(bw) = pending_bw.take() {
-                if best.as_ref().map(|(b, _)| bw > *b).unwrap_or(true) {
-                    best = Some((bw, resolve(base, line)?));
-                }
-            }
-        }
-    }
-    Ok(best.map(|(_, u)| u))
+    Ok(parse_master(base, text)?.0.into_iter().max_by_key(|v| v.bandwidth).map(|v| v.url))
 }
 
 /// "1000@200" -> (1000, Some(200)); "1000" -> (1000, None)

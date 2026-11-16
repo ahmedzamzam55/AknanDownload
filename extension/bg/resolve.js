@@ -1,7 +1,5 @@
-// Video download, playlist forwarding, and yt-dlp quality resolution.
+// Video download, playlist forwarding, and yt-dlp / HLS quality resolution.
 
-// a part of a video as the page sent it: two times in seconds, the end
-// after the start (else nothing)
 function partOf(c) {
   if (!c || typeof c !== "object") return null;
   const start = Number(c.start);
@@ -10,15 +8,21 @@ function partOf(c) {
   return { start, end, exact: c.exact === true };
 }
 
-async function downloadVideo(option, pageTitle, pageUrl, clip, store) {
+function isManifestUrl(u) {
+  return /\.(m3u8|m3u|mpd)(\?|$)|\/hls\d*\/.*\.txt(\?|$)/i.test(u || "");
+}
+
+async function downloadVideo(option, pageTitle, pageUrl, clip, store, reqHeaders) {
   const title = cleanYoutubeTitle(option.title || pageTitle);
   const name = option.quality === "mp3" ? `${title}.mp3` : `${title} [${option.quality}].${option.ext}`;
+  const srcRef = option.source && !isYoutube(option.source) && !isManifestUrl(option.source) ? option.source : "";
   await sendToApp({
     url: option.videoUrl,
     audioUrl: option.audioUrl,
-    referrer: option.source && !isYoutube(option.source) ? option.source : pageUrl || "https://www.youtube.com/",
+    referrer: srcRef || pageUrl || "https://www.youtube.com/",
     fileName: name,
     headers: option.headers,
+    reqHeaders,
     sourcePage: option.source,
     sourceKey: option.key,
     clip,
@@ -37,18 +41,29 @@ async function sendPlaylist(url) {
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
 }
 
-// Ask the app (yt-dlp) for the qualities of a video page.
-const resolving = new Map(); // tabId -> page being resolved
+const resolving = new Map();
 
-async function askApp(page, referer, startApp = false) {
+async function askApp(page, referer, startApp = false, reqHeaders = null) {
   const { port } = await getOpts();
+  const pairs = reqHeaders && reqHeaders.length ? reqHeaders : (browserRequest(page) || []).map((h) => [h.name, h.value]);
+  const sentReferer = findHeader(pairs, "referer");
+  const effRef = sentReferer || referer || null;
+  const c1 = await cookieList(effRef || page);
+  let cookies = c1;
+  if (effRef && effRef !== page) {
+    const c2 = await cookieList(page);
+    if (c2.length) {
+      const seen = new Set(c1.map((c) => `${c.domain}|${c.name}|${c.path}`));
+      cookies = [...c1, ...c2.filter((c) => !seen.has(`${c.domain}|${c.name}|${c.path}`))];
+    }
+  }
   const r = await fetchWithTimeout(
     apiUrl(port, "/resolve"),
     {
       startApp,
       method: "POST",
       headers: { "Content-Type": "application/json", "X-SwiftGet": "1" },
-      body: JSON.stringify({ url: page, cookieList: await cookieList(referer || page), referer: referer || null }),
+      body: JSON.stringify({ url: page, cookieList: cookies, referer: effRef, headers: pairs }),
     },
     90000
   );
@@ -84,19 +99,11 @@ async function resolveYoutube(tabId, pageUrl) {
   } finally {
     if (resolving.get(tabId) === videoId) resolving.delete(tabId);
   }
-  // the user may have moved on to another video meanwhile
   const now = await chrome.tabs.get(tabId).catch(() => null);
   if (now && videoIdOf(now.url) === videoId) await patchYt(tabId, videoId, { resolving: false, ...change });
 }
 
-/**
- * Any other site: the page (or the post / reel / video link next to the
- * video the user is watching) is handed to yt-dlp, which knows Facebook,
- * Instagram, TikTok, X, Vimeo, Dailymotion and ~1800 more sites.
- */
 async function resolvePage(tabId, page, embedded = false) {
-  // YouTube's own pages have their own way (resolveYoutube); a YouTube
-  // player embedded in another site goes this way
   if (!page || !/^https?:/i.test(page) || (isYoutube(page) && !embedded)) return;
   const key = `res_${tabId}`;
   const state = (await chrome.storage.session.get(key))[key];
@@ -120,41 +127,70 @@ async function resolvePage(tabId, page, embedded = false) {
   }
 }
 
-/** The bubble of a video that is not the page's main one was clicked. */
-async function resolveOneVideo(msg, tab) {
+async function resolveOneVideo(msg, sender) {
+  const tab = sender && sender.tab;
+  const frameId = (sender && sender.frameId) || 0;
   if (isTelegramStream(msg.src) || isTelegramStream(msg.resolve)) return { error: telegramText() };
-  // a DASH stream of the page: its own qualities
   if (msg.resolve && /^https?:/i.test(msg.resolve)) {
     try {
-      // the user asked (a player's own menu): a closed program is opened
-      const r = await askApp(msg.resolve, tab && tab.url, true);
-      if (r.resolved && r.resolved.options.length) return { items: optionItems(r.resolved, msg.resolve) };
+      let rh = msg.reqHeaders;
+      if ((!rh || !rh.length) && tab) {
+        const { media } = await readTab(tab.id);
+        const match = media.find((m) => m.url === msg.resolve);
+        if (match) rh = match.reqHeaders;
+      }
+      const ref = (frameId && sender && sender.url) || (tab && tab.url);
+      const r = await askApp(msg.resolve, ref, true, rh);
+      const src = isManifestUrl(msg.resolve) ? "" : msg.resolve;
+      if (r.resolved && r.resolved.options.length) return { items: optionItems(r.resolved, src, rh) };
       return { error: r.resolveError || aknanI18n.t("Can't get this video") };
     } catch (e) {
       if (await appAlive()) return { error: String((e && e.message) || e) };
       return { error: aknanI18n.t("Aknan Download is not running"), notRunning: true };
     }
   }
-  // a player in a frame (Dailymotion, news sites...): what was found for the
-  // whole page (its qualities, its streams) is what this player plays
   if (msg.frame && tab) {
+    if (frameId > 0) {
+      let { media } = await readTab(tab.id);
+      const hls = media.filter((m) => m.frameId === frameId && m.type === "HLS stream" && !m.master && !m.media && !m.resolvedOptions);
+      if (hls.length) {
+        for (const m of hls.slice(0, 3)) await readHls(tab.id, m.url).catch(() => {});
+        ({ media } = await readTab(tab.id));
+      }
+      const mine = media.filter((m) => m.frameId === frameId);
+      if (mine.length) {
+        const frameItems = mediaItems(mine).filter((i) => !i.disabled);
+        if (frameItems.length) return { items: frameItems };
+      }
+    }
     if (!msg.page && !isYoutube(tab.url)) {
       await resolvePage(tab.id, tab.url).catch(() => {});
-      // it may have been started already (the player was seen): wait for it
       for (let i = 0; i < 180; i++) {
         const { res } = await readTab(tab.id);
         if (!res || !res.resolving) break;
         await new Promise((r) => setTimeout(r, 500));
       }
     }
-    const found = (await itemsForTab(tab.id)).filter((i) => !i.disabled);
+    const { res, media } = await readTab(tab.id);
+    if (!(res && res.resolved && res.resolved.options.length)) {
+      const hls = media.filter((m) => m.type === "HLS stream" && !m.master && !m.media && !m.resolvedOptions && (!frameId || !m.frameId || m.frameId === frameId));
+      for (const m of hls.slice(0, 3)) await readHls(tab.id, m.url).catch(() => {});
+    }
+    let found = (await itemsForTab(tab.id, frameId)).filter((i) => !i.disabled);
+    if (found.length) return { items: found };
+    const fUrl = sender && sender.url;
+    if (fUrl && /^https?:/i.test(fUrl) && fUrl !== tab.url && !/geo\.dailymotion\.com\/player/i.test(fUrl)) {
+      try {
+        const r = await askApp(fUrl, tab.url, true);
+        if (r.resolved && r.resolved.options.length) return { items: optionItems(r.resolved, fUrl) };
+      } catch {}
+    }
+    found = (await itemsForTab(tab.id, frameId)).filter((i) => !i.disabled);
     if (found.length) return { items: found };
   }
   const items = [];
   if (msg.feed && !msg.page) {
-    // Facebook feed and no link next to this video: the page's own streams,
-    // else how to get the video's own page
-    const found = tab ? (await itemsForTab(tab.id)).filter((i) => !i.disabled && !i.yt) : [];
+    const found = tab ? (await itemsForTab(tab.id, frameId)).filter((i) => !i.disabled && !i.yt) : [];
     if (found.length) return { items: found };
     return { error: aknanI18n.t("Open the video first (click the time next to the name above the video), then press the button again.") };
   }
@@ -174,9 +210,7 @@ async function resolveOneVideo(msg, tab) {
     }
   }
   if (items.length) return { items };
-  // the page is nothing the app knows (a player of its own): the streams the
-  // player opened are this video
-  const found = tab ? (await itemsForTab(tab.id)).filter((i) => !i.disabled && !i.yt) : [];
+  const found = tab ? (await itemsForTab(tab.id, frameId)).filter((i) => !i.disabled && !i.yt) : [];
   if (found.length) return { items: found };
   if (/unsupported url/i.test(problem)) return { error: aknanI18n.t("Play the video for a moment, then press the button again.") };
   if (isDrm(problem)) return { error: drmText(), drm: true };

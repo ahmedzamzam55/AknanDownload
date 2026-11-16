@@ -1,6 +1,7 @@
 use super::cookies::{cookie_file, login_wall, needs_login, site_of};
+use super::hls_direct::try_resolve_hls;
 use super::playlist::{channel_videos, script_lang};
-use super::subtitles::{playlist_args, resolve_args};
+use super::subtitles::{playlist_args, resolve_args, resolve_args_with};
 use super::tests_options::youtube_sample;
 use super::*;
 use serde_json::json;
@@ -121,3 +122,55 @@ fn cookie_file_format() {
     assert!(s.contains("www.x.com\tFALSE\t/\tFALSE\t2147483647\ta\tb=c\n"));
     assert!(needs_login("ERROR: [Instagram] abc: Requested content is not available, rate-limit reached or login required"));
 }
+
+#[test]
+fn extra_headers_forwarded_to_ytdlp_and_direct_hls() {
+    let args: Vec<String> = resolve_args_with(
+        "https://cdn.example/v.mp4",
+        None,
+        Some("https://embed.example/p"),
+        &[("Origin".into(), "https://embed.example".into()), ("User-Agent".into(), "CustomUA".into())],
+    )
+    .iter()
+    .map(|x| x.to_string_lossy().into_owned())
+    .collect();
+    assert!(args.windows(2).any(|w| w[0] == "--user-agent" && w[1] == "CustomUA"));
+    assert!(args.windows(2).any(|w| w[0] == "--add-header" && w[1] == "Origin:https://embed.example"));
+
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    let t = std::thread::spawn(move || {
+        use std::io::{Read, Write};
+        if let Ok((mut sock, _)) = listener.accept() {
+            let mut buf = [0u8; 4096];
+            let n = sock.read(&mut buf).unwrap_or(0);
+            let req = String::from_utf8_lossy(&buf[..n]).to_ascii_lowercase();
+            let ok = req.contains("referer: https://embed.example/v1") && req.contains("origin: https://embed.example");
+            let resp = if ok {
+                "HTTP/1.1 200 OK\r\nContent-Type: application/vnd.apple.mpegurl\r\nConnection: close\r\n\r\n\
+                 #EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION=1280x720\n720/index.m3u8\n"
+            } else {
+                "HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n"
+            };
+            let _ = sock.write_all(resp.as_bytes());
+        }
+    });
+    let info = try_resolve_hls(
+        &format!("http://{addr}/hls2/master.m3u8?t=tok"),
+        None,
+        Some("https://outer.site/watch"),
+        &[
+            ("Referer".into(), "https://embed.example/v1".into()),
+            ("Origin".into(), "https://embed.example".into()),
+        ],
+    )
+    .unwrap()
+    .unwrap();
+    let _ = t.join();
+    assert_eq!(info.options.len(), 1);
+    assert_eq!(info.options[0].quality, "720p");
+    assert_eq!(info.options[0].video_url, format!("http://{addr}/hls2/720/index.m3u8"));
+    assert!(info.options[0].headers.iter().any(|(k, v)| k == "Origin" && v == "https://embed.example"));
+    assert!(info.options[0].headers.iter().any(|(k, v)| k == "Referer" && v == "https://embed.example/v1"));
+}
+

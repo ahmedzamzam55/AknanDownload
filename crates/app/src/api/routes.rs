@@ -168,7 +168,7 @@ fn handle_resolve(mut req: Request) {
         let _done = Done;
         let cookies = (!r.cookie_list.is_empty()).then_some(r.cookie_list.as_slice());
         let referer = r.referer.as_deref().filter(|u| is_http(u));
-        let body = match swiftget_engine::ytdlp::resolve_for(&r.url, cookies, referer) {
+        let body = match swiftget_engine::ytdlp::resolve_with_headers(&r.url, cookies, referer, &r.headers) {
             Ok(info) => serde_json::json!({
                 "ok": true, "title": info.title, "site": info.site, "options": info.options
             }),

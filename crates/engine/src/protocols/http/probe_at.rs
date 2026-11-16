@@ -20,7 +20,12 @@ pub(super) async fn probe_at(
 ) -> anyhow::Result<(ProbeResult, Option<reqwest::Response>, Option<PageNext>)> {
     let mut first_refusal: Option<u16> = None;
     let mut found = None;
-    for (with_range, h) in fallbacks(headers) {
+    let mut ways = fallbacks(headers);
+    if looks_like_hls(url, None) {
+        // HLS manifests often carry short-lived tokens on CDNs that reject Range: bytes=0-
+        ways.sort_by_key(|(with_range, _)| *with_range);
+    }
+    for (with_range, h) in ways {
         let mut rb = request(client, url, &h, default_ua);
         if with_range {
             // from the start to the end, like a browser asking to resume:

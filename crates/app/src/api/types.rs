@@ -56,6 +56,9 @@ pub(super) struct ResolveRequest {
     /// a stream found on a page: that page
     #[serde(default)]
     pub(super) referer: Option<String>,
+    /// captured request headers from the browser (Origin, User-Agent, etc.)
+    #[serde(default)]
+    pub(super) headers: Vec<(String, String)>,
 }
 
 /// "Download all links with Aknan Download" from the browser's right click menu.

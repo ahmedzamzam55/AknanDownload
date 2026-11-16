@@ -1,5 +1,6 @@
 use super::build::build_options;
 use super::cookies::{with_cookies, BrowserCookie};
+use super::hls_direct::try_resolve_hls;
 use super::options::{YtInfo, YtOption};
 use super::subtitles::{run_ytdlp, ytdlp_command};
 use crate::mux::find_tool;
@@ -13,19 +14,31 @@ use std::time::{Duration, SystemTime};
 /// age-limited YouTube videos, ...). Cookies the browser gave earlier for
 /// the same site are used when none come with this call.
 pub fn resolve(page_url: &str, cookies: Option<&[BrowserCookie]>) -> anyhow::Result<YtInfo> {
-    resolve_for(page_url, cookies, None)
+    resolve_with_headers(page_url, cookies, None, &[])
 }
 
 /// The same, for a stream found on a page (`referer`: that page).
 pub fn resolve_for(page_url: &str, cookies: Option<&[BrowserCookie]>, referer: Option<&str>) -> anyhow::Result<YtInfo> {
-    // the same page again within a few minutes (the add-in asks again when
-    // the tab comes back, a playlist video is picked): no new yt-dlp run,
-    // which takes seconds and much memory
-    if let Some(info) = cached(page_url) {
-        return Ok(info);
+    resolve_with_headers(page_url, cookies, referer, &[])
+}
+
+/// The same, carrying extra captured browser request headers (`Origin`, `Referer`, `User-Agent`).
+pub fn resolve_with_headers(
+    page_url: &str,
+    cookies: Option<&[BrowserCookie]>,
+    referer: Option<&str>,
+    extra_headers: &[(String, String)],
+) -> anyhow::Result<YtInfo> {
+    // Only reuse cached page results when no per-request stream headers are passed
+    if extra_headers.is_empty() && referer.is_none() {
+        if let Some(info) = cached(page_url) {
+            return Ok(info);
+        }
     }
-    let info = resolve_now(page_url, cookies, referer)?;
-    remember(page_url, &info);
+    let info = resolve_now(page_url, cookies, referer, extra_headers)?;
+    if extra_headers.is_empty() && referer.is_none() {
+        remember(page_url, &info);
+    }
     Ok(info)
 }
 
@@ -53,19 +66,33 @@ pub fn forget(page_url: &str) {
     RESULTS.lock().unwrap_or_else(|p| p.into_inner()).retain(|(u, _, _)| u != page_url);
 }
 
-fn resolve_now(page_url: &str, cookies: Option<&[BrowserCookie]>, referer: Option<&str>) -> anyhow::Result<YtInfo> {
-    // a file on Google Drive: its own file, whole, as it was put there (the
-    // player's qualities are made smaller by Google, and yt-dlp often can't
-    // see a file shared with the user)
+fn resolve_now(
+    page_url: &str,
+    cookies: Option<&[BrowserCookie]>,
+    referer: Option<&str>,
+    extra_headers: &[(String, String)],
+) -> anyhow::Result<YtInfo> {
+    if crate::http::looks_like_hls(page_url, None) {
+        if let Ok(Some(info)) = try_resolve_hls(page_url, cookies, referer, extra_headers) {
+            return Ok(info);
+        }
+    }
     let drive = drive_file_id(page_url);
     let tool = find_tool("yt-dlp")
         .ok_or_else(|| anyhow!("yt-dlp.exe is missing. Aknan Download gets it by itself in a minute (internet needed), then try again"));
     let cookies = cookies.filter(|c| !c.is_empty());
-    let found = tool.and_then(|tool| with_cookies(page_url, cookies, |file| run_ytdlp(&tool, page_url, file, referer)));
+    let found = tool.and_then(|tool| {
+        with_cookies(page_url, cookies, |file| run_ytdlp(&tool, page_url, file, referer, extra_headers))
+    });
     let mut info = match (found, &drive) {
         (Ok(json), _) => build_options(&json),
         (Err(_), Some(_)) => YtInfo { title: String::new(), site: "Google Drive".into(), options: Vec::new() },
-        (Err(e), None) => return Err(e),
+        (Err(e), None) => {
+            if let Ok(Some(hls)) = try_resolve_hls(page_url, cookies, referer, extra_headers) {
+                return Ok(hls);
+            }
+            return Err(e);
+        }
     };
     if let Some(id) = drive {
         info.site = "Google Drive".into();

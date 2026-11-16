@@ -102,7 +102,7 @@ function renderMediaList(tab, items) {
         // a stream: its qualities come from the app, shown in its place
         btn.textContent = "…";
         btn.disabled = true;
-        chrome.runtime.sendMessage({ type: "swiftget-resolve-video", resolve: m.resolve }, (res) => {
+        chrome.runtime.sendMessage({ type: "swiftget-resolve-video", resolve: m.resolve, reqHeaders: m.reqHeaders }, (res) => {
           if (!res || res.error || !res.items) {
             btn.textContent = (res && res.error) || aknanI18n.t("App not running");
             return;

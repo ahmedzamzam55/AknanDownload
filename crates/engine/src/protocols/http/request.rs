@@ -116,13 +116,16 @@ pub fn request(client: &Client, url: &str, h: &RequestHeaders, default_ua: &str)
     rb
 }
 
-pub(super) fn looks_like_hls(url: &str, content_type: Option<&str>) -> bool {
+pub(crate) fn looks_like_hls(url: &str, content_type: Option<&str>) -> bool {
     let ct = content_type.unwrap_or("").to_ascii_lowercase();
     if ct.contains("mpegurl") {
         return true;
     }
     url::Url::parse(url)
-        .map(|u| u.path().to_ascii_lowercase().ends_with(".m3u8"))
+        .map(|u| {
+            let p = u.path().to_ascii_lowercase();
+            p.ends_with(".m3u8") || p.ends_with(".m3u") || (p.contains("/hls") && p.ends_with(".txt"))
+        })
         .unwrap_or(false)
 }
 

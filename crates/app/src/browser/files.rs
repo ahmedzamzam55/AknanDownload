@@ -27,6 +27,7 @@ const EXTENSION_FILES: &[(&str, &[u8])] = &[
     ("bg/context.js", include_bytes!("../../../../extension/bg/context.js")),
     ("bg/downloads.js", include_bytes!("../../../../extension/bg/downloads.js")),
     ("bg/helper.js", include_bytes!("../../../../extension/bg/helper.js")),
+    ("bg/hls-sniff.js", include_bytes!("../../../../extension/bg/hls-sniff.js")),
     ("bg/intercept.js", include_bytes!("../../../../extension/bg/intercept.js")),
     ("bg/menus.js", include_bytes!("../../../../extension/bg/menus.js")),
     ("bg/messages.js", include_bytes!("../../../../extension/bg/messages.js")),

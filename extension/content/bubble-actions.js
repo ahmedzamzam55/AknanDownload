@@ -38,7 +38,7 @@
     return !mine || CS.isVideoPage(location.href) || mine === CS.cleanLink(location.href) ? CS.items : [];
   };
 
-  CS.lookUp = (b, stream) => {
+  CS.lookUp = (b, stream, reqHeaders) => {
     // another video on the page (or nothing found for it yet): look it up now
     b.loading = true;
     b.open = true;
@@ -51,6 +51,7 @@
       {
         type: "swiftget-resolve-video",
         resolve: stream || "",
+        reqHeaders: reqHeaders || undefined,
         // in a frame that is only a player: the add-in uses the page around it
         page: CS.ownLink(b.video) || (CS.directSrc(b.video) || !CS.TOP || CS.inFeed() ? "" : location.href),
         feed: CS.TOP && CS.inFeed(),
@@ -59,9 +60,9 @@
       },
       (res) => {
         b.loading = false;
-        if (chrome.runtime.lastError || !res) return CS.notRunning(b, () => CS.lookUp(b, stream));
+        if (chrome.runtime.lastError || !res) return CS.notRunning(b, () => CS.lookUp(b, stream, reqHeaders));
         if (res.error) {
-          if (res.notRunning || /not running/i.test(res.error)) return CS.notRunning(b, () => CS.lookUp(b, stream));
+          if (res.notRunning || /not running/i.test(res.error)) return CS.notRunning(b, () => CS.lookUp(b, stream, reqHeaders));
           return CS.renderOne(b, res.error, true);
         }
         // the player went on to another video meanwhile: not its qualities
@@ -149,7 +150,7 @@
 
   CS.download = (b, m) => {
     // a stream whose qualities are not known yet: ask the app for them
-    if (m.resolve) return CS.lookUp(b, m.resolve);
+    if (m.resolve) return CS.lookUp(b, m.resolve, m.reqHeaders);
     const fileName = `${CS.cleanTitle()}.${m.ext || "mp4"}`;
     chrome.runtime.sendMessage(
       { type: "swiftget-download", item: m, title: document.title, fileName, referrer: location.href },

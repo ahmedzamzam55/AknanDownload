@@ -19,8 +19,8 @@ function onRuntimeMessage(msg, sender, sendResponse) {
       return reply(
         storeOf(sender.tab).then((store) =>
           item.yt
-            ? downloadVideo(item.yt, msg.title, referrer, clip, store)
-            : sendToApp({ url: item.url, referrer, fileName: msg.fileName, clip, store })
+            ? downloadVideo(item.yt, msg.title, referrer, clip, store, item.reqHeaders)
+            : sendToApp({ url: item.url, referrer, reqHeaders: item.reqHeaders, fileName: msg.fileName, clip, store })
         ),
         sendResponse
       );
@@ -46,7 +46,7 @@ function onRuntimeMessage(msg, sender, sendResponse) {
       return false;
     case "swiftget-resolve-video":
       // one of several videos on the page: its own file, or its own link
-      resolveOneVideo(msg, sender.tab).then(sendResponse);
+      resolveOneVideo(msg, sender).then(sendResponse);
       return true;
     case "swiftget-link-rules":
       // what a click on a file link in the page should do (decided in the

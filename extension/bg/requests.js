@@ -1,26 +1,41 @@
 // ---------------------------------------------------------------- the browser's own request & forms
-// What the browser sent for a file a moment ago (some sites let only exactly
-// that request in: the right Accept-Language, Sec-Fetch-*, client hints...).
-// The download is handed over with the same headers. Kept in memory for two
-// minutes: the download starts right after its request.
+// What the browser sent for a file (Host-less header capture): kept 30 min so
+// a stream loaded before clicking the bubble still has its Referer and Origin.
 const SENT_HEADERS = new Map();
-const KEEP_HEADERS = /^(accept-language|sec-fetch-(site|mode|dest|user)|sec-ch-ua(-mobile|-platform)?|origin|referer|user-agent|cookie|x-requested-with)$/i;
+const SENT_BY_ID = new Map();
+const SENT_TTL = 1800000;
+const KEEP_HEADERS = /^(accept-language|origin|referer|user-agent|cookie|x-requested-with|sec-fetch-(site|mode|dest|user)|sec-ch-ua(-mobile|-platform)?)$/i;
+
+function trimSent(map, limit) {
+  if (map.size <= limit) return;
+  const old = Date.now() - SENT_TTL;
+  for (const [k, v] of map) if (v.at < old || map.size > limit) map.delete(k);
+}
 
 function rememberRequest(d) {
   if (!d.requestHeaders || !/^https?:/i.test(d.url)) return;
   const kept = d.requestHeaders.filter((h) => KEEP_HEADERS.test(h.name) && typeof h.value === "string");
   if (!kept.length) return;
-  SENT_HEADERS.set(d.url, { at: Date.now(), headers: kept });
-  if (SENT_HEADERS.size > 300) {
-    const old = Date.now() - 120000;
-    for (const [k, v] of SENT_HEADERS) if (v.at < old || SENT_HEADERS.size > 300) SENT_HEADERS.delete(k);
-  }
+  const entry = { at: Date.now(), headers: kept };
+  SENT_HEADERS.set(d.url, entry);
+  if (d.requestId) SENT_BY_ID.set(d.requestId, entry);
+  trimSent(SENT_HEADERS, 500);
+  trimSent(SENT_BY_ID, 500);
+}
+
+/** Pairs [[name, value], ...] captured for `d`, filling missing Referer / Origin. */
+function captureRequestHeaders(d) {
+  const byId = d.requestId && SENT_BY_ID.get(d.requestId);
+  const raw = (byId && byId.headers) || browserRequest(d.url) || [];
+  const pairs = raw.map((h) => [h.name, h.value]);
+  const has = (k) => pairs.some(([n, v]) => n.toLowerCase() === k && v);
+  const ref = /^https?:/i.test(d.documentUrl || "") ? d.documentUrl : /^https?:/i.test(d.originUrl || "") ? d.originUrl : /^https?:/i.test(d.initiator || "") ? `${d.initiator}/` : "";
+  if (!has("referer") && ref) pairs.push(["Referer", ref]);
+  if (!has("origin") && /^https?:/i.test(d.initiator || "")) pairs.push(["Origin", d.initiator]);
+  return pairs;
 }
 
 // ---------------------------------------------------------------- forms
-// A file a form's button gives (POST): the app asks for it the same way, with
-// the form's data. What it sent is kept for two minutes. A form with a file in
-// it (an upload) can't be sent again: its download stays in the browser.
 const FORMS = new Map();
 const FORM_LIMIT = 64 * 1024;
 
@@ -76,14 +91,9 @@ const b64 = (text) => {
   return btoa(bin);
 };
 
-/**
- * The form posted to `url` a moment ago, as the app sends it again:
- * undefined = no form; null = one that can't be sent again (a file in it).
- */
 function formFor(url) {
   const f = url && FORMS.get(url);
   if (!f || Date.now() - f.at > 120000) return undefined;
-  // multipart: the browser gives its fields without its files
   if (f.body === null || (f.fields && /multipart/i.test(f.type || ""))) return null;
   return { post: b64(f.body), postType: f.fields ? "application/x-www-form-urlencoded" : f.type || "" };
 }
@@ -92,29 +102,48 @@ function formFor(url) {
 function browserRequest(...urls) {
   for (const u of urls) {
     const r = u && SENT_HEADERS.get(u);
-    if (r && Date.now() - r.at < 120000) return r.headers;
+    if (r && Date.now() - r.at < SENT_TTL) return r.headers;
   }
   return null;
 }
 
-async function sendToApp({ url, audioUrl, referrer, fileName, headers, sourcePage, sourceKey, alsoUrl, clip, store, form }) {
+function findHeader(pairs, name) {
+  const m = (pairs || []).find(([k]) => String(k).toLowerCase() === name);
+  return m ? m[1] : "";
+}
+
+function mergePairs(primary, secondary) {
+  const out = [];
+  const seen = new Set();
+  for (const [k, v] of [...(primary || []), ...(secondary || [])]) {
+    if (!k || v == null) continue;
+    const low = String(k).toLowerCase();
+    if (seen.has(low)) continue;
+    seen.add(low);
+    out.push([k, v]);
+  }
+  return out;
+}
+
+async function sendToApp({ url, audioUrl, referrer, fileName, headers, reqHeaders, sourcePage, sourceKey, alsoUrl, clip, store, form }) {
   const { port } = await getOpts();
-  // the browser's own request for this file: its headers go along (the app
-  // keeps its own Accept / Range); its cookie is the one the site really got
-  const sent = headers ? null : browserRequest(url, alsoUrl);
-  const sentCookie = sent && sent.find((h) => /^cookie$/i.test(h.name));
-  const sentReferer = sent && sent.find((h) => /^referer$/i.test(h.name));
-  const sentUa = sent && sent.find((h) => /^user-agent$/i.test(h.name));
-  const passOn = sent ? sent.filter((h) => !/^(cookie|referer|user-agent)$/i.test(h.name)).map((h) => [h.name, h.value]) : null;
+  const captured = reqHeaders && reqHeaders.length ? reqHeaders : (browserRequest(url, alsoUrl) || []).map((h) => [h.name, h.value]);
+  const combined = mergePairs(headers, captured);
+  const sentCookie = findHeader(combined, "cookie");
+  const sentReferer = findHeader(combined, "referer");
+  const sentUa = findHeader(combined, "user-agent");
+  const passOn = combined.filter(([k]) => !/^(cookie|referer|user-agent)$/i.test(k));
+  const outHeaders = headers && headers.length ? mergePairs(headers, passOn) : passOn.length ? passOn : null;
   const body = {
     url,
     audioUrl: audioUrl || null,
-    headers: headers || (passOn && passOn.length ? passOn : null),
+    headers: outHeaders,
     sourcePage: sourcePage || null,
     sourceKey: sourceKey || null,
-    referrer: referrer || (sentReferer && sentReferer.value) || null,
-    cookies: (sentCookie && sentCookie.value) || (await cookieHeader(url, store)),
-    userAgent: (sentUa && sentUa.value) || navigator.userAgent,
+    // Prefer the real player Referer over outer wrapper pages (e.g. laroza1 -> okprimeone iframe)
+    referrer: sentReferer || referrer || null,
+    cookies: sentCookie || (await cookieHeader(url, store)),
+    userAgent: sentUa || navigator.userAgent,
     fileName: fileName || null,
     clip: clip || null,
     ...(form ? form : {}),

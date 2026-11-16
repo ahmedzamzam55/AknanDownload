@@ -1,0 +1,118 @@
+// HLS playlist parsing, protected fallback resolution via desktop app, and iframe navigation cleanup.
+
+function parseHlsMaster(text, base) {
+  if (!/#EXT-X-STREAM-INF/i.test(text)) return null;
+  const lines = text.split(/\r?\n/).map((l) => l.trim());
+  const variants = [];
+  const separateAudio = lines.some((l) => /^#EXT-X-MEDIA:.*TYPE=AUDIO.*URI=/i.test(l));
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^#EXT-X-STREAM-INF:/i.test(lines[i])) continue;
+    let uri = "";
+    for (let j = i + 1; j < lines.length; j++) {
+      if (lines[j] && !lines[j].startsWith("#")) {
+        uri = lines[j];
+        break;
+      }
+    }
+    if (!uri) continue;
+    let url = "";
+    try {
+      url = new URL(uri, base).toString();
+    } catch {
+      continue;
+    }
+    const res = /RESOLUTION=(\d+)x(\d+)/i.exec(lines[i]);
+    const bw = /[^-]BANDWIDTH=(\d+)/i.exec("," + lines[i]);
+    variants.push({ url, height: res ? Number(res[2]) : 0, width: res ? Number(res[1]) : 0, bw: bw ? Number(bw[1]) : 0 });
+  }
+  if (!variants.length) return null;
+  variants.sort((a, b) => b.height - a.height || b.bw - a.bw);
+  const seen = new Set();
+  const unique = variants.filter((v) => {
+    const k = v.height ? `h${v.height}` : `b${v.bw}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  return { variants: unique, separateAudio };
+}
+
+function hlsLabel(v) {
+  if (v.height) return `${v.height}p`;
+  if (v.bw) return `${Math.round(v.bw / 1000)} kbps`;
+  return "Video";
+}
+
+function originOf(u) {
+  try {
+    return new URL(u).origin;
+  } catch {
+    return "";
+  }
+}
+
+/** Clear stale streams when an embedded server iframe switches to another URL/server. */
+async function onSubFrameBeforeNavigate(d) {
+  if (d.tabId < 0 || !(d.frameId > 0) || !/^https?:/i.test(d.url || "")) return;
+  const key = `media_${d.tabId}`;
+  const current = (await chrome.storage.session.get(key))[key] || [];
+  if (!current.length) return;
+  const nextOrigin = originOf(d.url);
+  const kept = current.filter((m) => m.frameId !== d.frameId || (m.frameUrl && m.frameUrl === d.url && m.frameOrigin === nextOrigin));
+  if (kept.length === current.length) return;
+  await chrome.storage.session.set({ [key]: kept });
+  pushToTab(d.tabId);
+}
+
+async function resolveHlsThroughApp(tabId, url) {
+  if (!(await appAlive())) return;
+  const key = `media_${tabId}`;
+  const current = (await chrome.storage.session.get(key))[key] || [];
+  const me = current.find((m) => m.url === url);
+  if (!me || me.resolvedOptions) return;
+  const r = await askApp(url, null, false, me.reqHeaders).catch(() => null);
+  if (!r || !r.resolved || !r.resolved.options || !r.resolved.options.length) return;
+  const fresh = (await chrome.storage.session.get(key))[key] || [];
+  const target = fresh.find((m) => m.url === url);
+  if (!target) return;
+  target.resolvedOptions = r.resolved;
+  const inside = new Set(r.resolved.options.map((o) => o.videoUrl).filter(Boolean));
+  for (const m of fresh) if (m !== target && inside.has(m.url)) m.child = true;
+  await chrome.storage.session.set({ [key]: fresh });
+  pushToTab(tabId);
+}
+
+async function readHls(tabId, url) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 8000);
+  let text = "";
+  let ok = false;
+  try {
+    const r = await fetch(url, { credentials: "include", signal: ctl.signal });
+    ok = r.ok;
+    if (ok) text = (await r.text()).slice(0, 512 * 1024);
+  } catch {
+    ok = false;
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!ok || !/^\s*#EXTM3U/.test(text)) {
+    await resolveHlsThroughApp(tabId, url);
+    return;
+  }
+  const master = parseHlsMaster(text, url);
+  const key = `media_${tabId}`;
+  const current = (await chrome.storage.session.get(key))[key] || [];
+  const me = current.find((m) => m.url === url);
+  if (!me) return;
+  if (master) {
+    me.master = master;
+    const inside = new Set(master.variants.map((v) => v.url));
+    for (const m of current) if (m !== me && inside.has(m.url)) m.child = true;
+  } else {
+    me.media = true;
+    if (current.some((m) => m.master && m.master.variants.some((v) => v.url === url))) me.child = true;
+  }
+  await chrome.storage.session.set({ [key]: current });
+  pushToTab(tabId);
+}
