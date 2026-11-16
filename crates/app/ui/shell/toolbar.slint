@@ -110,7 +110,7 @@ export component Toolbar inherits Rectangle {
             small: root.small-now;
             width: root.small-now ? 34px : max(62px, 62px * Theme.font-scale);
             clicked => {
-                root.open-queue-menu(true, self.x);
+                root.open-queue-menu(true, self.absolute-position.x);
             }
         }
         stop-q := ToolBtn {
@@ -119,7 +119,7 @@ export component Toolbar inherits Rectangle {
             small: root.small-now;
             width: root.small-now ? 34px : max(62px, 62px * Theme.font-scale);
             clicked => {
-                root.open-queue-menu(false, self.x);
+                root.open-queue-menu(false, self.absolute-position.x);
             }
         }
         ToolSeparator { }

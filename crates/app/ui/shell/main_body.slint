@@ -3,6 +3,7 @@
 import { DownloadRow, QueueRow, CatRow, Cols, ColDef, HRow } from "../common.slint";
 import { ShellState } from "shell_types.slint";
 import { MainKeys } from "main_keys.slint";
+import { TopMenuBar } from "top_menu_bar.slint";
 import { Toolbar } from "toolbar.slint";
 import { Sidebar } from "sidebar.slint";
 import { StatusBar } from "status_bar.slint";
@@ -21,6 +22,7 @@ export component MainBody inherits Rectangle {
     in property <[CatRow]> categories;
     in property <Cols> cols;
     in property <[ColDef]> columns;
+    in property <int> active-menu: -1;
     in-out property <string> view: "all";
     in-out property <string> search;
     in-out property <bool> open-all: true;
@@ -32,6 +34,7 @@ export component MainBody inherits Rectangle {
     callback int-act(string, int);
     callback str-act(string, string);
     callback int2-act(string, int, int);
+    callback open-top-menu(int, length, length);
     callback move-selection(int, bool);
     callback row-clicked(int, bool, bool);
     callback row-action(int, string);
@@ -39,9 +42,11 @@ export component MainBody inherits Rectangle {
     callback column-dropped(int, length);
 
     property <length> qmenu-x;
+    property <length> qmenu-y: 66px;
     property <bool> qmenu-start: true;
     queue-menu := QueueMenu {
         qmenu-x: root.qmenu-x;
+        qmenu-y: root.qmenu-y;
         qmenu-start: root.qmenu-start;
         queues: root.queues;
         start-queue(q) => { root.int-act("start-queue", q); }
@@ -64,6 +69,10 @@ export component MainBody inherits Rectangle {
         focus-search => { tb.focus-search(); }
 
         VerticalLayout {
+            TopMenuBar {
+                active-menu: root.active-menu;
+                open-menu(i, x, y) => { root.open-top-menu(i, x, y); }
+            }
             tb := Toolbar {
                 toolbar-small: root.state.toolbar-small;
                 can-resume: root.state.can-resume;
@@ -75,6 +84,7 @@ export component MainBody inherits Rectangle {
                 open-queue-menu(start, x) => {
                     root.qmenu-start = start;
                     root.qmenu-x = x;
+                    root.qmenu-y = tb.y + tb.height + 2px;
                     queue-menu.show();
                 }
                 search-changed => { root.act("search-changed"); }

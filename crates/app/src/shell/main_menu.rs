@@ -1,4 +1,5 @@
 use super::format::menu_done_from;
+use super::menubar::open_top_menu;
 use super::modal::message;
 use super::rows::refresh;
 use super::shortcuts::about;
@@ -10,6 +11,10 @@ use swiftget_engine::default_data_dir;
 
 pub(super) fn wire_main_menu(main: &MainWindow, ui: &Ui) {
     let mgr = ui.ctx.mgr.clone();
+    {
+        let ui = ui.clone();
+        main.on_open_top_menu(move |idx, x, y| open_top_menu(&ui, idx, x, y));
+    }
     {
         let ui = ui.clone();
         main.on_start_queue(move |q| {

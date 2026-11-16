@@ -22,6 +22,8 @@ mod loops;
 mod main_menu;
 mod main_rows;
 mod main_wire;
+mod menubar;
+mod menubar_build;
 mod modal;
 mod row_menu;
 mod rows;

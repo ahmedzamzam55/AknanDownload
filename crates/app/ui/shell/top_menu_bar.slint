@@ -1,0 +1,85 @@
+// Top menu bar that follows the active language direction (right-aligned in Arabic, left-aligned otherwise).
+
+import { Theme, HRow } from "../common.slint";
+import { MenuLabels } from "menu_labels.slint";
+
+component TopMenuBtn inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    callback open(length);
+
+    width: txt.preferred-width + 16px;
+    border-radius: 3px;
+    background: root.active || ta.pressed ? Theme.select : ta.has-hover ? Theme.hover : transparent;
+
+    ta := TouchArea {
+        clicked => {
+            root.open(Theme.rtl ? (root.absolute-position.x + root.width) : root.absolute-position.x);
+        }
+    }
+
+    txt := Text {
+        width: 100%;
+        height: 100%;
+        text: root.text;
+        font-size: 12px * Theme.font-scale;
+        color: Theme.text;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+export component TopMenuBar inherits Rectangle {
+    in property <int> active-menu: -1;
+    callback open-menu(int, length, length);
+
+    height: max(25px, 22px * Theme.font-scale);
+    background: Theme.window;
+
+    HRow {
+        width: parent.width;
+        height: parent.height;
+        padding-left: 4px;
+        padding-right: 4px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+        spacing: 2px;
+
+        TopMenuBtn {
+            text: MenuLabels.tasks;
+            active: root.active-menu == 0;
+            open(ax) => { root.open-menu(0, ax, root.absolute-position.y + root.height); }
+        }
+        TopMenuBtn {
+            text: MenuLabels.file;
+            active: root.active-menu == 1;
+            open(ax) => { root.open-menu(1, ax, root.absolute-position.y + root.height); }
+        }
+        TopMenuBtn {
+            text: MenuLabels.downloads;
+            active: root.active-menu == 2;
+            open(ax) => { root.open-menu(2, ax, root.absolute-position.y + root.height); }
+        }
+        TopMenuBtn {
+            text: MenuLabels.view;
+            active: root.active-menu == 3;
+            open(ax) => { root.open-menu(3, ax, root.absolute-position.y + root.height); }
+        }
+        TopMenuBtn {
+            text: MenuLabels.help;
+            active: root.active-menu == 4;
+            open(ax) => { root.open-menu(4, ax, root.absolute-position.y + root.height); }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+
+    Rectangle {
+        x: 0;
+        y: parent.height - 1px;
+        width: parent.width;
+        height: 1px;
+        background: Theme.line;
+    }
+}

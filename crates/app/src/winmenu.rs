@@ -33,9 +33,37 @@ pub(crate) fn available() -> bool {
 /// Show `items` where the mouse is; gives the id clicked (None: closed).
 #[cfg(windows)]
 pub(crate) fn popup(win: &slint::Window, items: &[Item], dark: bool, rtl: bool) -> Option<u32> {
-    use windows_sys::Win32::Foundation::{HWND, POINT};
+    let mut at = windows_sys::Win32::Foundation::POINT { x: 0, y: 0 };
+    // SAFETY: writes cursor screen coordinates into `at`
+    unsafe { windows_sys::Win32::UI::WindowsAndMessaging::GetCursorPos(&mut at) };
+    show_at(win, items, at.x, at.y, dark, rtl)
+}
+
+/// Show `items` anchored at client logical coordinates `(logical_x, logical_y)`.
+#[cfg(windows)]
+pub(crate) fn popup_at(win: &slint::Window, items: &[Item], logical_x: f32, logical_y: f32, dark: bool, rtl: bool) -> Option<u32> {
+    use slint::winit_030::{winit, WinitWindowAccessor};
+    let scale = win.scale_factor();
+    let origin = win
+        .with_winit_window(|w: &winit::window::Window| w.inner_position().ok())
+        .flatten();
+    let (sx, sy) = match origin {
+        Some(pos) => (pos.x + (logical_x * scale).round() as i32, pos.y + (logical_y * scale).round() as i32),
+        None => {
+            let mut at = windows_sys::Win32::Foundation::POINT { x: 0, y: 0 };
+            // SAFETY: writes cursor screen coordinates into `at`
+            unsafe { windows_sys::Win32::UI::WindowsAndMessaging::GetCursorPos(&mut at) };
+            (at.x, at.y)
+        }
+    };
+    show_at(win, items, sx, sy, dark, rtl)
+}
+
+#[cfg(windows)]
+fn show_at(win: &slint::Window, items: &[Item], sx: i32, sy: i32, dark: bool, rtl: bool) -> Option<u32> {
+    use windows_sys::Win32::Foundation::HWND;
     use windows_sys::Win32::UI::WindowsAndMessaging::{
-        CreatePopupMenu, DestroyMenu, GetCursorPos, PostMessageW, SetForegroundWindow, SetMenuDefaultItem, TrackPopupMenuEx,
+        CreatePopupMenu, DestroyMenu, PostMessageW, SetForegroundWindow, SetMenuDefaultItem, TrackPopupMenuEx,
         TPM_LAYOUTRTL, TPM_LEFTALIGN, TPM_RETURNCMD, TPM_RIGHTALIGN, TPM_RIGHTBUTTON, WM_NULL,
     };
     let hwnd = crate::winfx::hwnd(win)? as HWND;
@@ -51,12 +79,10 @@ pub(crate) fn popup(win: &slint::Window, items: &[Item], dark: bool, rtl: bool) 
         if let Some(main) = items.iter().find(|i| i.bold && i.id != 0) {
             SetMenuDefaultItem(menu, main.id, 0);
         }
-        let mut at = POINT { x: 0, y: 0 };
-        GetCursorPos(&mut at);
         // without this the menu stays open when the user clicks elsewhere
         SetForegroundWindow(hwnd);
         let side = if rtl { TPM_RIGHTALIGN | TPM_LAYOUTRTL } else { TPM_LEFTALIGN };
-        let id = TrackPopupMenuEx(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON | side, at.x, at.y, hwnd, std::ptr::null());
+        let id = TrackPopupMenuEx(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON | side, sx, sy, hwnd, std::ptr::null());
         PostMessageW(hwnd, WM_NULL, 0, 0);
         DestroyMenu(menu);
         // the clicks that closed the menu went to Windows, not to the list:
@@ -72,6 +98,11 @@ pub(crate) fn set_dark_menus(_dark: bool) {}
 
 #[cfg(not(windows))]
 pub(crate) fn popup(_win: &slint::Window, _items: &[Item], _dark: bool, _rtl: bool) -> Option<u32> {
+    None
+}
+
+#[cfg(not(windows))]
+pub(crate) fn popup_at(_win: &slint::Window, _items: &[Item], _x: f32, _y: f32, _dark: bool, _rtl: bool) -> Option<u32> {
     None
 }
 

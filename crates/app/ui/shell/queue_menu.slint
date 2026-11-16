@@ -4,13 +4,14 @@ import { QueueRow, Theme, MenuEntry, MenuLabel } from "../common.slint";
 
 export component QueueMenu inherits PopupWindow {
     in property <length> qmenu-x;
+    in property <length> qmenu-y: 66px;
     in property <bool> qmenu-start: true;
     in property <[QueueRow]> queues;
     callback start-queue(int);
     callback stop-queue(int);
 
     x: Theme.rtl ? max(0px, root.qmenu-x + max(62px, 62px * Theme.font-scale) - 220px) : root.qmenu-x;
-    y: max(66px, 40px + 26px * Theme.font-scale);
+    y: root.qmenu-y;
     width: 220px;
     height: qm-list.preferred-height;
     Rectangle {
