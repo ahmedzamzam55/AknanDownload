@@ -1,0 +1,85 @@
+// Shut down / sleep countdown dialog.
+
+import { Button } from "std-widgets.slint";
+import { Theme, ThemedWindow, HRow } from "../common.slint";
+import { Label } from "widgets.slint";
+
+export component CountdownDialog inherits ThemedWindow {
+    forward-focus: dlg-keys;
+    public function focus-input() {
+        dlg-keys.focus();
+    }
+    title: @tr("Aknan Download");
+    preferred-width: 420px;
+    always-on-top: true;
+    // always in front already; kept so every window can be brought forward the same way
+    in property <bool> front;
+    in property <string> action-text: "shut down the computer";
+    in property <int> seconds-left: 30;
+    in property <int> seconds-total: 30;
+    // a file still being put together: the time starts after it
+    in property <string> waiting-text;
+    callback now();
+    callback stop();
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.stop();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 18px;
+            spacing: 12px;
+            Text {
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                text: @tr("All downloads are finished.");
+                font-size: 14px * Theme.font-scale;
+                font-weight: 700;
+                color: Theme.ok;
+            }
+            Label {
+                text: @tr("Aknan Download will {} in {} seconds.", root.action-text, root.seconds-left);
+                wrap: word-wrap;
+            }
+            if root.waiting-text != "": Label {
+                text: root.waiting-text;
+                color: Theme.warn;
+                wrap: word-wrap;
+            }
+            Rectangle {
+                height: 10px;
+                border-radius: 5px;
+                background: Theme.bar-bg;
+                Rectangle {
+                    x: Theme.rtl ? parent.width - self.width : 0;
+                    height: parent.height;
+                    border-radius: 5px;
+                    width: parent.width * (root.seconds-total > 0 ? root.seconds-left / root.seconds-total : 0);
+                    background: Theme.warn;
+                    animate width {
+                        duration: 900ms;
+                    }
+                }
+            }
+            HRow {
+                alignment: end;
+                spacing: 8px;
+                Button {
+                    text: @tr("Now");
+                    clicked => {
+                        root.now();
+                    }
+                }
+                Button {
+                    text: @tr("Stop");
+                    primary: true;
+                    clicked => {
+                        root.stop();
+                    }
+                }
+            }
+        }
+    }
+}

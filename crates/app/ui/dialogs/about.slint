@@ -1,0 +1,88 @@
+// About Aknan Download dialog.
+
+import { Button, AboutSlint } from "std-widgets.slint";
+import { Theme, ThemedWindow, HRow } from "../common.slint";
+
+export component AboutDialog inherits ThemedWindow {
+    forward-focus: dlg-keys;
+    public function focus-input() {
+        dlg-keys.focus();
+    }
+    // set for a moment so the window comes in front of the browser
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("About Aknan Download");
+    preferred-width: 420px;
+    in property <string> version;
+    callback open-link(string);
+    callback close-window();
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape || event.text == Key.Return) {
+                root.close-window();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 22px;
+            spacing: 10px;
+            HRow {
+                alignment: center;
+                Image {
+                    source: @image-url("../icon.png");
+                    width: 72px;
+                    height: 72px;
+                }
+            }
+            Text {
+                text: "Aknan Download";
+                horizontal-alignment: center;
+                font-size: 20px * Theme.font-scale;
+                font-weight: 700;
+                color: Theme.text;
+            }
+            Text {
+                text: @tr("Version {}", root.version);
+                horizontal-alignment: center;
+                color: Theme.muted;
+            }
+            Text {
+                text: @tr("Developed by Aknan");
+                horizontal-alignment: center;
+                font-size: 13px * Theme.font-scale;
+                color: Theme.text;
+            }
+            Text {
+                text: @tr("© Aknan – All rights reserved");
+                horizontal-alignment: center;
+                font-size: 12px * Theme.font-scale;
+                font-weight: 700;
+                color: Theme.text;
+            }
+            Rectangle {
+                height: 6px;
+            }
+            AboutSlint {
+                preferred-height: 90px;
+            }
+            HRow {
+                alignment: end;
+                spacing: 8px;
+                Button {
+                    text: @tr("Official website / GitHub");
+                    clicked => {
+                        root.open-link("https://github.com/ahmedzamzam55/AknanDownload");
+                    }
+                }
+                Button {
+                    text: @tr("Close");
+                    primary: true;
+                    clicked => {
+                        root.close-window();
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,124 @@
+// Speed Limiter and Options on completion tabs for DetailsDialog.
+
+import { Button, SpinBox, ComboBox } from "std-widgets.slint";
+import { Theme, HRow, CheckBox } from "../../common.slint";
+
+export component DetailsLimiterTab inherits VerticalLayout {
+    in property <string> speed;
+    in-out property <bool> limit-on;
+    in-out property <int> limit-kb: 500;
+    callback limit-changed();
+
+    padding: 14px;
+    spacing: 12px;
+    alignment: start;
+    HRow {
+        spacing: 8px;
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: @tr("Transfer rate");
+            color: Theme.muted;
+            vertical-alignment: center;
+        }
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: root.speed;
+            color: Theme.text;
+            font-weight: 600;
+            vertical-alignment: center;
+        }
+    }
+    CheckBox {
+        text: @tr("Use speed limiter for this download");
+        checked <=> root.limit-on;
+        toggled => {
+            root.limit-changed();
+        }
+    }
+    HRow {
+        spacing: 8px;
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: @tr("Maximum download speed (KB/s)");
+            color: root.limit-on ? Theme.text : Theme.muted;
+            vertical-alignment: center;
+        }
+        SpinBox {
+            width: 140px;
+            enabled: root.limit-on;
+            minimum: 1;
+            maximum: 1000000;
+            step-size: 50;
+            value <=> root.limit-kb;
+            edited(v) => {
+                root.limit-changed();
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    HRow {
+        spacing: 6px;
+        for kb in [128, 256, 512, 1024, 2048, 5120]: Button {
+            text: kb >= 1024 ? @tr("{} MB/s", kb / 1024) : @tr("{} KB/s", kb);
+            clicked => {
+                root.limit-on = true;
+                root.limit-kb = kb;
+                root.limit-changed();
+            }
+        }
+    }
+    Text {
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        text: @tr("Changes apply right away, even while downloading.");
+        font-size: 11px * Theme.font-scale;
+        color: Theme.muted;
+    }
+}
+
+export component DetailsCompletionTab inherits VerticalLayout {
+    in-out property <int> when-done: 0;
+    in-out property <bool> complete-dialog: true;
+    in-out property <bool> force-close;
+    callback completion-changed();
+
+    padding: 14px;
+    spacing: 12px;
+    alignment: start;
+    Text {
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        text: @tr("When this download completes:");
+        color: Theme.text;
+    }
+    ComboBox {
+        width: 300px;
+        model: [@tr("Do nothing (keep the computer on)"), @tr("Shut down the computer"), @tr("Sleep"), @tr("Exit Aknan Download"), @tr("Hibernate")];
+        current-index <=> root.when-done;
+        selected(v) => {
+            root.completion-changed();
+        }
+    }
+    CheckBox {
+        text: @tr("Force programs to close when shutting down");
+        checked <=> root.force-close;
+        enabled: root.when-done == 1;
+        toggled => {
+            root.completion-changed();
+        }
+    }
+    CheckBox {
+        text: @tr("Show the \"Download complete\" window");
+        checked <=> root.complete-dialog;
+        toggled => {
+            root.completion-changed();
+        }
+    }
+    Text {
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        text: @tr("You get 30 seconds to cancel before the computer shuts down, sleeps or hibernates.");
+        font-size: 11px * Theme.font-scale;
+        color: Theme.muted;
+        wrap: word-wrap;
+    }
+}

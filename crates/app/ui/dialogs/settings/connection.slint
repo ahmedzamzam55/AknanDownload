@@ -1,0 +1,150 @@
+// Connection tab for SettingsDialog.
+
+import { Button, LineEdit, SpinBox, ComboBox } from "std-widgets.slint";
+import { PairRow, Theme, HRow, CheckBox } from "../../common.slint";
+import { Label, Hint, Section } from "../widgets.slint";
+import { PairList } from "../pair_list.slint";
+
+export component SettingsConnectionTab inherits VerticalLayout {
+    in-out property <int> connection-type;
+    in-out property <int> connections;
+    in-out property <int> max-active;
+    in-out property <int> retries;
+    in property <[PairRow]> server-rows;
+    in-out property <int> server-current: -1;
+    in-out property <string> server-host;
+    in-out property <int> server-conns: 2;
+    in-out property <bool> quota-on;
+    in-out property <int> quota-mb;
+    in-out property <int> quota-hours;
+    in property <string> quota-used;
+    callback server-add();
+    callback server-remove();
+
+    padding: 14px;
+    spacing: 8px;
+    GridLayout {
+        spacing: 8px;
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 0;
+            text: @tr("Connection type / speed");
+        }
+        ComboBox {
+            col: Theme.rtl ? 0 : 1;
+            row: 0;
+            model: [@tr("Low speed (modem, mobile)"), @tr("Medium speed (DSL)"), @tr("High speed (fiber, cable, LAN)")];
+            current-index <=> root.connection-type;
+        }
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 1;
+            text: @tr("Default max. connections number");
+        }
+        SpinBox {
+            col: Theme.rtl ? 0 : 1;
+            row: 1;
+            minimum: 1;
+            maximum: 64;
+            value <=> root.connections;
+        }
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 2;
+            text: @tr("Downloads at the same time (0 = no limit)");
+        }
+        SpinBox {
+            col: Theme.rtl ? 0 : 1;
+            row: 2;
+            minimum: 0;
+            maximum: 100;
+            value <=> root.max-active;
+        }
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 3;
+            text: @tr("Retries on error");
+        }
+        SpinBox {
+            col: Theme.rtl ? 0 : 1;
+            row: 3;
+            minimum: 0;
+            maximum: 100;
+            value <=> root.retries;
+        }
+    }
+    Section {
+        text: @tr("Exceptions: servers with their own number of connections");
+    }
+    PairList {
+        height: 110px;
+        rows: root.server-rows;
+        current <=> root.server-current;
+        head-a: @tr("Server");
+        head-b: @tr("Connections");
+        width-b: 110px;
+    }
+    HRow {
+        spacing: 6px;
+        LineEdit {
+            text <=> root.server-host;
+            placeholder-text: @tr("example.com");
+            horizontal-stretch: 1;
+        }
+        SpinBox {
+            width: 90px;
+            minimum: 1;
+            maximum: 64;
+            value <=> root.server-conns;
+        }
+        Button {
+            text: @tr("Add");
+            clicked => {
+                root.server-add();
+            }
+        }
+        Button {
+            text: @tr("Delete");
+            enabled: root.server-current >= 0;
+            clicked => {
+                root.server-remove();
+            }
+        }
+    }
+    Section {
+        text: @tr("Download limits");
+    }
+    HRow {
+        spacing: 6px;
+        CheckBox {
+            text: @tr("Download no more than");
+            checked <=> root.quota-on;
+        }
+        SpinBox {
+            width: 110px;
+            minimum: 1;
+            maximum: 10000000;
+            value <=> root.quota-mb;
+            enabled: root.quota-on;
+        }
+        Label {
+            text: @tr("MB every");
+        }
+        SpinBox {
+            width: 80px;
+            minimum: 1;
+            maximum: 720;
+            value <=> root.quota-hours;
+            enabled: root.quota-on;
+        }
+        Label {
+            text: @tr("hours");
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    Hint {
+        text: root.quota-used;
+    }
+}

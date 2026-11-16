@@ -1,0 +1,210 @@
+// YouTube / video playlist download dialog.
+
+import { Button, LineEdit, SpinBox, ComboBox } from "std-widgets.slint";
+import { LinkRow, Theme, ThemedWindow, HRow, CheckBox } from "../common.slint";
+import { Label } from "widgets.slint";
+import { PlaylistEntriesBox } from "playlist_list.slint";
+
+export component PlaylistDialog inherits ThemedWindow {
+    forward-focus: url-input;
+    public function focus-input() {
+        url-input.focus();
+    }
+    // set for a moment so the window comes in front of the browser
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("Download a playlist");
+    preferred-width: 780px;
+    preferred-height: 600px;
+    in-out property <string> url;
+    in property <bool> busy;
+    in property <string> status;
+    in property <string> playlist-title;
+    in property <[LinkRow]> entries;
+    in-out property <int> quality: 0;
+    in-out property <string> folder;
+    in-out property <int> parallel: 2;
+    in-out property <bool> numbered: true;
+    in-out property <bool> start-now: true;
+    // the videos' subtitles too (Options > Downloads, the same switch)
+    in-out property <bool> subtitles;
+    in property <string> checked-text;
+    in property <string> message;
+    callback fetch();
+    callback toggle(int);
+    callback check-all(bool);
+    callback browse();
+    callback download();
+    callback close-window();
+
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.close-window();
+                return accept;
+            }
+            if (event.text == Key.Return && event.modifiers.control && root.entries.length > 0) {
+                root.download();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 12px;
+            spacing: 8px;
+            Label {
+                text: @tr("Paste the address of a playlist:");
+            }
+            HRow {
+                spacing: 8px;
+                url-input := LineEdit {
+                    text <=> root.url;
+                    placeholder-text: @tr("https://…/playlist?list=…");
+                    horizontal-stretch: 1;
+                    accepted(t) => {
+                        root.fetch();
+                    }
+                }
+                Button {
+                    text: root.busy ? @tr("Getting the list…") : @tr("Get videos");
+                    primary: true;
+                    enabled: !root.busy && root.url != "";
+                    clicked => {
+                        root.fetch();
+                    }
+                }
+            }
+            Text {
+                // a long name is cut ("…"), it never makes the window wider
+                min-width: 0px;
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                text: root.status;
+                font-size: 11px * Theme.font-scale;
+                color: Theme.muted;
+                overflow: elide;
+            }
+            if root.playlist-title != "": Text {
+                // a long name is cut ("…"), it never makes the window wider
+                min-width: 0px;
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                text: root.playlist-title;
+                font-size: 14px * Theme.font-scale;
+                font-weight: 700;
+                color: Theme.text;
+                overflow: elide;
+            }
+            HRow {
+                spacing: 6px;
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+                Button {
+                    text: @tr("Check all");
+                    clicked => {
+                        root.check-all(true);
+                    }
+                }
+                Button {
+                    text: @tr("Uncheck all");
+                    clicked => {
+                        root.check-all(false);
+                    }
+                }
+            }
+            PlaylistEntriesBox {
+                entries: root.entries;
+                busy: root.busy;
+                toggle(i) => {
+                    root.toggle(i);
+                }
+            }
+            GridLayout {
+                spacing: 8px;
+                Label {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 0;
+                    text: @tr("Quality");
+                }
+                HRow {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 0;
+                    spacing: 8px;
+                    ComboBox {
+                        width: 240px;
+                        model: [@tr("Best quality (MP4)"), @tr("2160p 4K"), @tr("1440p 2K"), @tr("1080p Full HD"), @tr("720p HD"), @tr("480p SD"), @tr("360p SD"), "240p", "144p", @tr("Audio only (M4A)"), @tr("Audio MP3")];
+                        current-index <=> root.quality;
+                    }
+                    Label {
+                        text: @tr("Files at the same time");
+                    }
+                    SpinBox {
+                        width: 90px;
+                        minimum: 1;
+                        // more at once and the site asks to confirm you are not a robot
+                        maximum: 3;
+                        value <=> root.parallel;
+                    }
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+                }
+                Label {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 1;
+                    text: @tr("Save to");
+                }
+                HRow {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 1;
+                    spacing: 6px;
+                    LineEdit {
+                        text <=> root.folder;
+                        horizontal-stretch: 1;
+                    }
+                    Button {
+                        text: "…";
+                        clicked => {
+                            root.browse();
+                        }
+                    }
+                }
+            }
+            HRow {
+                spacing: 10px;
+                CheckBox {
+                    text: @tr("Number the files");
+                    checked <=> root.numbered;
+                }
+                CheckBox {
+                    text: @tr("Start now");
+                    checked <=> root.start-now;
+                }
+                CheckBox {
+                    text: @tr("Subtitles too");
+                    checked <=> root.subtitles;
+                }
+                Text {
+                    text: root.message != "" ? root.message : root.checked-text;
+                    color: root.message != "" ? Theme.err : Theme.muted;
+                    vertical-alignment: center;
+                    horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.left : TextHorizontalAlignment.right;
+                    horizontal-stretch: 1;
+                }
+                Button {
+                    text: @tr("Download");
+                    primary: true;
+                    enabled: root.entries.length > 0;
+                    clicked => {
+                        root.download();
+                    }
+                }
+                Button {
+                    text: @tr("Close");
+                    clicked => {
+                        root.close-window();
+                    }
+                }
+            }
+        }
+    }
+}

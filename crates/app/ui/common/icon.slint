@@ -1,0 +1,20 @@
+// Toolbar icons, drawn on a 32x32 grid.
+
+import { ToolbarIconsA } from "toolbar_icons_a.slint";
+import { ToolbarIconsB } from "toolbar_icons_b.slint";
+
+export component Icon inherits Rectangle {
+    in property <string> kind;
+    width: 32px;
+    height: 32px;
+    if root.kind == "add" || root.kind == "batch" || root.kind == "playlist" || root.kind == "torrent" || root.kind == "grabber" || root.kind == "find" || root.kind == "resume" || root.kind == "stop": ToolbarIconsA {
+        width: 100%;
+        height: 100%;
+        kind: root.kind;
+    }
+    if root.kind == "stopall" || root.kind == "delete" || root.kind == "deletedone" || root.kind == "options" || root.kind == "scheduler" || root.kind == "limiter" || root.kind == "startqueue" || root.kind == "stopqueue" || root.kind == "folder": ToolbarIconsB {
+        width: 100%;
+        height: 100%;
+        kind: root.kind;
+    }
+}

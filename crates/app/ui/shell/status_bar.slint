@@ -1,0 +1,118 @@
+// Main window bottom status bar and floating toolbar tooltip overlay.
+
+import { Theme, ToolTip, HRow } from "../common.slint";
+
+export component StatusBar inherits Rectangle {
+    in property <string> status-text;
+    in property <string> limiter-text;
+    in property <bool> limiter-on;
+    callback toggle-limiter();
+
+    height: 22px;
+    background: Theme.window;
+    Rectangle {
+        width: parent.width;
+        height: 1px;
+        y: 0;
+        background: Theme.line;
+    }
+    HRow {
+        padding-left: 8px;
+        padding-right: 8px;
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: root.status-text;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+            font-size: 11px * Theme.font-scale;
+            color: Theme.muted;
+        }
+        // the speed limiter: on / off with one click
+        lim := Rectangle {
+            width: lim-row.preferred-width;
+            border-radius: 3px;
+            background: lim-ta.pressed ? Theme.line : lim-ta.has-hover ? Theme.hover : transparent;
+            lim-ta := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.toggle-limiter();
+                }
+            }
+            lim-row := HRow {
+                padding-left: 6px;
+                padding-right: 6px;
+                spacing: 6px;
+                Rectangle {
+                    width: 24px;
+                    Rectangle {
+                        y: (parent.height - 12px) / 2;
+                        width: 24px;
+                        height: 12px;
+                        border-radius: 6px;
+                        background: root.limiter-on ? Theme.warn : Theme.line;
+                        Rectangle {
+                            x: (root.limiter-on != Theme.rtl) ? 14px : 2px;
+                            y: 2px;
+                            width: 8px;
+                            height: 8px;
+                            border-radius: 4px;
+                            background: white;
+                            animate x {
+                                duration: 120ms;
+                            }
+                        }
+                    }
+                }
+                Text {
+                    horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                    text: root.limiter-text;
+                    vertical-alignment: center;
+                    font-size: 11px * Theme.font-scale;
+                    color: root.limiter-on ? Theme.warn : Theme.muted;
+                }
+            }
+        }
+    }
+}
+
+export component ToolTipOverlay inherits Rectangle {
+    width: 100%;
+    height: 100%;
+    Timer {
+        interval: 600ms;
+        running: ToolTip.pending;
+        triggered => {
+            ToolTip.pending = false;
+            ToolTip.shown = true;
+        }
+    }
+    if ToolTip.shown && ToolTip.text != "": Rectangle {
+        x: min(ToolTip.x, root.width - self.width - 6px);
+        y: ToolTip.y;
+        width: min(320px, tip-box.preferred-width);
+        height: tip-box.preferred-height;
+        background: Theme.input-bg;
+        border-width: 1px;
+        border-color: Theme.line;
+        border-radius: 4px;
+        drop-shadow-blur: 8px;
+        drop-shadow-color: #00000044;
+        drop-shadow-offset-y: 2px;
+        tip-box := VerticalLayout {
+            padding: 8px;
+            spacing: 3px;
+            Text {
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                text: ToolTip.title;
+                font-weight: 700;
+                color: Theme.text;
+            }
+            Text {
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                text: ToolTip.text;
+                wrap: word-wrap;
+                color: Theme.muted;
+            }
+        }
+    }
+}

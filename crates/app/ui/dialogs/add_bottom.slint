@@ -1,0 +1,180 @@
+// File type badge, authorization, info bar and action buttons for AddDialog.
+
+import { Button, LineEdit, SpinBox, ComboBox } from "std-widgets.slint";
+import { Theme, BigTypeIcon, Glyph, HRow, CheckBox } from "../common.slint";
+
+export component AddFileBadge inherits VerticalLayout {
+    in property <string> kind: "general";
+    in property <string> ext;
+    in property <string> size-text;
+    width: 110px;
+    spacing: 6px;
+    alignment: start;
+    padding-top: 4px;
+    BigTypeIcon {
+        kind: root.kind;
+        ext: root.ext;
+    }
+    Text {
+        text: root.size-text;
+        horizontal-alignment: center;
+        font-size: 12px * Theme.font-scale;
+        font-weight: 600;
+        color: Theme.text;
+        wrap: word-wrap;
+    }
+}
+
+export component AddDialogBottom inherits VerticalLayout {
+    in-out property <bool> use-login;
+    in-out property <string> user;
+    in-out property <string> password;
+    in property <string> warning;
+    in property <bool> probing;
+    in property <string> info;
+    in property <bool> info-error;
+    in-out property <int> connections: 32;
+    in property <[string]> queue-names: ["Main queue"];
+    in-out property <int> queue-index: 0;
+    in property <string> url;
+    in property <bool> can-use-browser;
+
+    callback use-browser();
+    callback later();
+    callback start-now();
+    callback cancel();
+
+    spacing: 10px;
+    HRow {
+        spacing: 8px;
+        CheckBox {
+            text: @tr("Use authorization");
+            checked <=> root.use-login;
+        }
+        if root.use-login: Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: @tr("Login");
+            vertical-alignment: center;
+            color: Theme.text;
+        }
+        if root.use-login: LineEdit {
+            text <=> root.user;
+            horizontal-stretch: 1;
+        }
+        if root.use-login: Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: @tr("Password");
+            vertical-alignment: center;
+            color: Theme.text;
+        }
+        if root.use-login: LineEdit {
+            text <=> root.password;
+            input-type: InputType.password;
+            horizontal-stretch: 1;
+        }
+        if !root.use-login: Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    if root.warning != "": GridLayout {
+        // a row that reads from right to left in Arabic (wrapped text needs a grid)
+        spacing: 6px;
+        Glyph {
+            col: Theme.rtl ? 1 : 0;
+            row: 0;
+            kind: "warn";
+        }
+        Text {
+            col: Theme.rtl ? 0 : 1;
+            row: 0;
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: root.warning;
+            color: Theme.warn;
+            wrap: word-wrap;
+            font-size: 12px * Theme.font-scale;
+            horizontal-stretch: 1;
+        }
+    }
+    Rectangle {
+        height: 32px;
+        border-width: 1px;
+        border-color: root.info-error ? Theme.err : Theme.line;
+        background: Theme.panel;
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            x: 10px;
+            width: parent.width - 20px;
+            height: parent.height;
+            vertical-alignment: center;
+            text: root.probing ? @tr("Checking the address…") : root.info;
+            color: root.info-error ? Theme.err : Theme.muted;
+            overflow: elide;
+            font-size: 12px * Theme.font-scale;
+        }
+    }
+    HRow {
+        spacing: 8px;
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: @tr("Connections");
+            vertical-alignment: center;
+            color: Theme.text;
+        }
+        SpinBox {
+            width: 110px;
+            minimum: 1;
+            maximum: 64;
+            value <=> root.connections;
+        }
+        Rectangle {
+            width: 10px;
+        }
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: @tr("Queue");
+            vertical-alignment: center;
+            color: Theme.text;
+        }
+        ComboBox {
+            model: root.queue-names;
+            current-index <=> root.queue-index;
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    HRow {
+        spacing: 8px;
+        alignment: end;
+        if root.can-use-browser: Button {
+            text: @tr("Download with the browser");
+            clicked => {
+                root.use-browser();
+            }
+        }
+        if root.can-use-browser: Rectangle {
+            horizontal-stretch: 1;
+        }
+        Button {
+            text: @tr("Download Later");
+            enabled: root.url != "";
+            clicked => {
+                root.later();
+            }
+        }
+        Button {
+            text: @tr("Start Download");
+            primary: true;
+            enabled: root.url != "";
+            clicked => {
+                root.start-now();
+            }
+        }
+        Button {
+            text: @tr("Cancel");
+            clicked => {
+                root.cancel();
+            }
+        }
+    }
+}

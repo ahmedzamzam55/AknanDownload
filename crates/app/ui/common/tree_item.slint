@@ -1,0 +1,134 @@
+// Sidebar category / queue tree row widget.
+
+import { Theme } from "theme.slint";
+import { HRow } from "primitives.slint";
+import { Glyph } from "glyph.slint";
+import { Icon } from "icon.slint";
+import { TypeIcon } from "type_icons.slint";
+
+export component TreeItem inherits Rectangle {
+    in property <string> text;
+    // "folder", "queue", "unfinished", "finished" or a file kind
+    in property <string> icon;
+    in property <string> count;
+    in property <int> indent;
+    in property <bool> selected;
+    in property <bool> bold;
+    // a branch that opens / closes (+ / - in front)
+    in property <bool> expandable;
+    in property <bool> expanded;
+    callback clicked();
+    callback toggle();
+    // right click, at this position inside the item
+    callback context(length, length);
+    height: Theme.depth ? 30px : 23px;
+    border-radius: Theme.depth ? Theme.card-radius - 2px : 0px;
+    background: Theme.depth && root.selected
+        ? (Theme.look == 2 ? @linear-gradient(180deg, Theme.card-top 0%, Theme.card-bottom 100%) : @linear-gradient(90deg, Theme.bar-a 0%, Theme.bar-b 100%))
+        : root.selected ? Theme.select : ta.has-hover ? Theme.hover : transparent;
+    border-width: root.selected && !Theme.depth ? 1px : 0px;
+    border-color: Theme.select-line;
+    drop-shadow-blur: Theme.depth && root.selected ? 8px : 0px;
+    drop-shadow-offset-y: Theme.depth && root.selected ? 3px : 0px;
+    drop-shadow-color: Theme.depth ? Theme.sel-shadow : transparent;
+    ta := TouchArea {
+        width: parent.width;
+        height: parent.height;
+        clicked => {
+            root.clicked();
+        }
+        double-clicked => {
+            root.toggle();
+        }
+        pointer-event(ev) => {
+            if (ev.button == PointerEventButton.right && ev.kind == PointerEventKind.up) {
+                root.clicked();
+                root.context(self.mouse-x, self.mouse-y);
+            }
+        }
+    }
+    HRow {
+        padding-left: Theme.rtl ? (6px) : (4px + root.indent * 16px);
+        padding-right: Theme.rtl ? (4px + root.indent * 16px) : (6px);
+        spacing: 5px;
+        Rectangle {
+            width: 11px;
+            if root.expandable: Rectangle {
+                y: (parent.height - 11px) / 2;
+                width: 11px;
+                height: 11px;
+                border-width: 1px;
+                border-color: Theme.muted;
+                background: Theme.panel;
+                Rectangle {
+                    x: 2px;
+                    y: 5px;
+                    width: 7px;
+                    height: 1px;
+                    background: Theme.text;
+                }
+                if !root.expanded: Rectangle {
+                    x: 5px;
+                    y: 2px;
+                    width: 1px;
+                    height: 7px;
+                    background: Theme.text;
+                }
+                TouchArea {
+                    clicked => {
+                        root.toggle();
+                    }
+                }
+            }
+        }
+        Rectangle {
+            width: 16px;
+            if root.icon == "folder": Icon {
+                kind: "folder";
+                width: 16px;
+                height: 16px;
+                y: (parent.height - 16px) / 2;
+            }
+            if root.icon == "queue": Icon {
+                kind: "startqueue";
+                width: 16px;
+                height: 16px;
+                y: (parent.height - 16px) / 2;
+            }
+            if root.icon == "unfinished": Glyph {
+                kind: "down";
+                y: (parent.height - 16px) / 2;
+            }
+            if root.icon == "finished": Glyph {
+                kind: "check";
+                tint: Theme.ok;
+                y: (parent.height - 16px) / 2;
+            }
+            if root.icon != "folder" && root.icon != "queue" && root.icon != "unfinished" && root.icon != "finished": TypeIcon {
+                kind: root.icon;
+                width: 16px;
+                height: 16px;
+                y: (parent.height - 16px) / 2;
+            }
+        }
+        Text {
+            // a long name is cut ("…"), it never makes the window wider
+            min-width: 0px;
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: root.text;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+            overflow: elide;
+            color: Theme.text;
+            font-size: 12px * Theme.font-scale;
+            font-weight: root.bold ? 600 : 400;
+        }
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: root.count;
+            vertical-alignment: center;
+            color: Theme.muted;
+            font-size: 11px * Theme.font-scale;
+        }
+    }
+}

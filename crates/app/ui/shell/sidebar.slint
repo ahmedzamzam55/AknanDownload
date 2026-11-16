@@ -1,0 +1,216 @@
+// Main window left sidebar: category and queue tree.
+
+import { Button } from "std-widgets.slint";
+import { CatRow, QueueRow, Theme, TreeItem, HRow } from "../common.slint";
+import { CtxTreeItem } from "tree_menu.slint";
+
+export component Sidebar inherits Rectangle {
+    in property <[CatRow]> categories;
+    in property <[QueueRow]> queues;
+    in property <string> count-all;
+    in property <string> count-unfinished;
+    in property <string> count-finished;
+    in property <int> current-queue: 1;
+    in-out property <string> view: "all";
+    in-out property <bool> open-all: true;
+    in-out property <bool> open-unf: false;
+    in-out property <bool> open-fin: false;
+    in-out property <bool> open-queues: true;
+
+    callback view-changed(string);
+    callback focus-main();
+    callback add-category();
+    callback delete-category(string);
+    callback category-props(string);
+    callback start-queue(int);
+    callback stop-queue(int);
+    callback new-queue();
+    callback edit-queue(int);
+    callback delete-queue(int);
+
+    function category-menu(target: string, a: string) {
+        if (a == "add") {
+            root.add-category();
+        } else if (a == "delete") {
+            root.delete-category(target);
+        } else if (a == "props") {
+            root.category-props(target);
+        }
+    }
+    function queue-menu-action(q: int, a: string) {
+        if (a == "start") {
+            root.start-queue(q);
+        } else if (a == "stop") {
+            root.stop-queue(q);
+        } else if (a == "edit") {
+            root.edit-queue(q);
+        } else if (a == "new") {
+            root.new-queue();
+        } else if (a == "delete") {
+            root.delete-queue(q);
+        }
+    }
+
+    width: 210px;
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.line;
+    VerticalLayout {
+        padding: 2px;
+        Rectangle {
+            height: 23px;
+            background: Theme.window;
+            Text {
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                x: 6px;
+                width: parent.width - 12px;
+                height: parent.height;
+                text: @tr("Categories");
+                vertical-alignment: center;
+                font-size: 12px * Theme.font-scale;
+                font-weight: 600;
+                color: Theme.text;
+            }
+        }
+        Flickable {
+            vertical-stretch: 1;
+            VerticalLayout {
+                alignment: start;
+                CtxTreeItem {
+                    text: @tr("All Downloads");
+                    icon: "folder";
+                    bold: true;
+                    expandable: true;
+                    expanded: root.open-all;
+                    count: root.count-all;
+                    selected: root.view == "all";
+                    clicked => {
+                        root.view = "all";
+                        root.view-changed(root.view);
+                        root.focus-main();
+                    }
+                    toggle => { root.open-all = !root.open-all; }
+                    builtin: true;
+                    chosen(a) => { root.category-menu("", a); }
+                }
+                if root.open-all: VerticalLayout {
+                    for c in root.categories: CtxTreeItem {
+                        text: c.label;
+                        icon: c.kind;
+                        indent: 1;
+                        count: c.count;
+                        target: c.name;
+                        builtin: c.builtin;
+                        selected: root.view == "cat:" + c.name;
+                        clicked => {
+                            root.view = "cat:" + c.name;
+                            root.view-changed(root.view);
+                            root.focus-main();
+                        }
+                        chosen(a) => { root.category-menu(c.name, a); }
+                    }
+                }
+                TreeItem {
+                    text: @tr("Unfinished");
+                    icon: "unfinished";
+                    expandable: true;
+                    expanded: root.open-unf;
+                    count: root.count-unfinished;
+                    selected: root.view == "unfinished";
+                    clicked => {
+                        root.view = "unfinished";
+                        root.view-changed(root.view);
+                        root.focus-main();
+                    }
+                    toggle => { root.open-unf = !root.open-unf; }
+                }
+                if root.open-unf: VerticalLayout {
+                    for c in root.categories: TreeItem {
+                        text: c.label;
+                        icon: c.kind;
+                        indent: 1;
+                        count: c.unfinished;
+                        selected: root.view == "unf:" + c.name;
+                        clicked => {
+                            root.view = "unf:" + c.name;
+                            root.view-changed(root.view);
+                            root.focus-main();
+                        }
+                    }
+                }
+                TreeItem {
+                    text: @tr("Finished");
+                    icon: "finished";
+                    expandable: true;
+                    expanded: root.open-fin;
+                    count: root.count-finished;
+                    selected: root.view == "finished";
+                    clicked => {
+                        root.view = "finished";
+                        root.view-changed(root.view);
+                        root.focus-main();
+                    }
+                    toggle => { root.open-fin = !root.open-fin; }
+                }
+                if root.open-fin: VerticalLayout {
+                    for c in root.categories: TreeItem {
+                        text: c.label;
+                        icon: c.kind;
+                        indent: 1;
+                        count: c.finished;
+                        selected: root.view == "fin:" + c.name;
+                        clicked => {
+                            root.view = "fin:" + c.name;
+                            root.view-changed(root.view);
+                            root.focus-main();
+                        }
+                    }
+                }
+                TreeItem {
+                    text: @tr("Queues");
+                    icon: "folder";
+                    bold: true;
+                    expandable: true;
+                    expanded: root.open-queues;
+                    toggle => { root.open-queues = !root.open-queues; }
+                    clicked => {
+                        root.open-queues = !root.open-queues;
+                        root.focus-main();
+                    }
+                }
+                if root.open-queues: VerticalLayout {
+                    for q in root.queues: CtxTreeItem {
+                        is-queue: true;
+                        builtin: q.id == 1;
+                        target: q.name;
+                        text: q.running ? @tr("{} (running)", q.name) : q.name;
+                        icon: "queue";
+                        indent: 1;
+                        count: q.count > 0 ? q.count : "";
+                        selected: root.view == "queue:" + q.id;
+                        clicked => {
+                            root.view = "queue:" + q.id;
+                            root.view-changed(root.view);
+                            root.focus-main();
+                        }
+                        toggle => { root.edit-queue(q.id); }
+                        chosen(a) => { root.queue-menu-action(q.id, a); }
+                    }
+                }
+            }
+        }
+        HRow {
+            padding: 4px;
+            spacing: 4px;
+            Button {
+                text: @tr("New queue");
+                horizontal-stretch: 1;
+                clicked => { root.new-queue(); }
+            }
+            Button {
+                text: @tr("Edit");
+                clicked => { root.edit-queue(root.current-queue); }
+            }
+        }
+    }
+}

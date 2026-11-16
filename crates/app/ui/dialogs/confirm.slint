@@ -1,0 +1,76 @@
+// Yes / no confirmation dialog.
+// Our own window instead of a Windows message box: it stays in front of the
+// download windows and never stops the program while it waits.
+
+import { Button } from "std-widgets.slint";
+import { ThemedWindow, HRow, CheckBox } from "../common.slint";
+import { Label } from "widgets.slint";
+
+export component ConfirmDialog inherits ThemedWindow {
+    public function focus-input() {
+        keys.focus();
+    }
+    title: root.heading;
+    preferred-width: 440px;
+    min-width: 340px;
+    always-on-top: true;
+    // always in front already; kept so every window can be brought forward the same way
+    in property <bool> front;
+    in property <string> heading;
+    in property <string> text;
+    // removing downloads: "delete the files too" and "don't ask again"
+    in property <bool> removing;
+    in-out property <bool> delete-files;
+    in-out property <bool> dont-ask;
+    callback answered(bool);
+    forward-focus: keys;
+    keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.answered(false);
+                return accept;
+            }
+            if (event.text == Key.Return) {
+                root.answered(true);
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 18px;
+            spacing: 14px;
+            Label {
+                text: root.text;
+                wrap: word-wrap;
+            }
+            if root.removing: VerticalLayout {
+                spacing: 6px;
+                CheckBox {
+                    text: @tr("Delete the downloaded files from the disk too (be careful)");
+                    checked <=> root.delete-files;
+                }
+                CheckBox {
+                    text: @tr("Don't show this question again");
+                    checked <=> root.dont-ask;
+                }
+            }
+            HRow {
+                alignment: end;
+                spacing: 8px;
+                Button {
+                    text: @tr("OK");
+                    primary: true;
+                    clicked => {
+                        root.answered(true);
+                    }
+                }
+                Button {
+                    text: @tr("Cancel");
+                    clicked => {
+                        root.answered(false);
+                    }
+                }
+            }
+        }
+    }
+}

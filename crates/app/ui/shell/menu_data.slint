@@ -1,0 +1,113 @@
+// Static MenuBar item tables and File menu enabled-state predicate.
+
+export struct MenuAction {
+    id: string,
+    title: string,
+}
+
+export struct MenuKeyTitle {
+    key: string,
+    title: string,
+}
+
+export struct MenuNumTitle {
+    val: int,
+    title: string,
+}
+
+export global MenuData {
+    out property <[MenuAction]> tasks-main: [
+        { id: "add-url", title: @tr("Add new download…") },
+        { id: "add-batch", title: @tr("Add batch download…") },
+        { id: "add-batch-clipboard", title: @tr("Add batch download from clipboard") },
+        { id: "grabber", title: @tr("Run site grabber…") },
+        { id: "playlist", title: @tr("Download a playlist…") },
+        { id: "clip-part", title: @tr("Download a part of a video…") },
+        { id: "torrent", title: @tr("Add a torrent / magnet link…") },
+    ];
+    out property <[MenuAction]> export-items: [
+        { id: "ef2", title: @tr("To download list file (.ef2)…") },
+        { id: "txt", title: @tr("To text file…") },
+    ];
+    out property <[MenuAction]> import-items: [
+        { id: "ef2", title: @tr("From download list file (.ef2)…") },
+        { id: "txt", title: @tr("From text file…") },
+    ];
+    out property <[MenuAction]> tasks-end: [
+        { id: "open-download-folder", title: @tr("Open download folder") },
+        { id: "quit", title: @tr("Exit") },
+    ];
+    out property <[MenuAction]> file-top: [
+        { id: "resume", title: @tr("Download now") },
+        { id: "pause", title: @tr("Stop download") },
+        { id: "delete", title: @tr("Remove") },
+        { id: "restart", title: @tr("Redownload") },
+        { id: "refresh", title: @tr("Refresh download address…") },
+    ];
+    out property <[MenuAction]> file-mid: [
+        { id: "open", title: @tr("Open") },
+        { id: "openwith", title: @tr("Open with…") },
+        { id: "preview", title: @tr("Play while downloading") },
+        { id: "folder", title: @tr("Open folder") },
+        { id: "move", title: @tr("Move / Rename…") },
+        { id: "copy", title: @tr("Copy address") },
+    ];
+    out property <[MenuAction]> downloads-top: [
+        { id: "resume-all", title: @tr("Resume all") },
+        { id: "stop-all", title: @tr("Stop all") },
+        { id: "delete-completed", title: @tr("Delete all completed") },
+    ];
+    out property <[MenuAction]> downloads-find: [
+        { id: "find", title: @tr("Find…   Ctrl+F") },
+        { id: "find-next", title: @tr("Find next   F3") },
+    ];
+    out property <[MenuNumTitle]> all-done-items: [
+        { val: 0, title: @tr("Do nothing") },
+        { val: 1, title: @tr("Shut down the computer") },
+        { val: 2, title: @tr("Sleep") },
+        { val: 4, title: @tr("Hibernate") },
+        { val: 3, title: @tr("Exit Aknan Download") },
+    ];
+    out property <[MenuKeyTitle]> arrange-items: [
+        { key: "added", title: @tr("By order of addition") },
+        { key: "name", title: @tr("File name") },
+        { key: "size", title: @tr("Size") },
+        { key: "status", title: @tr("Status") },
+        { key: "eta", title: @tr("Time left") },
+        { key: "speed", title: @tr("Transfer rate") },
+        { key: "date", title: @tr("Last try date") },
+        { key: "desc", title: @tr("Description") },
+        { key: "saveto", title: @tr("Save to") },
+        { key: "referer", title: @tr("Referer") },
+        { key: "parent", title: @tr("Parent web page") },
+    ];
+    out property <[MenuKeyTitle]> lang-items: [
+        { key: "en", title: "English" },
+        { key: "ar", title: "العربية" },
+        { key: "fr", title: "Français" },
+        { key: "es", title: "Español" },
+        { key: "de", title: "Deutsch" },
+        { key: "pt", title: "Português" },
+        { key: "tr", title: "Türkçe" },
+        { key: "ru", title: "Русский" },
+    ];
+    out property <[string]> theme-items: [
+        @tr("Light"), @tr("Dark"), @tr("Ocean blue"), @tr("Midnight purple"),
+        @tr("Forest green"), @tr("Black"), @tr("Sunset"), @tr("Teal night"),
+        @tr("Rose"), @tr("3D"), @tr("Aurora glass"), @tr("Soft clay"), @tr("Cyber neon"),
+    ];
+    out property <[MenuAction]> help-items: [
+        { id: "browsers", title: @tr("Add Aknan Download to my browser…") },
+        { id: "tips", title: @tr("Tip of the day…") },
+        { id: "check-app-update", title: @tr("Check for updates") },
+        { id: "update-tools", title: @tr("Check for updates (video downloader)") },
+    ];
+
+    public pure function file-enabled(id: string, sel: int, st: int, cr: bool, cs: bool) -> bool {
+        if (id == "resume") { return cr; }
+        if (id == "pause") { return cs; }
+        if (id == "refresh" || id == "preview") { return sel >= 0 && st != 3; }
+        if (id == "open" || id == "openwith") { return st == 3; }
+        return sel >= 0;
+    }
+}

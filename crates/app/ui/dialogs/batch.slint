@@ -1,0 +1,178 @@
+// Add batch download dialog.
+
+import { Button, LineEdit, ComboBox } from "std-widgets.slint";
+import { Theme, ThemedWindow, HRow, CheckBox } from "../common.slint";
+import { TabButton } from "widgets.slint";
+import { BatchLinksTab, BatchPatternTab } from "batch_tabs.slint";
+
+export component BatchDialog inherits ThemedWindow {
+    property <int> focus-seq: 0;
+    forward-focus: dlg-keys;
+    public function focus-input() {
+        dlg-keys.focus();
+        root.focus-seq += 1;
+    }
+    // set for a moment so the window comes in front of the browser
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("Add batch download");
+    preferred-width: 640px;
+    preferred-height: 520px;
+
+    // 0: list of links, 1: address with a * pattern
+    in-out property <int> mode: 0;
+    in-out property <string> links;
+    in-out property <string> folder;
+    in property <[string]> queue-names: ["Main queue"];
+    in-out property <int> queue-index: 0;
+    in-out property <bool> start-now: true;
+    in property <string> message;
+    // pattern
+    in-out property <string> pattern;
+    in-out property <bool> letters;
+    in-out property <string> from-text: "1";
+    in-out property <string> to-text: "10";
+    in-out property <int> wildcard-size: 1;
+    in-out property <string> user;
+    in-out property <string> password;
+    in property <string> preview;
+
+    callback paste();
+    callback browse();
+    callback pattern-changed();
+    callback ok();
+    callback cancel();
+
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.cancel();
+                return accept;
+            }
+            if (event.text == Key.Return && event.modifiers.control) {
+                root.ok();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 14px;
+            spacing: 8px;
+            HRow {
+                spacing: 2px;
+                TabButton {
+                    text: @tr("List of links");
+                    active: root.mode == 0;
+                    clicked => {
+                        root.mode = 0;
+                    }
+                }
+                TabButton {
+                    text: @tr("Address with a pattern (*)");
+                    active: root.mode == 1;
+                    clicked => {
+                        root.mode = 1;
+                        root.pattern-changed();
+                    }
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+            }
+            if root.mode == 0: BatchLinksTab {
+                focus-seq: root.focus-seq;
+                links <=> root.links;
+                paste => {
+                    root.paste();
+                }
+            }
+            if root.mode == 1: BatchPatternTab {
+                focus-seq: root.focus-seq;
+                pattern <=> root.pattern;
+                letters <=> root.letters;
+                from-text <=> root.from-text;
+                to-text <=> root.to-text;
+                wildcard-size <=> root.wildcard-size;
+                user <=> root.user;
+                password <=> root.password;
+                preview: root.preview;
+                pattern-changed => {
+                    root.pattern-changed();
+                }
+            }
+            GridLayout {
+                spacing: 8px;
+                Text {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 0;
+                    horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                    text: @tr("Queue");
+                    vertical-alignment: center;
+                    color: Theme.text;
+                }
+                HRow {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 0;
+                    ComboBox {
+                        model: root.queue-names;
+                        current-index <=> root.queue-index;
+                    }
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+                }
+                Text {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 1;
+                    horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                    text: @tr("Save all to");
+                    vertical-alignment: center;
+                    color: Theme.text;
+                }
+                HRow {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 1;
+                    spacing: 6px;
+                    LineEdit {
+                        text <=> root.folder;
+                        placeholder-text: @tr("automatic (by file type)");
+                        horizontal-stretch: 1;
+                    }
+                    Button {
+                        text: "…";
+                        clicked => {
+                            root.browse();
+                        }
+                    }
+                }
+            }
+            CheckBox {
+                text: @tr("Start the queue now");
+                checked <=> root.start-now;
+            }
+            HRow {
+                spacing: 8px;
+                Text {
+                    horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                    text: root.message;
+                    color: Theme.err;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+                Button {
+                    text: @tr("Add");
+                    primary: true;
+                    clicked => {
+                        root.ok();
+                    }
+                }
+                Button {
+                    text: @tr("Cancel");
+                    clicked => {
+                        root.cancel();
+                    }
+                }
+            }
+        }
+    }
+}

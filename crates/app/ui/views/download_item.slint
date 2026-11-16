@@ -1,0 +1,136 @@
+// Single row in the downloads list with flat/3D selection card, drag and context menu.
+
+import { DownloadRow, ColDef, Cols, QueueRow, Theme } from "../common.slint";
+import { DownloadContextMenu } from "download_menu.slint";
+import { DownloadCells } from "download_cells.slint";
+
+export component DownloadItem inherits Rectangle {
+    in property <DownloadRow> data;
+    in property <bool> selected;
+    in property <[QueueRow]> queues;
+    in property <Cols> cols;
+    in property <[ColDef]> columns;
+    // how many downloads are selected (the menu then works on all of them)
+    in property <int> sel-count;
+    // click with Ctrl / Shift
+    callback pick(bool, bool);
+    // right click: keep a multiple selection that includes this row
+    callback right-pick();
+    // Windows: the menu is a real Windows menu (made by the program)
+    in property <bool> native-menu;
+    callback open-native-menu();
+    // dragging with the mouse held down: rows below (+) or above (-) this one
+    callback drag(int);
+    property <int> drag-last;
+    // the left button went down on this row and is still held
+    property <bool> left-down;
+    callback activated();
+    callback action(string);
+    callback move-to-queue(int);
+    // dragging a finished file out of the program (onto the desktop, a folder…)
+    callback drag-out();
+    property <bool> dragged-out;
+    height: Theme.depth ? max(40px, 34px * Theme.font-scale) : max(24px, 24px * Theme.font-scale);
+    // as wide as all the columns (the list then scrolls sideways)
+    out property <length> content-w: cells.min-width;
+    property <color> kind-color: root.data.kind == "video" ? #a56bff : root.data.kind == "audio" ? #2fc76c
+        : root.data.kind == "archive" ? #fb8a2e : root.data.kind == "exe" || root.data.kind == "apk" ? #3d8bf5
+        : root.data.kind == "pdf" ? #ec4652 : root.data.kind == "image" ? #2ec4b6 : root.data.kind == "torrent" ? #f472b6 : #f0b323;
+    property <bool> done: root.data.state == 3;
+    property <bool> can-resume: root.data.state == 2 || root.data.state == 4;
+    property <bool> can-stop: root.data.state == 0 || root.data.state == 1;
+
+    // wide columns: the row is wider than the list. The look and the mouse
+    // cover all of it (in Arabic the name is on the far right side of it)
+    if !Theme.depth: Rectangle {
+        x: 0px;
+        width: cells.width;
+        height: parent.height;
+        background: root.selected ? Theme.select : ta.has-hover ? Theme.hover : transparent;
+        border-width: root.selected ? 1px : 0px;
+        border-color: Theme.select-line;
+    }
+    // the 3D look: every download is a card that floats over the list
+    if Theme.depth: Rectangle {
+        x: 4px;
+        y: 3px;
+        width: cells.width - 8px;
+        height: parent.height - 6px;
+        border-radius: Theme.card-radius;
+        background: root.selected ? @linear-gradient(Theme.look == 1 ? 90deg : 180deg, Theme.sel-top 0%, Theme.sel-bottom 100%)
+            : ta.has-hover ? @linear-gradient(180deg, Theme.card-hover-top 0%, Theme.card-bottom 100%)
+            : @linear-gradient(180deg, Theme.card-top 0%, Theme.card-bottom 100%);
+        border-width: 1px;
+        border-color: root.selected ? Theme.sel-line : Theme.card-line;
+        drop-shadow-blur: root.selected ? 12px : 7px;
+        drop-shadow-offset-y: root.selected ? 4px : Theme.look == 3 ? 4px : 2px;
+        drop-shadow-color: root.selected ? Theme.sel-shadow : Theme.card-shadow;
+    }
+    ctx := DownloadContextMenu {
+        data: root.data;
+        queues: root.queues;
+        sel-count: root.sel-count;
+        done: root.done;
+        can-resume: root.can-resume;
+        can-stop: root.can-stop;
+        activated => { root.activated(); }
+        action(a) => { root.action(a); }
+        move-to-queue(q) => { root.move-to-queue(q); }
+    }
+    ta := TouchArea {
+        x: 0px;
+        width: cells.width;
+        height: parent.height;
+        double-clicked => {
+            root.activated();
+        }
+        moved => {
+            // a finished file pulled sideways: hand it to Windows to drop elsewhere
+            // (only a clearly sideways pull on its own row: moving up or down
+            // over other rows selects them instead). Only while the left button
+            // is really held (never after a right click and its menu)
+            if (!root.left-down) {
+                return;
+            }
+            if (self.pressed && root.done && !root.dragged-out && root.drag-last == 0 && self.mouse-y >= 0 && self.mouse-y < root.height
+                && abs(self.mouse-x - self.pressed-x) > 24px && abs(self.mouse-x - self.pressed-x) > 2 * abs(self.mouse-y - self.pressed-y)) {
+                root.dragged-out = true;
+                root.drag-out();
+                return;
+            }
+            if (self.pressed && floor(self.mouse-y / root.height) != root.drag-last) {
+                root.drag-last = floor(self.mouse-y / root.height);
+                root.drag(root.drag-last);
+            }
+        }
+        pointer-event(ev) => {
+            if (ev.button == PointerEventButton.left && ev.kind == PointerEventKind.down) {
+                root.left-down = true;
+                root.drag-last = 0;
+                root.dragged-out = false;
+                root.pick(ev.modifiers.control, ev.modifiers.shift);
+            }
+            if (ev.kind == PointerEventKind.cancel || (ev.kind == PointerEventKind.up && ev.button == PointerEventButton.left)) {
+                root.left-down = false;
+            }
+            // right click, as in Explorer: the row is selected the moment the
+            // button goes down (seen at once), the menu opens when it is let go
+            if (ev.button == PointerEventButton.right && ev.kind == PointerEventKind.down) {
+                root.right-pick();
+            }
+            if (ev.button == PointerEventButton.right && ev.kind == PointerEventKind.up) {
+                root.right-pick();
+                if (root.native-menu) {
+                    root.open-native-menu();
+                } else {
+                    ctx.show-at(self.mouse-x, self.mouse-y);
+                }
+            }
+        }
+    }
+    cells := DownloadCells {
+        data: root.data;
+        columns: root.columns;
+        kind-color: root.kind-color;
+    }
+}

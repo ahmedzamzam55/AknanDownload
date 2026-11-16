@@ -1,0 +1,126 @@
+// Toolbar icons (first half), drawn on a 32x32 grid.
+
+export component P inherits Path {
+    viewbox-width: 32;
+    viewbox-height: 32;
+}
+
+export component ToolbarIconsA inherits Rectangle {
+    in property <string> kind;
+    if root.kind == "add": Rectangle {
+        P {
+            fill: @linear-gradient(180deg, #45c06a 0%, #23934a 100%);
+            commands: "M 16 2 A 14 14 0 1 1 15.99 2 Z";
+        }
+        P {
+            fill: white;
+            commands: "M 14 8 L 18 8 L 18 14 L 24 14 L 24 18 L 18 18 L 18 24 L 14 24 L 14 18 L 8 18 L 8 14 L 14 14 Z";
+        }
+    }
+    if root.kind == "batch": Rectangle {
+        P {
+            fill: #dde6f1;
+            stroke: #6b7c90;
+            stroke-width: 1.5px;
+            commands: "M 11 3 L 26 3 L 26 22 L 11 22 Z";
+        }
+        P {
+            fill: white;
+            stroke: #6b7c90;
+            stroke-width: 1.5px;
+            commands: "M 5 8 L 20 8 L 20 28 L 5 28 Z M 8 13 L 17 13 M 8 17 L 17 17 M 8 21 L 14 21";
+        }
+        P {
+            fill: #2e9e4f;
+            commands: "M 24 17 A 7 7 0 1 1 23.99 17 Z";
+        }
+        P {
+            fill: white;
+            commands: "M 23 20 L 25 20 L 25 23 L 28 23 L 28 25 L 25 25 L 25 28 L 23 28 L 23 25 L 20 25 L 20 23 L 23 23 Z";
+        }
+    }
+    if root.kind == "playlist": Rectangle {
+        // a green player with a list in front of it
+        P {
+            fill: @linear-gradient(180deg, #4cd47a 0%, #1e9e4c 100%);
+            commands: "M 6 4 L 28 4 Q 31 4 31 7 L 31 19 Q 31 22 28 22 L 6 22 Q 3 22 3 19 L 3 7 Q 3 4 6 4 Z";
+        }
+        P {
+            fill: white;
+            commands: "M 14 8 L 21 13 L 14 18 Z";
+        }
+        P {
+            fill: #33475b;
+            commands: "M 3 24 L 20 24 L 20 26 L 3 26 Z M 3 28 L 20 28 L 20 30 L 3 30 Z";
+        }
+        P {
+            fill: #1f6feb;
+            commands: "M 25 21 A 6 6 0 1 1 24.99 21 Z";
+        }
+        P {
+            fill: white;
+            commands: "M 24 23 L 26 23 L 26 27 L 28 27 L 25 30 L 22 27 L 24 27 Z";
+        }
+    }
+    if root.kind == "torrent": Rectangle {
+        // a red magnet with a download arrow
+        P {
+            fill: @linear-gradient(180deg, #ff5a7a 0%, #c81e45 100%);
+            commands: "M 3 3 L 10 3 L 10 14 A 4 4 0 0 0 18 14 L 18 3 L 25 3 L 25 14 A 11 11 0 0 1 3 14 Z";
+        }
+        P {
+            fill: #dfe6ee;
+            commands: "M 3 3 L 10 3 L 10 8 L 3 8 Z M 18 3 L 25 3 L 25 8 L 18 8 Z";
+        }
+        P {
+            fill: #1f6feb;
+            commands: "M 25 18 A 6.5 6.5 0 1 1 24.99 18 Z";
+        }
+        P {
+            fill: white;
+            commands: "M 24 20.5 L 26 20.5 L 26 24.5 L 28.3 24.5 L 25 28.3 L 21.7 24.5 L 24 24.5 Z";
+        }
+    }
+    if root.kind == "grabber": Rectangle {
+        // a globe with a download arrow
+        P {
+            fill: @linear-gradient(180deg, #5aa8ff 0%, #1f6feb 100%);
+            commands: "M 14 3 A 11 11 0 1 1 13.99 3 Z";
+        }
+        P {
+            stroke: white;
+            stroke-width: 1.2px;
+            fill: transparent;
+            commands: "M 3 14 L 25 14 M 14 3 C 8 8 8 20 14 25 M 14 3 C 20 8 20 20 14 25 M 5 8 L 23 8 M 5 20 L 23 20";
+        }
+        P {
+            fill: #2e9e4f;
+            commands: "M 24 17 A 7 7 0 1 1 23.99 17 Z";
+        }
+        P {
+            fill: white;
+            commands: "M 23 19 L 25 19 L 25 24 L 27.5 24 L 24 28 L 20.5 24 L 23 24 Z";
+        }
+    }
+    if root.kind == "find": Rectangle {
+        P {
+            stroke: #4b5b70;
+            stroke-width: 3px;
+            fill: #e8f2ff;
+            commands: "M 13 4 A 9 9 0 1 1 12.99 4 Z";
+        }
+        P {
+            stroke: #4b5b70;
+            stroke-width: 4px;
+            commands: "M 19.5 19.5 L 28 28";
+        }
+    }
+    if root.kind == "resume": P {
+        fill: @linear-gradient(180deg, #45c06a 0%, #23934a 100%);
+        commands: "M 9 5 L 27 16 L 9 27 Z";
+    }
+    if root.kind == "stop": P {
+        fill: @linear-gradient(180deg, #f5a623 0%, #d97d00 100%);
+        commands: "M 8 6 L 14 6 L 14 26 L 8 26 Z M 18 6 L 24 6 L 24 26 L 18 26 Z";
+    }
+}

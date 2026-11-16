@@ -1,0 +1,71 @@
+// Torrents tab for SettingsDialog.
+
+import { SpinBox, ComboBox } from "std-widgets.slint";
+import { HRow, CheckBox } from "../../common.slint";
+import { Label, Hint } from "../widgets.slint";
+
+export component SettingsTorrentsTab inherits VerticalLayout {
+    in-out property <bool> torrent-main;
+    in-out property <int> seed-minutes;
+    in-out property <int> seed-ratio;
+    in-out property <int> torrent-upload;
+
+    padding: 14px;
+    spacing: 10px;
+    alignment: start;
+    CheckBox {
+        text: @tr("Make Aknan Download the main program for torrents");
+        checked <=> root.torrent-main;
+    }
+    Hint {
+        text: @tr("On: magnet links and .torrent files open in Aknan Download, from the browser and from Windows. Off: they stay with the browser and your own torrent program.");
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Keep sharing a finished torrent for (minutes)");
+        }
+        SpinBox {
+            minimum: 0;
+            maximum: 10080;
+            value <=> root.seed-minutes;
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    Hint {
+        text: @tr("0 = stop as soon as all files are here. Sharing longer helps the others who download the same torrent.");
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Stop sharing once it sent (times what it received)");
+        }
+        ComboBox {
+            width: 110px;
+            model: [@tr("No limit"), "0.5", "1", "1.5", "2", "3", "5"];
+            current-index <=> root.seed-ratio;
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Maximum upload speed (KB/s, 0 = no limit)");
+        }
+        SpinBox {
+            minimum: 0;
+            maximum: 1000000;
+            value <=> root.torrent-upload;
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    Hint {
+        text: @tr("While a torrent downloads it also sends pieces to others (that is how torrents work). A limit keeps your internet free for other things.");
+    }
+}

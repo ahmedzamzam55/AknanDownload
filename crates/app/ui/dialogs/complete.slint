@@ -1,0 +1,169 @@
+// Download complete dialog.
+
+import { Button } from "std-widgets.slint";
+import { Theme, ThemedWindow, HRow, CheckBox } from "../common.slint";
+import { DragFile } from "complete_drag.slint";
+
+export component CompleteDialog inherits ThemedWindow {
+    forward-focus: dlg-keys;
+    public function focus-input() {
+        dlg-keys.focus();
+    }
+    // set for a moment so the window comes in front of the browser
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("Download complete");
+    preferred-width: 540px;
+
+    in property <string> name;
+    in property <string> size;
+    in property <string> path;
+    in property <string> url;
+    in property <string> kind: "general";
+    in property <string> ext;
+    in-out property <bool> dont-show;
+
+    callback open-file();
+    callback open-with();
+    callback open-folder();
+    callback close-window();
+    // the file pulled out of the window (onto the desktop, a folder, a chat…)
+    callback drag-out();
+
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.close-window();
+                return accept;
+            }
+            if (event.text == Key.Return) {
+                root.open-file();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 16px;
+            spacing: 12px;
+            GridLayout {
+                // a row that reads from right to left in Arabic (wrapped text needs a grid)
+                spacing: 16px;
+                DragFile {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 0;
+                    kind: root.kind;
+                    ext: root.ext;
+                    drag-out => {
+                        root.drag-out();
+                    }
+                }
+                VerticalLayout {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 0;
+                    spacing: 6px;
+                    horizontal-stretch: 1;
+                    Text {
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        text: @tr("Download complete");
+                        font-size: 15px * Theme.font-scale;
+                        font-weight: 700;
+                        color: Theme.ok;
+                    }
+                    GridLayout {
+                        spacing: 6px;
+                        Text {
+                            col: Theme.rtl ? 1 : 0;
+                            row: 0;
+                            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                            text: @tr("Address");
+                            color: Theme.muted;
+                        }
+                        Rectangle {
+                            // clipped so long URLs never stretch the window wider, still selectable and copyable
+                            min-width: 0px;
+                            col: Theme.rtl ? 0 : 1;
+                            row: 0;
+                            horizontal-stretch: 1;
+                            clip: true;
+                            height: done-url.preferred-height;
+                            done-url := TextInput {
+                                width: parent.width;
+                                y: 0px;
+                                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                                text: root.url;
+                                font-size: 11px * Theme.font-scale;
+                                color: Theme.accent;
+                                read-only: true;
+                                single-line: true;
+                            }
+                        }
+                        Text {
+                            col: Theme.rtl ? 1 : 0;
+                            row: 1;
+                            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                            text: @tr("File size");
+                            color: Theme.muted;
+                        }
+                        Text {
+                            col: Theme.rtl ? 0 : 1;
+                            row: 1;
+                            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                            text: root.size;
+                            color: Theme.text;
+                        }
+                        Text {
+                            col: Theme.rtl ? 1 : 0;
+                            row: 2;
+                            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                            text: @tr("Saved as");
+                            color: Theme.muted;
+                        }
+                        TextInput {
+                            min-width: 0px;
+                            col: Theme.rtl ? 0 : 1;
+                            row: 2;
+                            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                            text: root.path;
+                            wrap: word-wrap;
+                            single-line: false;
+                            read-only: true;
+                            font-size: 11px * Theme.font-scale;
+                            color: Theme.text;
+                        }
+                    }
+                }
+            }
+            HRow {
+                spacing: 8px;
+                CheckBox {
+                    text: @tr("Don't show this again");
+                    checked <=> root.dont-show;
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+                Button {
+                    text: @tr("Open");
+                    primary: true;
+                    clicked => {
+                        root.open-file();
+                    }
+                }
+                // no "Open with…" here: picked by mistake it changes which
+                // program opens this kind of file (still in the list's menu)
+                Button {
+                    text: @tr("Open folder");
+                    clicked => {
+                        root.open-folder();
+                    }
+                }
+                Button {
+                    text: @tr("Close");
+                    clicked => {
+                        root.close-window();
+                    }
+                }
+            }
+        }
+    }
+}

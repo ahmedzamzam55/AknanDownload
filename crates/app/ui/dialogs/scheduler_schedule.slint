@@ -1,0 +1,154 @@
+// Schedule tab for SchedulerDialog.
+
+import { LineEdit, ComboBox } from "std-widgets.slint";
+import { Theme, HRow, CheckBox } from "../common.slint";
+import { Label, Hint, Radio } from "widgets.slint";
+
+export component SchedulerScheduleTab inherits VerticalLayout {
+    in-out property <bool> start-enabled;
+    in-out property <string> start-time;
+    in-out property <bool> once;
+    in-out property <string> once-date;
+    in-out property <bool> d0;
+    in-out property <bool> d1;
+    in-out property <bool> d2;
+    in-out property <bool> d3;
+    in-out property <bool> d4;
+    in-out property <bool> d5;
+    in-out property <bool> d6;
+    in-out property <bool> wake;
+    in-out property <bool> on-startup;
+    in-out property <bool> stop-enabled;
+    in-out property <string> stop-time;
+    in-out property <int> when-done;
+
+    padding: 12px;
+    spacing: 8px;
+    alignment: start;
+    CheckBox {
+        text: @tr("Start the queue automatically");
+        checked <=> root.start-enabled;
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Start time (HH:MM)");
+        }
+        LineEdit {
+            width: 90px;
+            text <=> root.start-time;
+            enabled: root.start-enabled;
+            placeholder-text: "02:00";
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    HRow {
+        spacing: 14px;
+        Radio {
+            text: @tr("Daily");
+            checked: !root.once;
+            enabled: root.start-enabled;
+            clicked => {
+                root.once = false;
+            }
+        }
+        Radio {
+            text: @tr("Once at (YYYY-MM-DD)");
+            checked: root.once;
+            enabled: root.start-enabled;
+            clicked => {
+                root.once = true;
+            }
+        }
+        LineEdit {
+            width: 120px;
+            text <=> root.once-date;
+            enabled: root.start-enabled && root.once;
+            placeholder-text: "2026-12-31";
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    if !root.once: HRow {
+        spacing: 4px;
+        CheckBox {
+            text: @tr("Mon");
+            checked <=> root.d0;
+        }
+        CheckBox {
+            text: @tr("Tue");
+            checked <=> root.d1;
+        }
+        CheckBox {
+            text: @tr("Wed");
+            checked <=> root.d2;
+        }
+        CheckBox {
+            text: @tr("Thu");
+            checked <=> root.d3;
+        }
+        CheckBox {
+            text: @tr("Fri");
+            checked <=> root.d4;
+        }
+        CheckBox {
+            text: @tr("Sat");
+            checked <=> root.d5;
+        }
+        CheckBox {
+            text: @tr("Sun");
+            checked <=> root.d6;
+        }
+    }
+    CheckBox {
+        text: @tr("Wake the computer from sleep to start it");
+        checked <=> root.wake;
+    }
+    CheckBox {
+        text: @tr("Start the queue when Aknan Download starts");
+        checked <=> root.on-startup;
+    }
+    Rectangle {
+        height: 1px;
+        background: Theme.grid;
+    }
+    HRow {
+        spacing: 8px;
+        CheckBox {
+            text: @tr("Stop the queue at");
+            checked <=> root.stop-enabled;
+        }
+        LineEdit {
+            width: 90px;
+            text <=> root.stop-time;
+            enabled: root.stop-enabled;
+            placeholder-text: "08:00";
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    Rectangle {
+        height: 1px;
+        background: Theme.grid;
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("When the queue is done");
+        }
+        ComboBox {
+            model: [@tr("Do nothing"), @tr("Exit Aknan Download"), @tr("Sleep"), @tr("Shut down the computer"), @tr("Hibernate")];
+            current-index <=> root.when-done;
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    Hint {
+        text: @tr("For Sleep you may need to allow wake timers in the Windows power options, so the computer can wake up for the next start.");
+    }
+}

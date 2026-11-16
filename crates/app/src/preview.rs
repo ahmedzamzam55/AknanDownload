@@ -8,8 +8,6 @@
 //! name of the same file with the real extension is made (a hard link, no
 //! copy, it grows with the download) and opened; it goes away by itself.
 
-#[cfg(any(windows, test))]
-use swiftget_engine::sync::LockOk;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
@@ -129,6 +127,7 @@ fn player_for(ext: &str) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use swiftget_engine::sync::LockOk;
 
     #[test]
     fn second_name_has_the_real_extension() {

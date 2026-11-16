@@ -1,0 +1,150 @@
+// View > Columns dialog.
+
+import { Button } from "std-widgets.slint";
+import { Cols, Theme, ThemedWindow, HRow, CheckBox } from "../common.slint";
+import { Label } from "widgets.slint";
+
+export component ColumnsDialog inherits ThemedWindow {
+    forward-focus: dlg-keys;
+    public function focus-input() {
+        dlg-keys.focus();
+    }
+    // set for a moment so the window comes in front of the browser
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("Columns");
+    preferred-width: 320px;
+    in-out property <Cols> cols;
+    callback save();
+    callback reset();
+    callback cancel();
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.cancel();
+                return accept;
+            }
+            if (event.text == Key.Return) {
+                root.save();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 14px;
+            spacing: 6px;
+            Label {
+                text: @tr("Show these columns in the download list:");
+            }
+            Text {
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                text: @tr("File Name (always shown)");
+                color: Theme.muted;
+                font-size: 12px * Theme.font-scale;
+            }
+            CheckBox {
+                text: @tr("Q (queue number)");
+                checked: root.cols.q;
+                toggled => {
+                    root.cols.q = self.checked;
+                }
+            }
+            CheckBox {
+                text: @tr("Size");
+                checked: root.cols.size;
+                toggled => {
+                    root.cols.size = self.checked;
+                }
+            }
+            CheckBox {
+                text: @tr("Status");
+                checked: root.cols.status;
+                toggled => {
+                    root.cols.status = self.checked;
+                }
+            }
+            CheckBox {
+                text: @tr("Time left");
+                checked: root.cols.eta;
+                toggled => {
+                    root.cols.eta = self.checked;
+                }
+            }
+            CheckBox {
+                text: @tr("Transfer rate");
+                checked: root.cols.speed;
+                toggled => {
+                    root.cols.speed = self.checked;
+                }
+            }
+            CheckBox {
+                text: @tr("Last Try Date");
+                checked: root.cols.last;
+                toggled => {
+                    root.cols.last = self.checked;
+                }
+            }
+            CheckBox {
+                text: @tr("Description");
+                checked: root.cols.desc;
+                toggled => {
+                    root.cols.desc = self.checked;
+                }
+            }
+            CheckBox {
+                text: @tr("Date Added");
+                checked: root.cols.added;
+                toggled => {
+                    root.cols.added = self.checked;
+                }
+            }
+            CheckBox {
+                text: @tr("Save To");
+                checked: root.cols.saveto;
+                toggled => {
+                    root.cols.saveto = self.checked;
+                }
+            }
+            CheckBox {
+                text: @tr("Referer");
+                checked: root.cols.referer;
+                toggled => {
+                    root.cols.referer = self.checked;
+                }
+            }
+            CheckBox {
+                text: @tr("Parent Web Page");
+                checked: root.cols.parent;
+                toggled => {
+                    root.cols.parent = self.checked;
+                }
+            }
+            HRow {
+                spacing: 8px;
+                padding-top: 8px;
+                Button {
+                    text: @tr("Reset");
+                    clicked => {
+                        root.reset();
+                    }
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+                Button {
+                    text: @tr("OK");
+                    primary: true;
+                    clicked => {
+                        root.save();
+                    }
+                }
+                Button {
+                    text: @tr("Cancel");
+                    clicked => {
+                        root.cancel();
+                    }
+                }
+            }
+        }
+    }
+}

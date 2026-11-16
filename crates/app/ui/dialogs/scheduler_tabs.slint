@@ -1,0 +1,121 @@
+// Files and Options tabs for SchedulerDialog.
+
+import { Button, LineEdit, SpinBox } from "std-widgets.slint";
+import { PairRow, HRow, CheckBox } from "../common.slint";
+import { Label, Hint } from "widgets.slint";
+import { PairList } from "pair_list.slint";
+
+export component SchedulerFilesTab inherits VerticalLayout {
+    in property <[PairRow]> files;
+    in-out property <int> file-current: -1;
+    callback file-up();
+    callback file-down();
+    callback file-remove();
+
+    padding: 10px;
+    spacing: 8px;
+    PairList {
+        vertical-stretch: 1;
+        rows: root.files;
+        current <=> root.file-current;
+        head-a: @tr("File name");
+        head-b: @tr("Size");
+        head-c: @tr("Status");
+        width-b: 90px;
+        width-c: 110px;
+    }
+    HRow {
+        spacing: 6px;
+        Button {
+            text: @tr("Move up");
+            enabled: root.file-current > 0;
+            clicked => {
+                root.file-up();
+            }
+        }
+        Button {
+            text: @tr("Move down");
+            enabled: root.file-current >= 0 && root.file-current < root.files.length - 1;
+            clicked => {
+                root.file-down();
+            }
+        }
+        Button {
+            text: @tr("Delete from queue");
+            enabled: root.file-current >= 0;
+            clicked => {
+                root.file-remove();
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    Hint {
+        text: @tr("Files download in this order. Add files with right click > Move to queue, Add Batch, or \"Download Later\".");
+    }
+}
+
+export component SchedulerOptionsTab inherits VerticalLayout {
+    in-out property <int> parallel: 1;
+    in-out property <int> retries;
+    in-out property <string> folder;
+    in-out property <bool> open-when-done;
+    callback browse();
+
+    padding: 12px;
+    spacing: 10px;
+    alignment: start;
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Download");
+        }
+        SpinBox {
+            minimum: 1;
+            maximum: 32;
+            value <=> root.parallel;
+        }
+        Label {
+            text: @tr("files at the same time");
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Number of retries for each file if downloading failed");
+        }
+        SpinBox {
+            minimum: 0;
+            maximum: 50;
+            value <=> root.retries;
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    Label {
+        text: @tr("Save all files of this queue to");
+    }
+    HRow {
+        spacing: 6px;
+        LineEdit {
+            text <=> root.folder;
+            placeholder-text: @tr("automatic (by file type)");
+            horizontal-stretch: 1;
+        }
+        Button {
+            text: "…";
+            clicked => {
+                root.browse();
+            }
+        }
+    }
+    CheckBox {
+        text: @tr("Open each file when it has finished downloading");
+        checked <=> root.open-when-done;
+    }
+}

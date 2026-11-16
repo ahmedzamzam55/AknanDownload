@@ -1,0 +1,172 @@
+// Main window global keyboard shortcuts FocusScope wrapper.
+
+export component MainKeys inherits FocusScope {
+    in property <int> selected-id: -1;
+    in property <int> selected-state: -1;
+    in property <bool> can-resume;
+    in property <bool> can-stop;
+    in-out property <string> search;
+    callback act(string);
+    callback row-act(string);
+    callback row-activated();
+    callback move-sel(int, bool);
+    callback search-changed();
+    callback focus-search();
+
+    key-pressed(event) => {
+        if (event.modifiers.control && !event.modifiers.shift && (event.text == "a" || event.text == "A" || event.text == "ش")) {
+            root.act("select-all");
+            return accept;
+        }
+        if (event.text == Key.Delete && root.selected-id >= 0) {
+            root.act("delete");
+            return accept;
+        }
+        // Alt+Enter: the download's properties
+        if (event.text == Key.Return && event.modifiers.alt && root.selected-id >= 0) {
+            root.row-act("properties");
+            return accept;
+        }
+        if (event.text == Key.Return && root.selected-id >= 0) {
+            root.row-activated();
+            return accept;
+        }
+        if (event.text == Key.Space && !event.modifiers.control && !event.modifiers.alt && root.selected-id >= 0) {
+            if (root.can-stop) {
+                root.act("pause");
+            } else if (root.can-resume) {
+                root.act("resume");
+            }
+            return accept;
+        }
+        if (event.text == Key.Escape && root.search != "") {
+            root.search = "";
+            root.search-changed();
+            return accept;
+        }
+        if (event.text == Key.UpArrow) {
+            root.move-sel(-1, event.modifiers.shift);
+            return accept;
+        }
+        if (event.text == Key.DownArrow) {
+            root.move-sel(1, event.modifiers.shift);
+            return accept;
+        }
+        if (event.text == Key.PageUp) {
+            root.move-sel(-10, event.modifiers.shift);
+            return accept;
+        }
+        if (event.text == Key.PageDown) {
+            root.move-sel(10, event.modifiers.shift);
+            return accept;
+        }
+        if (event.text == Key.Home) {
+            root.move-sel(-1000000, event.modifiers.shift);
+            return accept;
+        }
+        if (event.text == Key.End) {
+            root.move-sel(1000000, event.modifiers.shift);
+            return accept;
+        }
+        // F2: rename / move the file
+        if (event.text == Key.F2 && root.selected-id >= 0) {
+            root.row-act("move");
+            return accept;
+        }
+        if (event.text == Key.F1) {
+            root.act("show-shortcuts");
+            return accept;
+        }
+        if (event.text == Key.F3) {
+            root.act("find-next");
+            return accept;
+        }
+        if (event.text == Key.F5) {
+            root.act("refresh-list");
+            return accept;
+        }
+        if (event.modifiers.control && event.modifiers.shift && (event.text == "r" || event.text == "R" || event.text == "ق")) {
+            root.act("resume-all");
+            return accept;
+        }
+        if (event.modifiers.control && event.modifiers.shift && (event.text == "s" || event.text == "S" || event.text == "س")) {
+            root.act("stop-all");
+            return accept;
+        }
+        if (event.modifiers.control && event.modifiers.shift && (event.text == "o" || event.text == "O" || event.text == "خ")) {
+            root.act("open-download-folder");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "r" || event.text == "R" || event.text == "ق") && root.selected-id >= 0) {
+            root.row-act("resume");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "s" || event.text == "S" || event.text == "س") && root.selected-id >= 0) {
+            root.row-act("stop");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "o" || event.text == "O" || event.text == "خ") && root.selected-id >= 0) {
+            root.row-act("open");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "e" || event.text == "E" || event.text == "ث") && root.selected-id >= 0) {
+            root.row-act("folder");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "j" || event.text == "J" || event.text == "ت") && root.selected-id >= 0 && root.selected-state != 3) {
+            root.row-act("refresh");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "f" || event.text == "F" || event.text == "ب")) {
+            root.act("find");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "k" || event.text == "K" || event.text == "ن" || event.text == "l" || event.text == "L" || event.text == "م")) {
+            root.focus-search();
+            return accept;
+        }
+        // the selected downloads' addresses / a copied link to download
+        if (event.modifiers.control && (event.text == "c" || event.text == "C" || event.text == "ؤ") && root.selected-id >= 0) {
+            root.row-act("copy");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "v" || event.text == "V" || event.text == "ر")) {
+            root.act("paste-url");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "n" || event.text == "N" || event.text == "ى")) {
+            root.act("add-url");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "b" || event.text == "B" || event.text == "لا" || event.text == "ﻻ")) {
+            root.act("add-batch");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "t" || event.text == "T" || event.text == "ف")) {
+            root.act("torrent");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "g" || event.text == "G" || event.text == "ل")) {
+            root.act("grabber");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "p" || event.text == "P" || event.text == "ح")) {
+            root.act("playlist");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "d" || event.text == "D" || event.text == "ي")) {
+            root.act("delete-completed");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "," || event.text == "و")) {
+            root.act("open-settings");
+            return accept;
+        }
+        if (event.modifiers.control && (event.text == "q" || event.text == "Q" || event.text == "ض")) {
+            root.act("quit");
+            return accept;
+        }
+        reject
+    }
+    @children
+}

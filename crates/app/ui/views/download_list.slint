@@ -1,0 +1,155 @@
+// Main downloads table with resizable/draggable header and scrollable row list.
+
+import { ListView } from "std-widgets.slint";
+import { DownloadRow, QueueRow, Cols, ColDef, Theme, HeaderCell, HRow } from "../common.slint";
+import { DownloadItem } from "download_item.slint";
+
+export component DownloadList inherits Rectangle {
+    in property <[DownloadRow]> rows;
+    in property <[QueueRow]> queues;
+    in property <Cols> cols;
+    in property <[ColDef]> columns;
+    in property <int> sel-count;
+    in property <bool> native-menu;
+    in property <string> sort-by: "date";
+    in property <bool> sort-desc: true;
+    in property <string> search;
+
+    callback focus-main();
+    callback sort(string);
+    callback column-resized(int, length);
+    callback column-dropped(int, length);
+    callback columns-changed();
+    callback row-menu(int);
+    callback row-clicked(int, bool, bool);
+    callback row-right(int);
+    callback row-drag(int, int);
+    callback row-drag-out(int);
+    callback row-activated(int);
+    callback row-action(int, string);
+    callback row-to-queue(int, int);
+
+    pure function col-title(k: string) -> string {
+        if (k == "name") { return @tr("File Name"); }
+        if (k == "q") { return @tr("Q"); }
+        if (k == "size") { return @tr("Size"); }
+        if (k == "status") { return @tr("Status"); }
+        if (k == "eta") { return @tr("Time left"); }
+        if (k == "speed") { return @tr("Transfer rate"); }
+        if (k == "last") { return @tr("Last Try Date"); }
+        if (k == "desc") { return @tr("Description"); }
+        if (k == "added") { return @tr("Date Added"); }
+        if (k == "saveto") { return @tr("Save To"); }
+        if (k == "referer") { return @tr("Referer"); }
+        if (k == "parent") { return @tr("Parent Web Page"); }
+        return k;
+    }
+    pure function col-sort-key(k: string) -> string {
+        if (k == "q") { return ""; }
+        if (k == "last") { return "date"; }
+        return k;
+    }
+
+    horizontal-stretch: 1;
+    min-width: 300px;
+    clip: true;
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.line;
+    TouchArea {
+        clicked => {
+            root.focus-main();
+        }
+    }
+    VerticalLayout {
+        padding: 1px;
+        Rectangle {
+            height: 24px;
+            background: @linear-gradient(180deg, Theme.header-top 0%, Theme.header-bottom 100%);
+            clip: true;
+            // scrolls sideways together with the list (wide columns)
+            hdr := HRow {
+                x: lv.content-x;
+                width: max(parent.width, lv.content-width);
+                padding-left: Theme.rtl ? (0px) : (6px);
+                padding-right: Theme.rtl ? (6px) : (0px);
+                HeaderCell {
+                    text: "";
+                    width: 32px;
+                }
+                for c[i] in root.columns: HeaderCell {
+                    width: c.width;
+                    adjustable: true;
+                    text: root.col-title(c.key);
+                    key: root.col-sort-key(c.key);
+                    align: c.key == "size" || c.key == "eta" || c.key == "speed" ? TextHorizontalAlignment.right : c.key == "q" || c.key == "status" || c.key == "last" || c.key == "added" ? TextHorizontalAlignment.center : TextHorizontalAlignment.left;
+                    sort-by: root.sort-by;
+                    sort-desc: root.sort-desc;
+                    sort(k) => { root.sort(k); }
+                    resized(w) => { root.column-resized(i, w); }
+                    resize-done => { root.columns-changed(); }
+                    dropped(x) => {
+                        // measured from the side where the columns start
+                        root.column-dropped(i, Theme.rtl ? hdr.width - x : x);
+                    }
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+            }
+            Rectangle {
+                x: 0;
+                y: parent.height - 1px;
+                width: parent.width;
+                height: 1px;
+                background: Theme.line;
+            }
+        }
+        lv := ListView {
+            vertical-stretch: 1;
+            // Arabic: wide columns start at the right edge, so
+            // the list first shows its right side
+            property <length> rtl-start: Theme.rtl ? min(0px, self.visible-width - self.content-width) : 0px;
+            changed rtl-start => {
+                self.content-x = self.rtl-start;
+            }
+            init => {
+                self.content-x = self.rtl-start;
+            }
+            for r in root.rows: DownloadItem {
+                // every row as wide as its columns: the mouse and
+                // the highlight reach the name in Arabic too
+                width: max(lv.visible-width, self.content-w);
+                data: r;
+                queues: root.queues;
+                cols: root.cols;
+                columns: root.columns;
+                selected: r.sel;
+                sel-count: root.sel-count;
+                native-menu: root.native-menu;
+                open-native-menu => { root.row-menu(r.id); }
+                pick(ctrl, shift) => {
+                    root.row-clicked(r.id, ctrl, shift);
+                    root.focus-main();
+                }
+                right-pick => {
+                    root.row-right(r.id);
+                    root.focus-main();
+                }
+                drag(offset) => { root.row-drag(r.id, offset); }
+                drag-out => { root.row-drag-out(r.id); }
+                activated => { root.row-activated(r.id); }
+                action(a) => { root.row-action(r.id, a); }
+                move-to-queue(q) => { root.row-to-queue(r.id, q); }
+            }
+        }
+    }
+    if root.rows.length == 0: Text {
+        x: 0;
+        y: 120px;
+        width: parent.width;
+        text: root.search != "" ? @tr("Nothing matches “{}”.", root.search) : @tr("No downloads here.\nClick “Add URL”, copy a link, or download something in your browser.");
+        horizontal-alignment: center;
+        color: Theme.muted;
+    }
+}

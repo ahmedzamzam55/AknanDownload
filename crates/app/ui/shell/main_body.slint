@@ -1,0 +1,143 @@
+// Main window workspace body: key handler, toolbar, sidebar, list, status bar and queue popup.
+
+import { DownloadRow, QueueRow, CatRow, Cols, ColDef, HRow } from "../common.slint";
+import { ShellState } from "shell_types.slint";
+import { MainKeys } from "main_keys.slint";
+import { Toolbar } from "toolbar.slint";
+import { Sidebar } from "sidebar.slint";
+import { StatusBar } from "status_bar.slint";
+import { QueueMenu } from "queue_menu.slint";
+import { DownloadList } from "../views/download_list.slint";
+
+export component MainBody inherits Rectangle {
+    forward-focus: keys;
+    public function focus-keys() {
+        keys.focus();
+    }
+
+    in property <ShellState> state;
+    in property <[DownloadRow]> rows;
+    in property <[QueueRow]> queues;
+    in property <[CatRow]> categories;
+    in property <Cols> cols;
+    in property <[ColDef]> columns;
+    in-out property <string> view: "all";
+    in-out property <string> search;
+    in-out property <bool> open-all: true;
+    in-out property <bool> open-unf: false;
+    in-out property <bool> open-fin: false;
+    in-out property <bool> open-queues: true;
+
+    callback act(string);
+    callback int-act(string, int);
+    callback str-act(string, string);
+    callback int2-act(string, int, int);
+    callback move-selection(int, bool);
+    callback row-clicked(int, bool, bool);
+    callback row-action(int, string);
+    callback column-resized(int, length);
+    callback column-dropped(int, length);
+
+    property <length> qmenu-x;
+    property <bool> qmenu-start: true;
+    queue-menu := QueueMenu {
+        qmenu-x: root.qmenu-x;
+        qmenu-start: root.qmenu-start;
+        queues: root.queues;
+        start-queue(q) => { root.int-act("start-queue", q); }
+        stop-queue(q) => { root.int-act("stop-queue", q); }
+    }
+
+    keys := MainKeys {
+        width: 100%;
+        height: 100%;
+        selected-id: root.state.selected-id;
+        selected-state: root.state.selected-state;
+        can-resume: root.state.can-resume;
+        can-stop: root.state.can-stop;
+        search <=> root.search;
+        act(c) => { root.act(c); }
+        row-act(a) => { root.row-action(root.state.selected-id, a); }
+        row-activated => { root.int-act("row-activated", root.state.selected-id); }
+        move-sel(d, s) => { root.move-selection(d, s); }
+        search-changed => { root.act("search-changed"); }
+        focus-search => { tb.focus-search(); }
+
+        VerticalLayout {
+            tb := Toolbar {
+                toolbar-small: root.state.toolbar-small;
+                can-resume: root.state.can-resume;
+                can-stop: root.state.can-stop;
+                selected-id: root.state.selected-id;
+                limiter-on: root.state.limiter-on;
+                search <=> root.search;
+                act(c) => { root.act(c); }
+                open-queue-menu(start, x) => {
+                    root.qmenu-start = start;
+                    root.qmenu-x = x;
+                    queue-menu.show();
+                }
+                search-changed => { root.act("search-changed"); }
+                focus-main => { keys.focus(); }
+            }
+            HRow {
+                vertical-stretch: 1;
+                padding: 4px;
+                spacing: 4px;
+                if !root.state.hide-categories: Sidebar {
+                    categories: root.categories;
+                    queues: root.queues;
+                    count-all: root.state.count-all;
+                    count-unfinished: root.state.count-unfinished;
+                    count-finished: root.state.count-finished;
+                    current-queue: root.state.current-queue;
+                    view <=> root.view;
+                    open-all <=> root.open-all;
+                    open-unf <=> root.open-unf;
+                    open-fin <=> root.open-fin;
+                    open-queues <=> root.open-queues;
+                    view-changed(v) => { root.str-act("view-changed", v); }
+                    focus-main => { keys.focus(); }
+                    add-category => { root.act("add-category"); }
+                    delete-category(t) => { root.str-act("delete-category", t); }
+                    category-props(t) => { root.str-act("category-props", t); }
+                    start-queue(q) => { root.int-act("start-queue", q); }
+                    stop-queue(q) => { root.int-act("stop-queue", q); }
+                    new-queue => { root.act("new-queue"); }
+                    edit-queue(q) => { root.int-act("edit-queue", q); }
+                    delete-queue(q) => { root.int-act("delete-queue", q); }
+                }
+                DownloadList {
+                    rows: root.rows;
+                    queues: root.queues;
+                    cols: root.cols;
+                    columns: root.columns;
+                    sel-count: root.state.sel-count;
+                    native-menu: root.state.native-menu;
+                    sort-by: root.state.sort-by;
+                    sort-desc: root.state.sort-desc;
+                    search: root.search;
+                    focus-main => { keys.focus(); }
+                    sort(k) => { root.str-act("sort", k); }
+                    column-resized(i, w) => { root.column-resized(i, w); }
+                    column-dropped(i, x) => { root.column-dropped(i, x); }
+                    columns-changed => { root.act("columns-changed"); }
+                    row-menu(id) => { root.int-act("row-menu", id); }
+                    row-clicked(id, c, s) => { root.row-clicked(id, c, s); }
+                    row-right(id) => { root.int-act("row-right", id); }
+                    row-drag(id, off) => { root.int2-act("row-drag", id, off); }
+                    row-drag-out(id) => { root.int-act("row-drag-out", id); }
+                    row-activated(id) => { root.int-act("row-activated", id); }
+                    row-action(id, a) => { root.row-action(id, a); }
+                    row-to-queue(id, q) => { root.int2-act("row-to-queue", id, q); }
+                }
+            }
+            StatusBar {
+                status-text: root.state.status-text;
+                limiter-text: root.state.limiter-text;
+                limiter-on: root.state.limiter-on;
+                toggle-limiter => { root.act("toggle-limiter"); }
+            }
+        }
+    }
+}

@@ -1,0 +1,184 @@
+// Site Grabber / Download all links dialog.
+
+import { Button, LineEdit, ComboBox } from "std-widgets.slint";
+import { LinkRow, Theme, ThemedWindow, HRow, CheckBox } from "../common.slint";
+import { Label } from "widgets.slint";
+import { GrabberExploreBox } from "grabber_explore.slint";
+import { GrabberLinksBox } from "grabber_table.slint";
+
+export component GrabberDialog inherits ThemedWindow {
+    property <int> focus-seq: 0;
+    forward-focus: dlg-keys;
+    public function focus-input() {
+        dlg-keys.focus();
+        if (!root.links-mode) {
+            root.focus-seq += 1;
+        }
+    }
+    // set for a moment so the window comes in front of the browser
+    in property <bool> front;
+    always-on-top: root.front;
+    title: root.links-mode ? @tr("Download all links") : @tr("Site Grabber");
+    preferred-width: 860px;
+    preferred-height: 600px;
+    // true: links handed over by the browser (no exploring)
+    in property <bool> links-mode;
+    in-out property <string> start-url;
+    in-out property <int> template: 0;
+    in-out property <string> exts;
+    in-out property <int> depth: 1;
+    in-out property <bool> other-sites;
+    in-out property <bool> no-parent: true;
+    in-out property <int> parallel: 4;
+    in property <bool> exploring;
+    in property <string> progress-text;
+    in property <[LinkRow]> links;
+    in-out property <string> filter;
+    in-out property <int> type-filter: 0;
+    in-out property <string> folder;
+    in property <[string]> queue-names: ["Main download queue"];
+    in-out property <int> queue-index: 0;
+    in-out property <bool> start-now: true;
+    in-out property <bool> use-text: true;
+    in property <string> checked-text;
+    in property <string> message;
+    callback template-changed(int);
+    callback explore();
+    callback stop-explore();
+    callback toggle(int);
+    callback check-all(bool);
+    callback filter-changed();
+    callback browse();
+    callback download();
+    callback close-window();
+
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.close-window();
+                return accept;
+            }
+            if (event.text == Key.Return && event.modifiers.control) {
+                root.download();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 12px;
+            spacing: 8px;
+            if !root.links-mode: GrabberExploreBox {
+                focus-seq: root.focus-seq;
+                start-url <=> root.start-url;
+                template <=> root.template;
+                exts <=> root.exts;
+                depth <=> root.depth;
+                other-sites <=> root.other-sites;
+                no-parent <=> root.no-parent;
+                parallel <=> root.parallel;
+                exploring: root.exploring;
+                progress-text: root.progress-text;
+                template-changed(t) => { root.template-changed(t); }
+                explore => { root.explore(); }
+                stop-explore => { root.stop-explore(); }
+            }
+            HRow {
+                spacing: 8px;
+                Label {
+                    text: @tr("Show");
+                }
+                ComboBox {
+                    width: 150px;
+                    model: [@tr("All types"), @tr("Images"), @tr("Videos"), @tr("Music"), @tr("Archives / programs"), @tr("Documents"), @tr("Web pages")];
+                    current-index <=> root.type-filter;
+                    selected(v) => {
+                        root.filter-changed();
+                    }
+                }
+                LineEdit {
+                    text <=> root.filter;
+                    placeholder-text: @tr("Filter by name or address…");
+                    horizontal-stretch: 1;
+                    edited(t) => {
+                        root.filter-changed();
+                    }
+                }
+                Button {
+                    text: @tr("Check all");
+                    clicked => {
+                        root.check-all(true);
+                    }
+                }
+                Button {
+                    text: @tr("Uncheck all");
+                    clicked => {
+                        root.check-all(false);
+                    }
+                }
+            }
+            GrabberLinksBox {
+                links: root.links;
+                links-mode: root.links-mode;
+                exploring: root.exploring;
+                toggle(i) => {
+                    root.toggle(i);
+                }
+            }
+            HRow {
+                spacing: 8px;
+                Label {
+                    text: @tr("Save to");
+                }
+                LineEdit {
+                    text <=> root.folder;
+                    placeholder-text: @tr("automatic (by file type)");
+                    horizontal-stretch: 1;
+                }
+                Button {
+                    text: "…";
+                    clicked => {
+                        root.browse();
+                    }
+                }
+                Label {
+                    text: @tr("Queue");
+                }
+                ComboBox {
+                    model: root.queue-names;
+                    current-index <=> root.queue-index;
+                }
+            }
+            HRow {
+                spacing: 8px;
+                CheckBox {
+                    text: @tr("Use link texts as descriptions");
+                    checked <=> root.use-text;
+                }
+                CheckBox {
+                    text: @tr("Start the queue now");
+                    checked <=> root.start-now;
+                }
+                Text {
+                    text: root.message != "" ? root.message : root.checked-text;
+                    color: root.message != "" ? Theme.err : Theme.muted;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                    horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.left : TextHorizontalAlignment.right;
+                }
+                Button {
+                    text: @tr("Download checked");
+                    primary: true;
+                    clicked => {
+                        root.download();
+                    }
+                }
+                Button {
+                    text: @tr("Close");
+                    clicked => {
+                        root.close-window();
+                    }
+                }
+            }
+        }
+    }
+}

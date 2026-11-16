@@ -1,0 +1,160 @@
+// Downloads tab for SettingsDialog.
+
+import { Button, LineEdit, ComboBox } from "std-widgets.slint";
+import { Theme, HRow, CheckBox } from "../../common.slint";
+import { Label, Hint } from "../widgets.slint";
+
+export component SettingsDownloadsTab inherits VerticalLayout {
+    in-out property <bool> show-start-dialog;
+    in-out property <bool> start-while-info;
+    in-out property <bool> complete-dialog;
+    in-out property <bool> complete-each;
+    in-out property <bool> ask-remove: true;
+    in-out property <int> mp3-index: 1;
+    in-out property <bool> subtitles;
+    in-out property <string> subtitle-langs;
+    in-out property <int> progress-mode;
+    in-out property <int> duplicate-action;
+    in-out property <bool> set-file-date;
+    in-out property <bool> virus-scan;
+    in-out property <string> virus-program;
+    in-out property <string> virus-args;
+    in-out property <string> user-agent;
+    callback browse(string);
+
+    padding: 14px;
+    spacing: 8px;
+    alignment: start;
+    CheckBox {
+        text: @tr("Show the \"Download File Info\" window for downloads from the browser");
+        checked <=> root.show-start-dialog;
+    }
+    CheckBox {
+        text: @tr("Start downloading immediately while showing \"Download File Info\"");
+        checked <=> root.start-while-info;
+    }
+    CheckBox {
+        text: @tr("Show the \"Download complete\" window");
+        checked <=> root.complete-dialog;
+    }
+    CheckBox {
+        enabled: root.complete-dialog;
+        text: @tr("For a playlist or several files added together: one window for each file (not one at the end)");
+        checked <=> root.complete-each;
+    }
+    CheckBox {
+        text: @tr("Ask before removing downloads from the list");
+        checked <=> root.ask-remove;
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Quality of MP3 files");
+        }
+        ComboBox {
+            width: 160px;
+            model: ["128 kbps", "192 kbps", "256 kbps", "320 kbps"];
+            current-index <=> root.mp3-index;
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    HRow {
+        spacing: 8px;
+        CheckBox {
+            text: @tr("Download the subtitles of videos too, in these languages:");
+            checked <=> root.subtitles;
+        }
+        LineEdit {
+            width: 120px;
+            enabled: root.subtitles;
+            text <=> root.subtitle-langs;
+            placeholder-text: "ar en";
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Show the download progress window");
+        }
+        ComboBox {
+            width: 160px;
+            model: [@tr("Normally"), @tr("Minimized"), @tr("Don't show")];
+            current-index <=> root.progress-mode;
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("If a duplicate link is added");
+        }
+        ComboBox {
+            width: 330px;
+            model: [@tr("Ask me"), @tr("Add it with a numbered file name"), @tr("Add it and replace the old download"), @tr("Show the finished one / resume the unfinished one")];
+            current-index <=> root.duplicate-action;
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    CheckBox {
+        text: @tr("Give finished files the date from the server");
+        checked <=> root.set-file-date;
+    }
+    Rectangle {
+        height: 1px;
+        background: Theme.grid;
+    }
+    CheckBox {
+        text: @tr("Check every finished file for viruses with this program");
+        checked <=> root.virus-scan;
+    }
+    HRow {
+        spacing: 6px;
+        LineEdit {
+            text <=> root.virus-program;
+            enabled: root.virus-scan;
+            placeholder-text: @tr("C:\\Program Files\\Windows Defender\\MpCmdRun.exe");
+            horizontal-stretch: 1;
+        }
+        Button {
+            text: "…";
+            enabled: root.virus-scan;
+            clicked => {
+                root.browse("virus");
+            }
+        }
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Command line parameters");
+        }
+        LineEdit {
+            text <=> root.virus-args;
+            enabled: root.virus-scan;
+            placeholder-text: @tr("-Scan -ScanType 3 -File [File]");
+            horizontal-stretch: 1;
+        }
+    }
+    Hint {
+        text: @tr("[File] is replaced by the downloaded file.");
+    }
+    Rectangle {
+        height: 1px;
+        background: Theme.grid;
+    }
+    Label {
+        text: @tr("User-Agent for downloads added by hand");
+    }
+    LineEdit {
+        text <=> root.user-agent;
+    }
+}

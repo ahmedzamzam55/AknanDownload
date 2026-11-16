@@ -1,0 +1,215 @@
+// Aknan Download – Options dialog.
+
+import { Button } from "std-widgets.slint";
+import { PairRow, Theme, ThemedWindow, HRow } from "../common.slint";
+import { SideTab } from "widgets.slint";
+import { SettingsPanelA } from "settings/panel_a.slint";
+import { SettingsPanelB } from "settings/panel_b.slint";
+
+export component SettingsDialog inherits ThemedWindow {
+    forward-focus: dlg-keys;
+    public function focus-input() {
+        dlg-keys.focus();
+    }
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("Aknan Download – Options");
+    preferred-width: 820px;
+    preferred-height: 600px;
+
+    in-out property <int> tab: 0;
+    in-out property <int> language;
+    in-out property <int> theme;
+    in-out property <float> window-opacity: 100;
+    callback preview-opacity(float);
+    in-out property <float> text-size: 100;
+    in-out property <int> font-index;
+    in-out property <string> bg-image;
+    in-out property <float> bg-strength: 45;
+    callback browse-bg();
+    callback preview-look();
+    in-out property <bool> start-with-windows;
+    in-out property <bool> close-to-tray;
+    in-out property <bool> gpu-drawing;
+    in-out property <bool> clipboard;
+    in-out property <bool> auto-clipboard;
+    in-out property <int> double-click;
+    in-out property <bool> show-tips;
+    in-out property <int> port;
+    in-out property <int> skip-key;
+    in-out property <int> force-key;
+    in property <string> extension-path;
+    in-out property <string> capture-exts;
+    in-out property <string> skip-sites;
+    in-out property <string> skip-addresses;
+    in-out property <bool> panel-enabled;
+    in-out property <string> panel-skip-sites;
+    in-out property <int> panel-min-video;
+    in-out property <int> panel-min-audio;
+    in-out property <string> download-dir;
+    in-out property <bool> category-folders;
+    in-out property <string> temp-dir;
+    in-out property <bool> show-start-dialog;
+    in-out property <bool> start-while-info;
+    in-out property <bool> complete-dialog;
+    in-out property <bool> complete-each;
+    in-out property <bool> ask-remove: true;
+    in-out property <int> mp3-index: 1;
+    in-out property <bool> subtitles;
+    in-out property <string> subtitle-langs;
+    in-out property <int> progress-mode;
+    in-out property <int> duplicate-action;
+    in-out property <bool> set-file-date;
+    in-out property <bool> virus-scan;
+    in-out property <string> virus-program;
+    in-out property <string> virus-args;
+    in-out property <string> user-agent;
+    in-out property <int> connection-type;
+    in-out property <int> connections;
+    in-out property <int> max-active;
+    in-out property <int> retries;
+    in property <[PairRow]> server-rows;
+    in-out property <int> server-current: -1;
+    in-out property <string> server-host;
+    in-out property <int> server-conns: 2;
+    in-out property <bool> quota-on;
+    in-out property <int> quota-mb;
+    in-out property <int> quota-hours;
+    in property <string> quota-used;
+    in-out property <int> proxy-mode;
+    in-out property <string> proxy-host;
+    in-out property <int> proxy-port;
+    in-out property <string> proxy-user;
+    in-out property <string> proxy-password;
+    in-out property <string> proxy-bypass;
+    in property <[PairRow]> login-rows;
+    in-out property <int> login-current: -1;
+    in-out property <string> login-site;
+    in-out property <string> login-user;
+    in-out property <string> login-password;
+    in-out property <bool> sounds-on;
+    in-out property <string> sound-complete;
+    in-out property <string> sound-failed;
+    in-out property <string> sound-qstart;
+    in-out property <string> sound-qdone;
+    in-out property <bool> limiter-on;
+    in-out property <bool> limit-only-active;
+    in-out property <int> speed-limit;
+    in-out property <bool> limiter-startup;
+    in-out property <int> seed-minutes;
+    in-out property <int> seed-ratio;
+    in-out property <int> torrent-upload;
+    in-out property <bool> torrent-main;
+    in property <string> message;
+    callback browse(string);
+    callback play(string);
+    callback reset-paths();
+    callback default-exts();
+    callback server-add();
+    callback server-remove();
+    callback login-add();
+    callback login-remove();
+    callback login-pick(int);
+    callback open-extension-folder();
+    callback save();
+    callback cancel();
+
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) { root.cancel(); return accept; }
+            if (event.text == Key.Return && event.modifiers.control) { root.save(); return accept; }
+            reject
+        }
+        VerticalLayout {
+            padding: 10px;
+            spacing: 8px;
+            HRow {
+                vertical-stretch: 1;
+                spacing: 8px;
+                Rectangle {
+                    width: 150px;
+                    background: Theme.panel;
+                    border-width: 1px;
+                    border-color: Theme.line;
+                    VerticalLayout {
+                        padding: 3px;
+                        alignment: start;
+                        for t[i] in [@tr("General"), @tr("File Types"), @tr("Save To"), @tr("Downloads"), @tr("Connection"), @tr("Proxy / Server"), @tr("Site Logins"), @tr("Sounds"), @tr("Speed Limiter"), @tr("Appearance"), @tr("Torrents")]: SideTab {
+                            text: t; active: root.tab == i;
+                            clicked => { root.tab = i; }
+                        }
+                    }
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
+                    background: Theme.panel;
+                    border-width: 1px;
+                    border-color: Theme.line;
+                    if root.tab <= 4: SettingsPanelA {
+                        tab: root.tab;
+                        language <=> root.language; start-with-windows <=> root.start-with-windows;
+                        close-to-tray <=> root.close-to-tray; gpu-drawing <=> root.gpu-drawing;
+                        clipboard <=> root.clipboard; auto-clipboard <=> root.auto-clipboard;
+                        double-click <=> root.double-click; show-tips <=> root.show-tips;
+                        port <=> root.port; skip-key <=> root.skip-key; force-key <=> root.force-key;
+                        capture-exts <=> root.capture-exts; skip-sites <=> root.skip-sites;
+                        skip-addresses <=> root.skip-addresses; panel-enabled <=> root.panel-enabled;
+                        panel-skip-sites <=> root.panel-skip-sites; panel-min-video <=> root.panel-min-video;
+                        panel-min-audio <=> root.panel-min-audio; download-dir <=> root.download-dir;
+                        category-folders <=> root.category-folders; temp-dir <=> root.temp-dir;
+                        show-start-dialog <=> root.show-start-dialog; start-while-info <=> root.start-while-info;
+                        complete-dialog <=> root.complete-dialog; complete-each <=> root.complete-each;
+                        ask-remove <=> root.ask-remove; mp3-index <=> root.mp3-index;
+                        subtitles <=> root.subtitles; subtitle-langs <=> root.subtitle-langs;
+                        progress-mode <=> root.progress-mode; duplicate-action <=> root.duplicate-action;
+                        set-file-date <=> root.set-file-date; virus-scan <=> root.virus-scan;
+                        virus-program <=> root.virus-program; virus-args <=> root.virus-args;
+                        user-agent <=> root.user-agent; connection-type <=> root.connection-type;
+                        connections <=> root.connections; max-active <=> root.max-active;
+                        retries <=> root.retries; server-rows: root.server-rows;
+                        server-current <=> root.server-current; server-host <=> root.server-host;
+                        server-conns <=> root.server-conns; quota-on <=> root.quota-on;
+                        quota-mb <=> root.quota-mb; quota-hours <=> root.quota-hours;
+                        quota-used: root.quota-used;
+                        browse(k) => { root.browse(k); } reset-paths => { root.reset-paths(); }
+                        default-exts => { root.default-exts(); } server-add => { root.server-add(); }
+                        server-remove => { root.server-remove(); } open-extension-folder => { root.open-extension-folder(); }
+                    }
+                    if root.tab >= 5: SettingsPanelB {
+                        tab: root.tab;
+                        proxy-mode <=> root.proxy-mode; proxy-host <=> root.proxy-host;
+                        proxy-port <=> root.proxy-port; proxy-user <=> root.proxy-user;
+                        proxy-password <=> root.proxy-password; proxy-bypass <=> root.proxy-bypass;
+                        login-rows: root.login-rows; login-current <=> root.login-current;
+                        login-site <=> root.login-site; login-user <=> root.login-user;
+                        login-password <=> root.login-password;
+                        sounds-on <=> root.sounds-on; sound-complete <=> root.sound-complete;
+                        sound-failed <=> root.sound-failed; sound-qstart <=> root.sound-qstart;
+                        sound-qdone <=> root.sound-qdone;
+                        limiter-on <=> root.limiter-on; limit-only-active <=> root.limit-only-active;
+                        speed-limit <=> root.speed-limit; limiter-startup <=> root.limiter-startup;
+                        theme <=> root.theme; window-opacity <=> root.window-opacity;
+                        text-size <=> root.text-size; font-index <=> root.font-index;
+                        bg-image <=> root.bg-image; bg-strength <=> root.bg-strength;
+                        seed-minutes <=> root.seed-minutes; seed-ratio <=> root.seed-ratio;
+                        torrent-upload <=> root.torrent-upload; torrent-main <=> root.torrent-main;
+                        browse(k) => { root.browse(k); } play(k) => { root.play(k); }
+                        login-add => { root.login-add(); } login-remove => { root.login-remove(); }
+                        login-pick(i) => { root.login-pick(i); } preview-opacity(v) => { root.preview-opacity(v); }
+                        browse-bg => { root.browse-bg(); } preview-look => { root.preview-look(); }
+                    }
+                }
+            }
+            HRow {
+                alignment: end;
+                spacing: 8px;
+                Text {
+                    horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                    text: root.message; color: Theme.err; vertical-alignment: center; horizontal-stretch: 1;
+                }
+                Button { text: @tr("OK"); primary: true; clicked => { root.save(); } }
+                Button { text: @tr("Cancel"); clicked => { root.cancel(); } }
+            }
+        }
+    }
+}

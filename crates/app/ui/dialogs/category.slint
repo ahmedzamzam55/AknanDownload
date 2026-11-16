@@ -1,0 +1,133 @@
+// Category add / properties dialog.
+
+import { Button, LineEdit } from "std-widgets.slint";
+import { Theme, ThemedWindow, HRow } from "../common.slint";
+import { Label, Hint } from "widgets.slint";
+
+export component CategoryDialog inherits ThemedWindow {
+    forward-focus: dlg-keys;
+    public function focus-input() {
+        dlg-keys.focus();
+        if (!root.builtin) {
+            name-input.focus();
+        } else {
+            exts-input.focus();
+        }
+    }
+    // set for a moment so the window comes in front of the browser
+    in property <bool> front;
+    always-on-top: root.front;
+    title: root.is-new ? @tr("Add category") : @tr("Category properties");
+    preferred-width: 520px;
+    in property <bool> is-new;
+    in property <bool> builtin;
+    in-out property <string> name;
+    in-out property <string> exts;
+    in-out property <string> sites;
+    in-out property <string> folder;
+    in property <string> message;
+    callback browse();
+    callback save();
+    callback cancel();
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.cancel();
+                return accept;
+            }
+            if (event.text == Key.Return && event.modifiers.control) {
+                root.save();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 14px;
+            spacing: 8px;
+            GridLayout {
+                spacing: 8px;
+                Label {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 0;
+                    text: @tr("Category name");
+                }
+                name-input := LineEdit {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 0;
+                    text <=> root.name;
+                    enabled: !root.builtin;
+                    placeholder-text: @tr("e.g. Courses");
+                }
+                Label {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 1;
+                    text: @tr("File types");
+                }
+                exts-input := LineEdit {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 1;
+                    text <=> root.exts;
+                    placeholder-text: @tr("mp4 mkv avi (separated by spaces)");
+                }
+                Label {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 2;
+                    text: @tr("Sites");
+                }
+                LineEdit {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 2;
+                    text <=> root.sites;
+                    placeholder-text: @tr("udemy.com *.coursera.org (optional)");
+                }
+                Label {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 3;
+                    text: @tr("Save files to");
+                }
+                HRow {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 3;
+                    spacing: 6px;
+                    LineEdit {
+                        text <=> root.folder;
+                        horizontal-stretch: 1;
+                        placeholder-text: @tr("automatic (Downloads\\{})", root.name);
+                    }
+                    Button {
+                        text: "…";
+                        clicked => {
+                            root.browse();
+                        }
+                    }
+                }
+            }
+            Hint {
+                text: @tr("Files with these extensions, or from these sites, are put into this category and saved to its folder.");
+            }
+            HRow {
+                spacing: 8px;
+                Text {
+                    horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                    text: root.message;
+                    color: Theme.err;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+                Button {
+                    text: @tr("OK");
+                    primary: true;
+                    clicked => {
+                        root.save();
+                    }
+                }
+                Button {
+                    text: @tr("Cancel");
+                    clicked => {
+                        root.cancel();
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,127 @@
+// Add the browser extension dialog.
+
+import { Button } from "std-widgets.slint";
+import { Theme, ThemedWindow, HRow } from "../common.slint";
+import { Section } from "widgets.slint";
+import { BrowserRow, BrowserCard } from "browser_card.slint";
+
+export component BrowserDialog inherits ThemedWindow {
+    forward-focus: dlg-keys;
+    public function focus-input() {
+        dlg-keys.focus();
+    }
+    // set for a moment so the window comes in front of the browser
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("Add Aknan Download to your browser");
+    preferred-width: 880px;
+    in property <[BrowserRow]> browsers;
+    in property <string> steps;
+    in property <string> folder;
+    callback add(int);
+    callback open-folder();
+    callback copy-folder();
+    callback repair();
+    callback test-link();
+    callback close-window();
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.close-window();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 16px;
+            spacing: 12px;
+            Text {
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                text: @tr("Click your browser:");
+                font-size: 14px * Theme.font-scale;
+                font-weight: 700;
+                color: Theme.text;
+            }
+            GridLayout {
+                // a row that reads from right to left in Arabic (wrapped text needs a grid)
+                spacing: 12px;
+                for b[i] in root.browsers: BrowserCard {
+                    col: Theme.rtl ? root.browsers.length - 1 - i : i;
+                    row: 0;
+                    horizontal-stretch: 1;
+                    data: b;
+                    add => {
+                        root.add(i);
+                    }
+                }
+            }
+            if root.steps != "": Rectangle {
+                background: Theme.panel;
+                border-width: 1px;
+                border-color: Theme.accent;
+                border-radius: 6px;
+                VerticalLayout {
+                    padding: 12px;
+                    spacing: 6px;
+                    Section {
+                        text: @tr("Almost done:");
+                    }
+                    Text {
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        text: root.steps;
+                        wrap: word-wrap;
+                        font-size: 12px * Theme.font-scale;
+                        color: Theme.text;
+                    }
+                }
+            }
+            HRow {
+                spacing: 8px;
+                Text {
+                    // a long name is cut ("…"), it never makes the window wider
+                    min-width: 0px;
+                    horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                    text: root.folder;
+                    font-size: 11px * Theme.font-scale;
+                    color: Theme.muted;
+                    overflow: elide;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+                // the add-in shows nothing / does not answer: its files are put
+                // back and it starts again by itself
+                Button {
+                    text: @tr("Test the link");
+                    clicked => {
+                        root.test-link();
+                    }
+                }
+                Button {
+                    text: @tr("Repair the add-in");
+                    clicked => {
+                        root.repair();
+                    }
+                }
+                Button {
+                    text: @tr("Copy folder path");
+                    clicked => {
+                        root.copy-folder();
+                    }
+                }
+                Button {
+                    text: @tr("Open folder");
+                    clicked => {
+                        root.open-folder();
+                    }
+                }
+                Button {
+                    text: @tr("Close");
+                    primary: true;
+                    clicked => {
+                        root.close-window();
+                    }
+                }
+            }
+        }
+    }
+}

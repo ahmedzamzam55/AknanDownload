@@ -7,34 +7,17 @@
 //!
 //! The UI only needs [`Manager`].
 
-pub mod category;
-pub mod checksum;
-pub mod clip;
-pub mod clipserve;
-pub mod config;
-pub mod ef2;
-pub mod fileio;
-pub mod filename;
-pub mod bt;
-pub mod ftp;
-pub mod grabber;
-pub mod hls;
-pub mod http;
-pub mod http_download;
-pub mod limiter;
-pub mod m3u8;
-pub mod manager;
-pub mod model;
-pub mod mux;
-pub mod secret;
-pub mod segments;
-pub mod selfupdate;
-pub mod store;
-pub mod sync;
-pub mod system;
-pub mod tools;
-pub mod torrent;
-pub mod ytdlp;
+pub mod domain;
+pub mod infra;
+pub mod protocols;
+pub mod media;
+pub mod services;
+
+pub use domain::{category, ef2, filename, model, segments};
+pub use infra::{checksum, config, fileio, limiter, secret, store, sync, system};
+pub use protocols::{bt, ftp, hls, http, http_download, m3u8, torrent};
+pub use media::{clip, clipserve, mux, ytdlp};
+pub use services::{grabber, manager, selfupdate, tools};
 
 pub use config::{AfterDone, Schedule, Settings};
 pub use manager::{default_data_dir, ClipSource, DetailsEdit, Event, Manager, PreviewSource, TORRENT_DRY_TEXT};

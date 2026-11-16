@@ -1,0 +1,44 @@
+// 3D look card primitives for DetailsDialog.
+
+import { Theme } from "../../common.slint";
+
+// A floating card of the 3D looks (the download window).
+export component DCard inherits Rectangle {
+    border-radius: Theme.card-radius;
+    background: @linear-gradient(180deg, Theme.card-top 0%, Theme.card-bottom 100%);
+    border-width: 1px;
+    border-color: Theme.card-line;
+    drop-shadow-blur: 8px;
+    drop-shadow-offset-y: Theme.look == 3 ? 3px : 2px;
+    drop-shadow-color: Theme.card-shadow;
+}
+
+// One number of the download window in the 3D looks.
+export component StatCard inherits DCard {
+    horizontal-stretch: 1;
+    in property <string> label;
+    in property <string> value;
+    in property <color> tint: Theme.text;
+    min-width: 0px;
+    VerticalLayout {
+        padding: 9px;
+        padding-left: 11px;
+        padding-right: 11px;
+        spacing: 2px;
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: root.label;
+            font-size: 10.5px * Theme.font-scale;
+            color: Theme.muted;
+        }
+        Text {
+            min-width: 0px;
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: root.value;
+            font-size: 13px * Theme.font-scale;
+            font-weight: 700;
+            color: root.tint;
+            overflow: elide;
+        }
+    }
+}

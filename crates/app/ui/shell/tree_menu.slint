@@ -1,0 +1,114 @@
+// Sidebar category and queue right-click menu and tree item wrapper.
+
+import { Theme, TreeItem, MenuEntry } from "../common.slint";
+
+// right click menu of the sidebar (categories and queues)
+export component TreeMenu inherits PopupWindow {
+    in property <string> target;
+    in property <bool> is-queue;
+    in property <bool> builtin;
+    callback chosen(string);
+    width: 210px;
+    height: tm-list.preferred-height;
+    Rectangle {
+        width: parent.width;
+        height: tm-list.preferred-height;
+        background: Theme.panel;
+        border-width: 1px;
+        border-color: Theme.line;
+        border-radius: 4px;
+        drop-shadow-blur: 10px;
+        drop-shadow-color: #00000055;
+        drop-shadow-offset-y: 3px;
+        tm-list := VerticalLayout {
+            padding: 4px;
+            if root.is-queue: MenuEntry {
+                text: @tr("Start queue");
+                glyph: "play";
+                glyph-color: #2e9e4f;
+                clicked => {
+                    root.chosen("start");
+                }
+            }
+            if root.is-queue: MenuEntry {
+                text: @tr("Stop queue");
+                glyph: "stop";
+                glyph-color: #e0443b;
+                clicked => {
+                    root.chosen("stop");
+                }
+            }
+            if root.is-queue: MenuEntry {
+                text: @tr("Edit queue / schedule…");
+                glyph: "clock";
+                clicked => {
+                    root.chosen("edit");
+                }
+            }
+            if root.is-queue: MenuEntry {
+                text: @tr("New queue…");
+                glyph: "plus";
+                clicked => {
+                    root.chosen("new");
+                }
+            }
+            if root.is-queue: MenuEntry {
+                text: @tr("Delete queue");
+                glyph: "close";
+                glyph-color: #e0443b;
+                enabled: !root.builtin;
+                clicked => {
+                    root.chosen("delete");
+                }
+            }
+            if !root.is-queue: MenuEntry {
+                text: @tr("Add category…");
+                glyph: "plus";
+                clicked => {
+                    root.chosen("add");
+                }
+            }
+            if !root.is-queue && root.target != "": MenuEntry {
+                text: @tr("Delete category");
+                glyph: "close";
+                glyph-color: #e0443b;
+                enabled: !root.builtin;
+                clicked => {
+                    root.chosen("delete");
+                }
+            }
+            if !root.is-queue && root.target != "": MenuEntry {
+                text: @tr("Properties…");
+                glyph: "info";
+                clicked => {
+                    root.chosen("props");
+                }
+            }
+        }
+    }
+}
+
+// a sidebar item with its own right click menu
+export component CtxTreeItem inherits TreeItem {
+    in property <bool> is-queue;
+    in property <bool> builtin;
+    in property <string> target;
+    callback chosen(string);
+    property <length> mx;
+    property <length> my;
+    context(x, y) => {
+        self.mx = x;
+        self.my = y;
+        pm.show();
+    }
+    pm := TreeMenu {
+        x: Theme.rtl ? max(0px, root.mx - 210px) : root.mx;
+        y: root.my;
+        target: root.target;
+        is-queue: root.is-queue;
+        builtin: root.builtin;
+        chosen(a) => {
+            root.chosen(a);
+        }
+    }
+}

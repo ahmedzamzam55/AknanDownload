@@ -1,0 +1,130 @@
+// Site exploration configuration panel for GrabberDialog.
+
+import { Button, LineEdit, SpinBox, ComboBox } from "std-widgets.slint";
+import { Theme, HRow, CheckBox } from "../common.slint";
+import { Label, Hint } from "widgets.slint";
+
+export component GrabberExploreBox inherits Rectangle {
+    in property <int> focus-seq;
+    in-out property <string> start-url;
+    in-out property <int> template: 0;
+    in-out property <string> exts;
+    in-out property <int> depth: 1;
+    in-out property <bool> other-sites;
+    in-out property <bool> no-parent: true;
+    in-out property <int> parallel: 4;
+    in property <bool> exploring;
+    in property <string> progress-text;
+
+    callback template-changed(int);
+    callback explore();
+    callback stop-explore();
+
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.line;
+    VerticalLayout {
+        padding: 10px;
+        spacing: 8px;
+        HRow {
+            spacing: 8px;
+            Label {
+                text: @tr("Start page");
+            }
+            LineEdit {
+                property <int> sync-focus: root.focus-seq;
+                changed sync-focus => {
+                    self.focus();
+                }
+                init => {
+                    self.focus();
+                }
+                text <=> root.start-url;
+                placeholder-text: @tr("https://example.com/gallery/");
+                horizontal-stretch: 1;
+                accepted(t) => {
+                    if (!root.exploring) {
+                        root.explore();
+                    }
+                }
+            }
+            if !root.exploring: Button {
+                text: @tr("Start exploring");
+                primary: true;
+                clicked => {
+                    root.explore();
+                }
+            }
+            if root.exploring: Button {
+                text: @tr("Stop");
+                clicked => {
+                    root.stop-explore();
+                }
+            }
+        }
+        Hint {
+            text: @tr("Some pages make their links only in the browser (with scripts, or as plain text). For them: open the page in the browser, right-click it and choose \"Download all links with Aknan Download\": every link you see there is collected.");
+        }
+        HRow {
+            spacing: 8px;
+            Label {
+                text: @tr("Get");
+            }
+            ComboBox {
+                width: 230px;
+                model: [@tr("All files (not web pages)"), @tr("All images"), @tr("All videos"), @tr("All music / audio"), @tr("Archives and programs"), @tr("Documents (PDF, Office)"), @tr("Custom file types")];
+                current-index <=> root.template;
+                selected(v) => {
+                    root.template-changed(root.template);
+                }
+            }
+            LineEdit {
+                text <=> root.exts;
+                enabled: root.template == 6;
+                placeholder-text: @tr("jpg png mp4 (custom types)");
+                horizontal-stretch: 1;
+            }
+        }
+        HRow {
+            spacing: 8px;
+            Label {
+                text: @tr("Levels to explore");
+            }
+            SpinBox {
+                width: 90px;
+                minimum: 0;
+                maximum: 10;
+                value <=> root.depth;
+            }
+            Label {
+                text: @tr("Pages at the same time");
+            }
+            SpinBox {
+                width: 90px;
+                minimum: 1;
+                maximum: 10;
+                value <=> root.parallel;
+            }
+            CheckBox {
+                text: @tr("Other sites too");
+                checked <=> root.other-sites;
+            }
+            CheckBox {
+                text: @tr("Don't go to parent folders");
+                checked <=> root.no-parent;
+            }
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+        }
+        Text {
+            // a long name is cut ("…"), it never makes the window wider
+            min-width: 0px;
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: root.progress-text;
+            font-size: 11px * Theme.font-scale;
+            color: root.exploring ? Theme.accent : Theme.muted;
+            overflow: elide;
+        }
+    }
+}

@@ -1,0 +1,105 @@
+// Find (Ctrl+F) dialog.
+
+import { Button, LineEdit } from "std-widgets.slint";
+import { Theme, ThemedWindow, HRow, CheckBox } from "../common.slint";
+import { Label, Section } from "widgets.slint";
+
+export component FindDialog inherits ThemedWindow {
+    forward-focus: find-input;
+    public function focus-input() {
+        find-input.focus();
+    }
+    // set for a moment so the window comes in front of the browser
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("Find file");
+    preferred-width: 440px;
+    in-out property <string> text;
+    in-out property <bool> in-name: true;
+    in-out property <bool> in-desc: true;
+    in-out property <bool> in-address: false;
+    in-out property <bool> match-case;
+    in-out property <bool> whole;
+    in property <string> message;
+    callback find-next();
+    callback close-window();
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.close-window();
+                return accept;
+            }
+            if (event.text == Key.F3) {
+                root.find-next();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 14px;
+            spacing: 8px;
+            HRow {
+                spacing: 8px;
+                Label {
+                    text: @tr("Find what");
+                }
+                find-input := LineEdit {
+                    text <=> root.text;
+                    horizontal-stretch: 1;
+                    accepted(t) => {
+                        root.find-next();
+                    }
+                }
+            }
+            Section {
+                text: @tr("Look in");
+            }
+            CheckBox {
+                text: @tr("File name");
+                checked <=> root.in-name;
+            }
+            CheckBox {
+                text: @tr("Description");
+                checked <=> root.in-desc;
+            }
+            CheckBox {
+                text: @tr("Address, referer and parent web page");
+                checked <=> root.in-address;
+            }
+            HRow {
+                spacing: 14px;
+                CheckBox {
+                    text: @tr("Match case");
+                    checked <=> root.match-case;
+                }
+                CheckBox {
+                    text: @tr("Match whole string");
+                    checked <=> root.whole;
+                }
+            }
+            HRow {
+                spacing: 8px;
+                Text {
+                    horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                    text: root.message;
+                    color: Theme.muted;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+                Button {
+                    text: @tr("Find Next");
+                    primary: true;
+                    clicked => {
+                        root.find-next();
+                    }
+                }
+                Button {
+                    text: @tr("Close");
+                    clicked => {
+                        root.close-window();
+                    }
+                }
+            }
+        }
+    }
+}

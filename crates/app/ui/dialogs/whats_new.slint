@@ -1,0 +1,104 @@
+// What's new in Aknan Download dialog.
+
+import { Button, ScrollView } from "std-widgets.slint";
+import { Theme, ThemedWindow, HRow } from "../common.slint";
+
+export component WhatsNewDialog inherits ThemedWindow {
+    forward-focus: dlg-keys;
+    public function focus-input() {
+        dlg-keys.focus();
+    }
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("What's new in Aknan Download");
+    preferred-width: 560px;
+    preferred-height: 560px;
+    min-width: 440px;
+    min-height: 360px;
+    in property <string> heading;
+    in property <[string]> items;
+    in property <bool> rtl;
+    callback open-link(string);
+    callback close-window();
+    property <TextHorizontalAlignment> side: root.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape || event.text == Key.Return) {
+                root.close-window();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 18px;
+            spacing: 10px;
+            HorizontalLayout {
+                spacing: 12px;
+                alignment: root.rtl ? end : start;
+                if !root.rtl: Image {
+                    source: @image-url("../icon.png");
+                    width: 40px;
+                    height: 40px;
+                }
+                Text {
+                    text: root.heading;
+                    font-size: 15px * Theme.font-scale;
+                    font-weight: 700;
+                    color: Theme.text;
+                    vertical-alignment: center;
+                    horizontal-alignment: root.side;
+                    wrap: word-wrap;
+                    horizontal-stretch: 1;
+                }
+                if root.rtl: Image {
+                    source: @image-url("../icon.png");
+                    width: 40px;
+                    height: 40px;
+                }
+            }
+            Rectangle {
+                vertical-stretch: 1;
+                background: Theme.panel;
+                border-width: 1px;
+                border-color: Theme.line;
+                border-radius: 4px;
+                ScrollView {
+                    VerticalLayout {
+                        padding: 12px;
+                        spacing: 8px;
+                        alignment: start;
+                        for line in root.items: GridLayout {
+                            // the dot on the side where the reading starts
+                            spacing: 8px;
+                            Text {
+                                col: root.rtl ? 1 : 0;
+                                row: 0;
+                                text: "•";
+                                color: Theme.accent;
+                                font-weight: 700;
+                            }
+                            Text {
+                                col: root.rtl ? 0 : 1;
+                                row: 0;
+                                text: line;
+                                color: Theme.text;
+                                wrap: word-wrap;
+                                horizontal-alignment: root.side;
+                                horizontal-stretch: 1;
+                            }
+                        }
+                    }
+                }
+            }
+            HRow {
+                alignment: end;
+                Button {
+                    text: @tr("OK");
+                    clicked => {
+                        root.close-window();
+                    }
+                }
+            }
+        }
+    }
+}

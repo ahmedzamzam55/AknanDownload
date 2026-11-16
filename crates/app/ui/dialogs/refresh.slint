@@ -1,0 +1,105 @@
+// Refresh download address dialog.
+
+import { Button, LineEdit } from "std-widgets.slint";
+import { Theme, ThemedWindow, HRow } from "../common.slint";
+import { Label, Hint } from "widgets.slint";
+
+export component RefreshDialog inherits ThemedWindow {
+    forward-focus: new-url-input;
+    public function focus-input() {
+        new-url-input.focus();
+    }
+    // set for a moment so the window comes in front of the browser
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("Refresh download address");
+    preferred-width: 520px;
+    in property <string> file-name;
+    in property <string> page;
+    in property <bool> waiting: true;
+    in-out property <string> new-url;
+    callback open-page();
+    callback use-url();
+    callback stop-waiting();
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.stop-waiting();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 16px;
+            spacing: 10px;
+            Text {
+                // a long name is cut ("…"), it never makes the window wider
+                min-width: 0px;
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                text: root.file-name;
+                font-weight: 700;
+                color: Theme.accent;
+                overflow: elide;
+            }
+            Label {
+                text: @tr("1. Open the web page where you got this file.\n2. Click the download link there again (or start the video).\n3. Aknan Download takes the new address and continues from where it stopped.");
+                wrap: word-wrap;
+            }
+            if root.page != "": HRow {
+                spacing: 8px;
+                Text {
+                    // a long name is cut ("…"), it never makes the window wider
+                    min-width: 0px;
+                    horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                    text: root.page;
+                    color: Theme.muted;
+                    font-size: 11px * Theme.font-scale;
+                    overflow: elide;
+                    horizontal-stretch: 1;
+                    vertical-alignment: center;
+                }
+                Button {
+                    text: @tr("Open the page");
+                    clicked => {
+                        root.open-page();
+                    }
+                }
+            }
+            Hint {
+                text: root.waiting ? @tr("Waiting for the new address from the browser…") : "";
+            }
+            Label {
+                text: @tr("Or paste the new address here:");
+            }
+            HRow {
+                spacing: 6px;
+                new-url-input := LineEdit {
+                    text <=> root.new-url;
+                    horizontal-stretch: 1;
+                    placeholder-text: @tr("https://…");
+                    accepted(t) => {
+                        if (root.new-url != "") {
+                            root.use-url();
+                        }
+                    }
+                }
+                Button {
+                    text: @tr("Use it");
+                    enabled: root.new-url != "";
+                    clicked => {
+                        root.use-url();
+                    }
+                }
+            }
+            HRow {
+                alignment: end;
+                Button {
+                    text: @tr("Stop waiting");
+                    clicked => {
+                        root.stop-waiting();
+                    }
+                }
+            }
+        }
+    }
+}

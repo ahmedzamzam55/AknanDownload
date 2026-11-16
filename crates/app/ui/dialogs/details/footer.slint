@@ -1,0 +1,119 @@
+// Progress bars and bottom action buttons for DetailsDialog.
+
+import { Button } from "std-widgets.slint";
+import { Theme, HRow } from "../../common.slint";
+
+export component DetailsProgressFooter inherits VerticalLayout {
+    in property <float> progress;
+    in property <string> step;
+    in property <float> step-progress;
+    in property <int> state;
+    in-out property <bool> show-details;
+
+    callback details-toggled();
+    callback hide-to-tray();
+    callback pause();
+    callback resume();
+    callback close-window();
+    callback cancel-download();
+
+    spacing: 0px;
+    Rectangle {
+        height: 8px;
+    }
+    Rectangle {
+        height: Theme.depth ? 12px : 18px;
+        border-width: Theme.depth ? 0px : 1px;
+        border-color: Theme.line;
+        border-radius: Theme.depth ? 6px : 0px;
+        background: Theme.bar-bg;
+        clip: true;
+        Rectangle {
+            x: Theme.rtl ? parent.width - 1px - self.width : 1px;
+            y: 1px;
+            height: parent.height - 2px;
+            width: (parent.width - 2px) * root.progress;
+            border-radius: Theme.depth ? 5px : 0px;
+            background: Theme.depth ? @linear-gradient(90deg, Theme.bar-a 0%, Theme.bar-b 100%) : @linear-gradient(180deg, #4fd06a 0%, #1f9d3e 100%);
+            animate width {
+                duration: 100ms;
+                easing: linear;
+            }
+        }
+    }
+    // the second bar: joining the picture and the sound, moving the file...
+    if root.step != "": VerticalLayout {
+        padding-top: 6px;
+        spacing: 3px;
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: root.step;
+            font-size: 11px * Theme.font-scale;
+            color: Theme.text;
+        }
+        Rectangle {
+            height: 12px;
+            border-width: 1px;
+            border-color: Theme.line;
+            background: Theme.bar-bg;
+            clip: true;
+            Rectangle {
+                x: Theme.rtl ? parent.width - 1px - self.width : 1px;
+                y: 1px;
+                height: parent.height - 2px;
+                width: (parent.width - 2px) * root.step-progress;
+                background: @linear-gradient(180deg, #5aa2ff 0%, #1d63d6 100%);
+                animate width {
+                    duration: 250ms;
+                    easing: linear;
+                }
+            }
+        }
+    }
+    Rectangle {
+        height: 8px;
+    }
+    HRow {
+        spacing: 8px;
+        Button {
+            text: root.show-details ? @tr("<< Hide details") : @tr("Show details >>");
+            clicked => {
+                root.show-details = !root.show-details;
+                root.details-toggled();
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+        // the window goes, a small icon with the progress stays next to the clock
+        if root.state != 3: Button {
+            text: @tr("Next to the clock");
+            clicked => {
+                root.hide-to-tray();
+            }
+        }
+        if root.state == 0 || root.state == 1: Button {
+            text: @tr("Pause");
+            clicked => {
+                root.pause();
+            }
+        }
+        if root.state == 2 || root.state == 4: Button {
+            text: @tr("Resume");
+            primary: true;
+            clicked => {
+                root.resume();
+            }
+        }
+        Button {
+            text: root.state == 3 ? @tr("Close") : @tr("Cancel");
+            clicked => {
+                if (root.state == 3) {
+                    root.close-window();
+                } else {
+                    root.cancel-download();
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,211 @@
+// "Download File Info" – shown for every new download.
+
+import { Button, LineEdit, ComboBox } from "std-widgets.slint";
+import { Theme, ThemedWindow, HRow, CheckBox } from "../common.slint";
+import { AddFileBadge, AddDialogBottom } from "add_bottom.slint";
+
+export component AddDialog inherits ThemedWindow {
+    forward-focus: url-input;
+    public function focus-input() {
+        url-input.focus();
+    }
+    // set for a moment so the window comes in front of the browser
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("Download File Info");
+    preferred-width: 640px;
+    min-width: 540px;
+
+    in-out property <string> url;
+    // full path: folder + file name
+    in-out property <string> save-as;
+    in-out property <string> description;
+    in-out property <string> checksum;
+    in-out property <int> connections: 32;
+    in-out property <int> category-index: 0;
+    in-out property <bool> remember-path;
+    in property <string> category-name: "General";
+    in property <string> kind: "general";
+    in property <string> ext;
+    in property <string> size-text;
+    in property <string> info;
+    in property <bool> probing;
+    in property <bool> info-error;
+    in property <[string]> queue-names: ["Main queue"];
+    in-out property <int> queue-index: 0;
+    in property <[string]> category-names: ["General", "Compressed", "Documents", "Music", "Programs", "Video", "Images"];
+    in-out property <bool> use-login;
+    in-out property <string> user;
+    in-out property <string> password;
+    // a warning about the address (web page, duplicate...)
+    in property <string> warning;
+    // the server refused Aknan Download: offer the browser instead
+    in property <bool> can-use-browser;
+    callback use-browser();
+
+    callback check-url();
+    callback category-changed(int);
+    callback browse();
+    callback start-now();
+    callback later();
+    callback cancel();
+
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.cancel();
+                return accept;
+            }
+            if (event.text == Key.Return && event.modifiers.control && root.url != "") {
+                root.start-now();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 14px;
+            spacing: 10px;
+            HRow {
+                spacing: 14px;
+                GridLayout {
+                    spacing: 8px;
+                    horizontal-stretch: 1;
+                    Text {
+                        col: Theme.rtl ? 1 : 0;
+                        row: 0;
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        text: @tr("URL");
+                        vertical-alignment: center;
+                        color: Theme.text;
+                    }
+                    HRow {
+                        col: Theme.rtl ? 0 : 1;
+                        row: 0;
+                        spacing: 6px;
+                        url-input := LineEdit {
+                            text <=> root.url;
+                            placeholder-text: @tr("https://example.com/file");
+                            horizontal-stretch: 1;
+                            accepted(t) => {
+                                root.check-url();
+                            }
+                        }
+                        Button {
+                            text: @tr("Check");
+                            clicked => {
+                                root.check-url();
+                            }
+                        }
+                    }
+                    Text {
+                        col: Theme.rtl ? 1 : 0;
+                        row: 1;
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        text: @tr("Category");
+                        vertical-alignment: center;
+                        color: Theme.text;
+                    }
+                    HRow {
+                        col: Theme.rtl ? 0 : 1;
+                        row: 1;
+                        ComboBox {
+                            width: 200px;
+                            model: root.category-names;
+                            current-index <=> root.category-index;
+                            selected(v) => {
+                                root.category-changed(root.category-index);
+                            }
+                        }
+                        Rectangle {
+                            horizontal-stretch: 1;
+                        }
+                    }
+                    Text {
+                        col: Theme.rtl ? 1 : 0;
+                        row: 2;
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        text: @tr("Save As");
+                        vertical-alignment: center;
+                        color: Theme.text;
+                    }
+                    HRow {
+                        col: Theme.rtl ? 0 : 1;
+                        row: 2;
+                        spacing: 6px;
+                        LineEdit {
+                            text <=> root.save-as;
+                            horizontal-stretch: 1;
+                        }
+                        Button {
+                            text: "…";
+                            clicked => {
+                                root.browse();
+                            }
+                        }
+                    }
+                    Rectangle {
+                        col: Theme.rtl ? 1 : 0;
+                        row: 3;
+                    }
+                    CheckBox {
+                        col: Theme.rtl ? 0 : 1;
+                        row: 3;
+                        text: @tr("Remember this path for \"{}\" category", root.category-name);
+                        checked <=> root.remember-path;
+                    }
+                    Text {
+                        col: Theme.rtl ? 1 : 0;
+                        row: 4;
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        text: @tr("Description");
+                        vertical-alignment: center;
+                        color: Theme.text;
+                    }
+                    LineEdit {
+                        col: Theme.rtl ? 0 : 1;
+                        row: 4;
+                        text <=> root.description;
+                        placeholder-text: @tr("optional note");
+                    }
+                    Text {
+                        col: Theme.rtl ? 1 : 0;
+                        row: 5;
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        text: @tr("Checksum");
+                        vertical-alignment: center;
+                        color: Theme.text;
+                    }
+                    LineEdit {
+                        col: Theme.rtl ? 0 : 1;
+                        row: 5;
+                        text <=> root.checksum;
+                        placeholder-text: @tr("MD5 / SHA-1 / SHA-256 (optional)");
+                    }
+                }
+                AddFileBadge {
+                    kind: root.kind;
+                    ext: root.ext;
+                    size-text: root.size-text;
+                }
+            }
+            AddDialogBottom {
+                use-login <=> root.use-login;
+                user <=> root.user;
+                password <=> root.password;
+                warning: root.warning;
+                probing: root.probing;
+                info: root.info;
+                info-error: root.info-error;
+                connections <=> root.connections;
+                queue-names: root.queue-names;
+                queue-index <=> root.queue-index;
+                url: root.url;
+                can-use-browser: root.can-use-browser;
+                use-browser => { root.use-browser(); }
+                later => { root.later(); }
+                start-now => { root.start-now(); }
+                cancel => { root.cancel(); }
+            }
+        }
+    }
+}

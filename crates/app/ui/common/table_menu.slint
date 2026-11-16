@@ -1,0 +1,186 @@
+// Table header/cell widgets and right-click menu entries.
+
+import { Theme } from "theme.slint";
+import { HRow } from "primitives.slint";
+import { Glyph } from "glyph.slint";
+
+export component HeaderCell inherits Rectangle {
+    in property <string> text;
+    in property <TextHorizontalAlignment> align: left;
+    // sorting: this column's key, the current key and direction
+    in property <string> key;
+    in property <string> sort-by;
+    in property <bool> sort-desc;
+    // drag the right edge to resize, drag the title to move it
+    in property <bool> adjustable;
+    callback sort(string);
+    // the new width while the edge is dragged; done when it is let go
+    callback resized(length);
+    callback resize-done();
+    // the title was dragged and let go at `x` (in the header)
+    callback dropped(length);
+    // a long (Arabic) title is cut at its own column, never over the next one
+    clip: true;
+    property <bool> moving;
+    property <length> start-width;
+    property <length> start-x;
+    height: 24px;
+    background: root.moving ? Theme.select : ta.has-hover && (root.key != "" || root.adjustable) ? Theme.hover : transparent;
+    ta := TouchArea {
+        width: parent.width;
+        height: parent.height;
+        enabled: root.key != "" || root.adjustable;
+        mouse-cursor: root.moving ? MouseCursor.grabbing : MouseCursor.default;
+        pointer-event(ev) => {
+            if (ev.button == PointerEventButton.left && ev.kind == PointerEventKind.down) {
+                root.moving = false;
+            }
+            if (ev.button == PointerEventButton.left && ev.kind == PointerEventKind.up && root.moving) {
+                root.dropped(root.x + self.mouse-x);
+            }
+        }
+        moved => {
+            if (root.adjustable && self.pressed && abs(self.mouse-x - self.pressed-x) > 10px) {
+                root.moving = true;
+            }
+        }
+        clicked => {
+            if (!root.moving && root.key != "") {
+                root.sort(root.key);
+            }
+            root.moving = false;
+        }
+    }
+    Text {
+        x: 6px;
+        width: parent.width - 12px;
+        height: parent.height;
+        text: root.text;
+        // Arabic: the sides of the columns are mirrored too
+        horizontal-alignment: !Theme.rtl ? root.align : root.align == TextHorizontalAlignment.left ? TextHorizontalAlignment.right : root.align == TextHorizontalAlignment.right ? TextHorizontalAlignment.left : root.align;
+        vertical-alignment: center;
+        font-size: 12px * Theme.font-scale;
+        color: Theme.text;
+        overflow: elide;
+    }
+    if root.key != "" && root.key == root.sort-by: Glyph {
+        x: (root.align == TextHorizontalAlignment.right) != Theme.rtl ? 2px : parent.width - 16px;
+        y: (parent.height - 16px) / 2;
+        kind: root.sort-desc ? "caret-down" : "caret-up";
+        tint: Theme.muted;
+    }
+    Rectangle {
+        x: Theme.rtl ? 0px : parent.width - 1px;
+        y: 4px;
+        width: 1px;
+        height: parent.height - 8px;
+        background: Theme.line;
+    }
+    // the edge to resize the column
+    if root.adjustable: edge := TouchArea {
+        x: Theme.rtl ? -3px : parent.width - 5px;
+        width: 8px;
+        height: parent.height;
+        mouse-cursor: MouseCursor.col-resize;
+        pointer-event(ev) => {
+            if (ev.button == PointerEventButton.left && ev.kind == PointerEventKind.down) {
+                root.start-width = root.width;
+                root.start-x = self.absolute-position.x + self.mouse-x;
+            }
+            if (ev.button == PointerEventButton.left && ev.kind == PointerEventKind.up) {
+                root.resize-done();
+            }
+        }
+        moved => {
+            if (self.pressed) {
+                // measured on the screen: the edge itself moves with the column
+                // Arabic: the edge is on the left, pulling it left widens the column
+                root.resized(max(36px, root.start-width + (Theme.rtl ? -1 : 1) * (self.absolute-position.x + self.mouse-x - root.start-x)));
+            }
+        }
+    }
+}
+
+export component Cell inherits Text {
+    // cut with "…" in its column, never wider than the column
+    min-width: 0px;
+    vertical-alignment: center;
+    horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+    font-size: 12px * Theme.font-scale;
+    color: Theme.text;
+    overflow: elide;
+}
+
+// ---- right-click menu pieces
+export component MenuEntry inherits Rectangle {
+    in property <string> text;
+    in property <string> glyph;
+    in property <color> glyph-color: Theme.accent;
+    in property <bool> enabled: true;
+    in property <bool> bold;
+    in property <bool> indent;
+    callback clicked();
+    height: 26px;
+    border-radius: 3px;
+    background: ta.has-hover && root.enabled ? Theme.select : transparent;
+    ta := TouchArea {
+        width: parent.width;
+        height: parent.height;
+        enabled: root.enabled;
+        clicked => {
+            root.clicked();
+        }
+    }
+    HRow {
+        padding-left: Theme.rtl ? (10px) : (root.indent ? 26px : 8px);
+        padding-right: Theme.rtl ? (root.indent ? 26px : 8px) : (10px);
+        spacing: 8px;
+        opacity: root.enabled ? 1.0 : 0.4;
+        Rectangle {
+            width: 16px;
+            if root.glyph != "": Glyph {
+                y: (parent.height - 16px) / 2;
+                kind: root.glyph;
+                tint: root.glyph-color;
+            }
+        }
+        Text {
+            // a long name is cut ("…"), it never makes the window wider
+            min-width: 0px;
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: root.text;
+            color: Theme.text;
+            vertical-alignment: center;
+            font-size: 12px * Theme.font-scale;
+            font-weight: root.bold ? 700 : 400;
+            overflow: elide;
+            horizontal-stretch: 1;
+        }
+    }
+}
+
+export component MenuSep inherits Rectangle {
+    height: 7px;
+    Rectangle {
+        x: 6px;
+        y: 3px;
+        width: parent.width - 12px;
+        height: 1px;
+        background: Theme.line;
+    }
+}
+
+export component MenuLabel inherits Rectangle {
+    in property <string> text;
+    height: 22px;
+    Text {
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        x: Theme.rtl ? 0px : 34px;
+        width: parent.width - 34px;
+        text: root.text;
+        font-size: 11px * Theme.font-scale;
+        color: Theme.muted;
+        vertical-alignment: center;
+        height: parent.height;
+    }
+}

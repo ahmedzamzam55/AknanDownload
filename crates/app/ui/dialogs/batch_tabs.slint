@@ -1,0 +1,186 @@
+// Links list tab and wildcard pattern tab for BatchDialog.
+
+import { Button, LineEdit, SpinBox, TextEdit } from "std-widgets.slint";
+import { Theme, HRow, CheckBox } from "../common.slint";
+
+export component BatchLinksTab inherits VerticalLayout {
+    in property <int> focus-seq;
+    in-out property <string> links;
+    callback paste();
+    spacing: 8px;
+    vertical-stretch: 1;
+    Text {
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        text: @tr("Paste the links, one per line. They download one after another in the queue you choose.");
+        wrap: word-wrap;
+        color: Theme.text;
+    }
+    TextEdit {
+        property <int> sync-focus: root.focus-seq;
+        changed sync-focus => {
+            self.focus();
+        }
+        init => {
+            self.focus();
+        }
+        text <=> root.links;
+        vertical-stretch: 1;
+        min-height: 200px;
+        font-size: 12px * Theme.font-scale;
+    }
+    HRow {
+        spacing: 6px;
+        Button {
+            text: @tr("Paste from clipboard");
+            clicked => {
+                root.paste();
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+}
+
+export component BatchPatternTab inherits VerticalLayout {
+    in property <int> focus-seq;
+    in-out property <string> pattern;
+    in-out property <bool> letters;
+    in-out property <string> from-text;
+    in-out property <string> to-text;
+    in-out property <int> wildcard-size;
+    in-out property <string> user;
+    in-out property <string> password;
+    in property <string> preview;
+    callback pattern-changed();
+    spacing: 8px;
+    vertical-stretch: 1;
+    Text {
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        text: @tr("Type an address with a * where the number (or letter) goes, for example\nhttps://www.site.com/pictures/img*.jpg");
+        wrap: word-wrap;
+        color: Theme.text;
+    }
+    LineEdit {
+        property <int> sync-focus: root.focus-seq;
+        changed sync-focus => {
+            self.focus();
+        }
+        init => {
+            self.focus();
+        }
+        text <=> root.pattern;
+        placeholder-text: @tr("https://www.site.com/pictures/img*.jpg");
+        edited(t) => {
+            root.pattern-changed();
+        }
+    }
+    HRow {
+        spacing: 16px;
+        CheckBox {
+            text: @tr("Letters (a-z) instead of numbers");
+            checked <=> root.letters;
+            toggled => {
+                root.pattern-changed();
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    HRow {
+        spacing: 8px;
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: @tr("From");
+            vertical-alignment: center;
+            color: Theme.text;
+        }
+        LineEdit {
+            width: 80px;
+            text <=> root.from-text;
+            edited(t) => {
+                root.pattern-changed();
+            }
+        }
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: @tr("To");
+            vertical-alignment: center;
+            color: Theme.text;
+        }
+        LineEdit {
+            width: 80px;
+            text <=> root.to-text;
+            edited(t) => {
+                root.pattern-changed();
+            }
+        }
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: @tr("Wildcard size");
+            vertical-alignment: center;
+            color: Theme.text;
+        }
+        SpinBox {
+            width: 90px;
+            minimum: 1;
+            maximum: 10;
+            value <=> root.wildcard-size;
+            edited(v) => {
+                root.pattern-changed();
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    Text {
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        text: @tr("Wildcard size 3 makes 001, 002 … 010.");
+        color: Theme.muted;
+        font-size: 11px * Theme.font-scale;
+    }
+    HRow {
+        spacing: 8px;
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: @tr("Login");
+            vertical-alignment: center;
+            color: Theme.text;
+        }
+        LineEdit {
+            text <=> root.user;
+            placeholder-text: @tr("optional");
+            horizontal-stretch: 1;
+        }
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: @tr("Password");
+            vertical-alignment: center;
+            color: Theme.text;
+        }
+        LineEdit {
+            text <=> root.password;
+            input-type: InputType.password;
+            horizontal-stretch: 1;
+        }
+    }
+    Rectangle {
+        vertical-stretch: 1;
+        min-height: 80px;
+        background: Theme.panel;
+        border-width: 1px;
+        border-color: Theme.line;
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            x: 8px;
+            y: 6px;
+            width: parent.width - 16px;
+            text: root.preview;
+            font-size: 11px * Theme.font-scale;
+            color: Theme.muted;
+            wrap: word-wrap;
+        }
+    }
+}

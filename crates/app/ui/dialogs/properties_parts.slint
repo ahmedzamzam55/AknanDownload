@@ -1,0 +1,149 @@
+// Header summary and footer controls for PropertiesDialog.
+
+import { Button } from "std-widgets.slint";
+import { Theme, BigTypeIcon, HRow } from "../common.slint";
+import { Label } from "widgets.slint";
+
+export component PropertiesMetaHeader inherits HRow {
+    in property <string> kind: "general";
+    in property <string> ext;
+    in property <string> type-text;
+    in property <string> status;
+    in property <string> size;
+    in property <string> added;
+    in property <string> last-try;
+    in property <bool> done;
+    spacing: 14px;
+    BigTypeIcon {
+        kind: root.kind;
+        ext: root.ext;
+    }
+    GridLayout {
+        spacing-horizontal: 12px;
+        spacing-vertical: 4px;
+        horizontal-stretch: 1;
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 0;
+            text: @tr("Type");
+            color: Theme.muted;
+        }
+        Label {
+            col: Theme.rtl ? 0 : 1;
+            row: 0;
+            text: root.type-text;
+        }
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 1;
+            text: @tr("Status");
+            color: Theme.muted;
+        }
+        Label {
+            col: Theme.rtl ? 0 : 1;
+            row: 1;
+            text: root.status;
+            color: root.done ? Theme.ok : Theme.text;
+        }
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 2;
+            text: @tr("Size");
+            color: Theme.muted;
+        }
+        Label {
+            col: Theme.rtl ? 0 : 1;
+            row: 2;
+            text: root.size;
+        }
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 3;
+            text: @tr("Date added");
+            color: Theme.muted;
+        }
+        Label {
+            col: Theme.rtl ? 0 : 1;
+            row: 3;
+            text: root.added;
+        }
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 4;
+            text: @tr("Last try date");
+            color: Theme.muted;
+        }
+        Label {
+            col: Theme.rtl ? 0 : 1;
+            row: 4;
+            text: root.last-try;
+        }
+    }
+}
+
+export component PropertiesFooter inherits VerticalLayout {
+    in property <string> result;
+    in property <bool> done;
+    in property <string> message;
+    callback open-file();
+    callback save();
+    callback cancel();
+    spacing: 10px;
+    if root.result != "": Rectangle {
+        height: 32px;
+        border-width: 1px;
+        border-color: Theme.line;
+        background: Theme.panel;
+        Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            x: 8px;
+            width: parent.width - 16px;
+            height: parent.height;
+            text: @tr("Result: {}", root.result);
+            vertical-alignment: center;
+            overflow: elide;
+            font-size: 11px * Theme.font-scale;
+            color: root.done ? Theme.ok : Theme.err;
+        }
+    }
+    GridLayout {
+        // a row that reads from right to left in Arabic (wrapped text needs a grid)
+        spacing: 8px;
+        Button {
+            col: Theme.rtl ? 3 : 0;
+            row: 0;
+            text: @tr("Open");
+            enabled: root.done;
+            clicked => {
+                root.open-file();
+            }
+        }
+        Text {
+            col: Theme.rtl ? 2 : 1;
+            row: 0;
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: root.message;
+            color: Theme.err;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+            wrap: word-wrap;
+        }
+        Button {
+            col: Theme.rtl ? 1 : 2;
+            row: 0;
+            text: @tr("OK");
+            primary: true;
+            clicked => {
+                root.save();
+            }
+        }
+        Button {
+            col: Theme.rtl ? 0 : 3;
+            row: 0;
+            text: @tr("Cancel");
+            clicked => {
+                root.cancel();
+            }
+        }
+    }
+}

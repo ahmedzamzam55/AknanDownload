@@ -1,0 +1,97 @@
+// File Types tab for SettingsDialog.
+
+import { Button, LineEdit, SpinBox, TextEdit } from "std-widgets.slint";
+import { Theme, HRow, CheckBox } from "../../common.slint";
+import { Label } from "../widgets.slint";
+
+export component SettingsFileTypesTab inherits VerticalLayout {
+    in-out property <string> capture-exts;
+    in-out property <string> skip-sites;
+    in-out property <string> skip-addresses;
+    in-out property <bool> panel-enabled;
+    in-out property <string> panel-skip-sites;
+    in-out property <int> panel-min-video;
+    in-out property <int> panel-min-audio;
+    callback default-exts();
+
+    padding: 14px;
+    spacing: 8px;
+    Label {
+        text: @tr("Automatically start downloading these file types (from the browser):");
+    }
+    TextEdit {
+        text <=> root.capture-exts;
+        min-height: 80px;
+        font-size: 12px * Theme.font-scale;
+        wrap: word-wrap;
+    }
+    HRow {
+        alignment: end;
+        Button {
+            text: @tr("Default");
+            clicked => {
+                root.default-exts();
+            }
+        }
+    }
+    Label {
+        text: @tr("Don't start downloading automatically from these sites:");
+    }
+    LineEdit {
+        text <=> root.skip-sites;
+        placeholder-text: @tr("*.update.microsoft.com  windowsupdate.com");
+    }
+    Label {
+        text: @tr("Don't start downloading these addresses (one per line, * allowed):");
+    }
+    TextEdit {
+        text <=> root.skip-addresses;
+        min-height: 60px;
+        font-size: 12px * Theme.font-scale;
+    }
+    Rectangle {
+        height: 1px;
+        background: Theme.grid;
+    }
+    CheckBox {
+        text: @tr("Show the \"Download this video\" panel on web players");
+        checked <=> root.panel-enabled;
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Don't show it on these sites");
+        }
+        LineEdit {
+            text <=> root.panel-skip-sites;
+            enabled: root.panel-enabled;
+            horizontal-stretch: 1;
+        }
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Smallest video (KB)");
+        }
+        SpinBox {
+            width: 110px;
+            minimum: 0;
+            maximum: 100000;
+            value <=> root.panel-min-video;
+            enabled: root.panel-enabled;
+        }
+        Label {
+            text: @tr("Smallest audio (KB)");
+        }
+        SpinBox {
+            width: 110px;
+            minimum: 0;
+            maximum: 100000;
+            value <=> root.panel-min-audio;
+            enabled: root.panel-enabled;
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+}

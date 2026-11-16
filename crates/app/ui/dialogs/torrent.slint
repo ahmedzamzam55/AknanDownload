@@ -1,0 +1,188 @@
+// Add a torrent / magnet link dialog.
+
+import { Button, LineEdit } from "std-widgets.slint";
+import { LinkRow, Theme, ThemedWindow, TypeIcon, HRow, CheckBox } from "../common.slint";
+import { Label } from "widgets.slint";
+import { TorrentFilesBox } from "torrent_files.slint";
+
+export component TorrentDialog inherits ThemedWindow {
+    forward-focus: source-input;
+    public function focus-input() {
+        source-input.focus();
+    }
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("Add a torrent");
+    preferred-width: 700px;
+    preferred-height: 540px;
+    min-width: 560px;
+    min-height: 420px;
+    // a magnet link or the path of a .torrent file
+    in-out property <string> source;
+    in property <string> name;
+    in property <string> info;
+    in property <[LinkRow]> files;
+    in-out property <string> folder;
+    in-out property <bool> start-now: true;
+    in property <string> checked-text;
+    in property <string> message;
+    in property <bool> magnet;
+    callback pick-file();
+    callback load();
+    callback toggle(int);
+    callback check-all(bool);
+    callback browse();
+    callback download();
+    callback close-window();
+
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.close-window();
+                return accept;
+            }
+            if (event.text == Key.Return && event.modifiers.control && root.name != "") {
+                root.download();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 12px;
+            spacing: 8px;
+            Label {
+                text: @tr("A magnet link, or a .torrent file:");
+            }
+            HRow {
+                spacing: 8px;
+                source-input := LineEdit {
+                    text <=> root.source;
+                    placeholder-text: @tr("magnet:?xt=urn:btih:…  or  C:\\…\\file.torrent");
+                    horizontal-stretch: 1;
+                    accepted(t) => {
+                        root.load();
+                    }
+                    edited(t) => {
+                        root.load();
+                    }
+                }
+                Button {
+                    text: @tr("Open .torrent file…");
+                    clicked => {
+                        root.pick-file();
+                    }
+                }
+            }
+            HRow {
+                spacing: 10px;
+                if root.name != "": TypeIcon {
+                    kind: "torrent";
+                    width: 32px;
+                    height: 32px;
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Text {
+                        // a long name is cut ("…"), it never makes the window wider
+                        min-width: 0px;
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        text: root.name;
+                        font-size: 14px * Theme.font-scale;
+                        font-weight: 700;
+                        color: Theme.text;
+                        overflow: elide;
+                    }
+                    Text {
+                        // a long name is cut ("…"), it never makes the window wider
+                        min-width: 0px;
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        text: root.info;
+                        font-size: 11px * Theme.font-scale;
+                        color: Theme.muted;
+                        overflow: elide;
+                    }
+                }
+            }
+            HRow {
+                spacing: 6px;
+                visible: root.files.length > 1;
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+                Button {
+                    text: @tr("Check all");
+                    clicked => {
+                        root.check-all(true);
+                    }
+                }
+                Button {
+                    text: @tr("Uncheck all");
+                    clicked => {
+                        root.check-all(false);
+                    }
+                }
+            }
+            TorrentFilesBox {
+                files: root.files;
+                magnet: root.magnet;
+                toggle(i) => {
+                    root.toggle(i);
+                }
+            }
+            GridLayout {
+                spacing: 8px;
+                Label {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 0;
+                    text: @tr("Save to");
+                }
+                HRow {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 0;
+                    spacing: 6px;
+                    LineEdit {
+                        text <=> root.folder;
+                        horizontal-stretch: 1;
+                    }
+                    Button {
+                        text: "…";
+                        clicked => {
+                            root.browse();
+                        }
+                    }
+                }
+            }
+            HRow {
+                spacing: 10px;
+                CheckBox {
+                    text: @tr("Start now");
+                    checked <=> root.start-now;
+                }
+                Text {
+                    // a long name is cut ("…"), it never makes the window wider
+                    min-width: 0px;
+                    text: root.message != "" ? root.message : root.checked-text;
+                    color: root.message != "" ? Theme.err : Theme.muted;
+                    vertical-alignment: center;
+                    horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.left : TextHorizontalAlignment.right;
+                    horizontal-stretch: 1;
+                    overflow: elide;
+                }
+                Button {
+                    text: @tr("Download");
+                    primary: true;
+                    enabled: root.name != "";
+                    clicked => {
+                        root.download();
+                    }
+                }
+                Button {
+                    text: @tr("Close");
+                    clicked => {
+                        root.close-window();
+                    }
+                }
+            }
+        }
+    }
+}

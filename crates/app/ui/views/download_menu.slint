@@ -1,0 +1,189 @@
+// Right-click context menu and queue submenu for DownloadItem.
+
+import { DownloadRow, QueueRow, Theme, MenuEntry, MenuSep, MenuLabel } from "../common.slint";
+
+export component DownloadContextMenu inherits Rectangle {
+    in property <DownloadRow> data;
+    in property <[QueueRow]> queues;
+    in property <int> sel-count;
+    in property <bool> done;
+    in property <bool> can-resume;
+    in property <bool> can-stop;
+    callback activated();
+    callback action(string);
+    callback move-to-queue(int);
+
+    property <length> menu-x;
+    property <length> menu-y;
+    property <length> queue-pop-y;
+
+    public function show-at(mx: length, my: length) {
+        root.menu-x = mx;
+        root.menu-y = my;
+        menu.show();
+    }
+
+    x: 0px;
+    y: 0px;
+    width: 0px;
+    height: 0px;
+    queue-pop := PopupWindow {
+        // beside where the menu was (Arabic: to its left)
+        x: Theme.rtl ? max(0px, root.menu-x - 260px - 224px) : root.menu-x + 256px;
+        y: root.queue-pop-y;
+        width: 228px;
+        height: queue-list.preferred-height;
+        Rectangle {
+            width: parent.width;
+            height: queue-list.preferred-height;
+            background: Theme.panel;
+            border-width: 1px;
+            border-color: Theme.line;
+            border-radius: 4px;
+            drop-shadow-blur: 10px;
+            drop-shadow-color: #00000055;
+            drop-shadow-offset-y: 3px;
+            queue-list := VerticalLayout {
+                padding: 4px;
+                spacing: 0px;
+                MenuLabel {
+                    text: @tr("Move to queue");
+                }
+                for q in root.queues: MenuEntry {
+                    text: q.name;
+                    glyph: root.data.queue == q.id ? "check" : "";
+                    clicked => {
+                        root.move-to-queue(q.id);
+                    }
+                }
+                MenuSep { }
+                MenuEntry {
+                    text: @tr("Delete from queue");
+                    enabled: root.data.queue != "";
+                    clicked => {
+                        root.move-to-queue(-1);
+                    }
+                }
+            }
+        }
+    }
+    menu := PopupWindow {
+        // Arabic: the menu opens to the left of the mouse
+        x: Theme.rtl ? max(0px, root.menu-x - 260px) : root.menu-x;
+        y: root.menu-y;
+        width: 260px;
+        height: menu-list.preferred-height;
+        Rectangle {
+            width: parent.width;
+            height: menu-list.preferred-height;
+            background: Theme.panel;
+            border-width: 1px;
+            border-color: Theme.line;
+            border-radius: 4px;
+            drop-shadow-blur: 10px;
+            drop-shadow-color: #00000055;
+            drop-shadow-offset-y: 3px;
+            menu-list := VerticalLayout {
+                padding: 4px;
+                spacing: 0px;
+                if root.sel-count > 1: MenuLabel {
+                    text: @tr("{} downloads selected", root.sel-count);
+                }
+                MenuEntry {
+                    text: root.done ? @tr("Open") : @tr("Show download progress");
+                    glyph: root.done ? "play" : "progress";
+                    bold: true;
+                    clicked => { root.activated(); }
+                }
+                MenuEntry {
+                    text: @tr("Open with…");
+                    glyph: "openwith";
+                    enabled: root.done;
+                    clicked => { root.action("openwith"); }
+                }
+                if !root.done && (root.data.kind == "video" || root.data.kind == "audio"): MenuEntry {
+                    text: @tr("Play while downloading");
+                    glyph: "play";
+                    glyph-color: #d6631d;
+                    clicked => { root.action("preview"); }
+                }
+                if (root.data.kind == "video" || root.data.kind == "audio") && root.sel-count <= 1: MenuEntry {
+                    text: @tr("Download a part of it…");
+                    glyph: "video";
+                    clicked => { root.action("clip"); }
+                }
+                MenuEntry {
+                    text: @tr("Open folder");
+                    glyph: "folder";
+                    clicked => { root.action("folder"); }
+                }
+                MenuSep { }
+                MenuEntry {
+                    text: @tr("Resume download");
+                    glyph: "play";
+                    glyph-color: #2e9e4f;
+                    enabled: root.can-resume || root.sel-count > 1;
+                    clicked => { root.action("resume"); }
+                }
+                MenuEntry {
+                    text: @tr("Stop download");
+                    glyph: "pause";
+                    glyph-color: #e08a00;
+                    enabled: root.can-stop || root.sel-count > 1;
+                    clicked => { root.action("stop"); }
+                }
+                MenuEntry {
+                    text: @tr("Redownload");
+                    glyph: "redo";
+                    clicked => { root.action("restart"); }
+                }
+                MenuEntry {
+                    text: @tr("Refresh download address…");
+                    glyph: "refresh";
+                    enabled: !root.done;
+                    clicked => { root.action("refresh"); }
+                }
+                MenuEntry {
+                    text: @tr("Move / Rename…");
+                    glyph: "edit";
+                    clicked => { root.action("move"); }
+                }
+                MenuSep { }
+                // the queues open in a list of their own beside this menu
+                // (many queues made the menu longer than the screen)
+                MenuEntry {
+                    text: @tr("Move to queue") + (Theme.rtl ? "   ◂" : "   ▸");
+                    glyph: "queue";
+                    clicked => {
+                        root.queue-pop-y = root.menu-y + self.y;
+                        queue-pop.show();
+                    }
+                }
+                MenuSep { }
+                MenuEntry {
+                    text: @tr("Copy address");
+                    glyph: "copy";
+                    clicked => { root.action("copy"); }
+                }
+                MenuEntry {
+                    text: @tr("Check file (SHA-256)");
+                    glyph: "hash";
+                    enabled: root.done;
+                    clicked => { root.action("sha256"); }
+                }
+                MenuEntry {
+                    text: @tr("Properties");
+                    glyph: "info";
+                    clicked => { root.action("properties"); }
+                }
+                MenuSep { }
+                MenuEntry {
+                    text: @tr("Remove");
+                    glyph: "close";
+                    glyph-color: #e0443b;
+                    clicked => { root.action("delete"); }
+                }
+            }
+        }
+    }
+}

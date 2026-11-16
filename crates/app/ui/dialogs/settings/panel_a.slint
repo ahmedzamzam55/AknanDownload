@@ -1,0 +1,115 @@
+// Settings tabs 0..4 (General, File Types, Save To, Downloads, Connection).
+
+import { PairRow } from "../../common.slint";
+import { SettingsGeneralTab } from "general.slint";
+import { SettingsFileTypesTab } from "file_types.slint";
+import { SettingsSaveToTab } from "save_to.slint";
+import { SettingsDownloadsTab } from "downloads.slint";
+import { SettingsConnectionTab } from "connection.slint";
+
+export component SettingsPanelA inherits Rectangle {
+    in property <int> tab;
+    // General
+    in-out property <int> language;
+    in-out property <bool> start-with-windows;
+    in-out property <bool> close-to-tray;
+    in-out property <bool> gpu-drawing;
+    in-out property <bool> clipboard;
+    in-out property <bool> auto-clipboard;
+    in-out property <int> double-click;
+    in-out property <bool> show-tips;
+    in-out property <int> port;
+    in-out property <int> skip-key;
+    in-out property <int> force-key;
+    // File Types
+    in-out property <string> capture-exts;
+    in-out property <string> skip-sites;
+    in-out property <string> skip-addresses;
+    in-out property <bool> panel-enabled;
+    in-out property <string> panel-skip-sites;
+    in-out property <int> panel-min-video;
+    in-out property <int> panel-min-audio;
+    // Save To
+    in-out property <string> download-dir;
+    in-out property <bool> category-folders;
+    in-out property <string> temp-dir;
+    // Downloads
+    in-out property <bool> show-start-dialog;
+    in-out property <bool> start-while-info;
+    in-out property <bool> complete-dialog;
+    in-out property <bool> complete-each;
+    in-out property <bool> ask-remove: true;
+    in-out property <int> mp3-index: 1;
+    in-out property <bool> subtitles;
+    in-out property <string> subtitle-langs;
+    in-out property <int> progress-mode;
+    in-out property <int> duplicate-action;
+    in-out property <bool> set-file-date;
+    in-out property <bool> virus-scan;
+    in-out property <string> virus-program;
+    in-out property <string> virus-args;
+    in-out property <string> user-agent;
+    // Connection
+    in-out property <int> connection-type;
+    in-out property <int> connections;
+    in-out property <int> max-active;
+    in-out property <int> retries;
+    in property <[PairRow]> server-rows;
+    in-out property <int> server-current: -1;
+    in-out property <string> server-host;
+    in-out property <int> server-conns: 2;
+    in-out property <bool> quota-on;
+    in-out property <int> quota-mb;
+    in-out property <int> quota-hours;
+    in property <string> quota-used;
+
+    callback browse(string);
+    callback reset-paths();
+    callback default-exts();
+    callback server-add();
+    callback server-remove();
+    callback open-extension-folder();
+
+    if root.tab == 0: SettingsGeneralTab {
+        language <=> root.language; start-with-windows <=> root.start-with-windows;
+        close-to-tray <=> root.close-to-tray; clipboard <=> root.clipboard;
+        auto-clipboard <=> root.auto-clipboard; gpu-drawing <=> root.gpu-drawing;
+        show-tips <=> root.show-tips; double-click <=> root.double-click;
+        skip-key <=> root.skip-key; force-key <=> root.force-key; port <=> root.port;
+        open-extension-folder => { root.open-extension-folder(); }
+    }
+    if root.tab == 1: SettingsFileTypesTab {
+        capture-exts <=> root.capture-exts; skip-sites <=> root.skip-sites;
+        skip-addresses <=> root.skip-addresses; panel-enabled <=> root.panel-enabled;
+        panel-skip-sites <=> root.panel-skip-sites; panel-min-video <=> root.panel-min-video;
+        panel-min-audio <=> root.panel-min-audio;
+        default-exts => { root.default-exts(); }
+    }
+    if root.tab == 2: SettingsSaveToTab {
+        download-dir <=> root.download-dir; category-folders <=> root.category-folders;
+        temp-dir <=> root.temp-dir;
+        browse(k) => { root.browse(k); }
+        reset-paths => { root.reset-paths(); }
+    }
+    if root.tab == 3: SettingsDownloadsTab {
+        show-start-dialog <=> root.show-start-dialog; start-while-info <=> root.start-while-info;
+        complete-dialog <=> root.complete-dialog; complete-each <=> root.complete-each;
+        ask-remove <=> root.ask-remove; mp3-index <=> root.mp3-index;
+        subtitles <=> root.subtitles; subtitle-langs <=> root.subtitle-langs;
+        progress-mode <=> root.progress-mode; duplicate-action <=> root.duplicate-action;
+        set-file-date <=> root.set-file-date; virus-scan <=> root.virus-scan;
+        virus-program <=> root.virus-program; virus-args <=> root.virus-args;
+        user-agent <=> root.user-agent;
+        browse(k) => { root.browse(k); }
+    }
+    if root.tab == 4: SettingsConnectionTab {
+        connection-type <=> root.connection-type; connections <=> root.connections;
+        max-active <=> root.max-active; retries <=> root.retries;
+        server-rows: root.server-rows; server-current <=> root.server-current;
+        server-host <=> root.server-host; server-conns <=> root.server-conns;
+        quota-on <=> root.quota-on; quota-mb <=> root.quota-mb;
+        quota-hours <=> root.quota-hours; quota-used: root.quota-used;
+        server-add => { root.server-add(); }
+        server-remove => { root.server-remove(); }
+    }
+}

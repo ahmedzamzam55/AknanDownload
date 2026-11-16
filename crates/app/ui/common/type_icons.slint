@@ -1,0 +1,190 @@
+// File-type icons, drawn on a 16x16 grid.
+
+import { Theme } from "theme.slint";
+import { HRow } from "primitives.slint";
+
+export component G inherits Path {
+    viewbox-width: 16;
+    viewbox-height: 16;
+}
+
+// File-type icon. Every kind has its own shape and color, so they are told
+// apart at a glance: a film strip (video), a round note (music), a zipped
+// box (archives), a page with a folded corner (documents)…
+export component TypeIcon inherits Rectangle {
+    in property <string> kind: "general";
+    width: 18px;
+    height: 18px;
+    // documents: a page with a folded corner in their color
+    property <bool> page: root.kind == "pdf" || root.kind == "doc" || root.kind == "sheet" || root.kind == "slides" || root.kind == "text" || root.kind == "general";
+    property <color> page-color: root.kind == "pdf" ? #e03131
+        : root.kind == "doc" ? #2b6cde
+        : root.kind == "sheet" ? #1e8e3e
+        : root.kind == "slides" ? #e8710a
+        : root.kind == "text" ? #6b7785
+        : #8a94a0;
+    // ---- video: a blue film strip with a play sign
+    if root.kind == "video": Rectangle {
+        G {
+            fill: @linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+            commands: "M 1.5 3 L 14.5 3 L 14.5 13 L 1.5 13 Z";
+        }
+        G {
+            fill: #dbeafe;
+            commands: "M 2.3 4 L 3.5 4 L 3.5 5.2 L 2.3 5.2 Z M 2.3 7.4 L 3.5 7.4 L 3.5 8.6 L 2.3 8.6 Z M 2.3 10.8 L 3.5 10.8 L 3.5 12 L 2.3 12 Z M 12.5 4 L 13.7 4 L 13.7 5.2 L 12.5 5.2 Z M 12.5 7.4 L 13.7 7.4 L 13.7 8.6 L 12.5 8.6 Z M 12.5 10.8 L 13.7 10.8 L 13.7 12 L 12.5 12 Z";
+        }
+        G {
+            fill: white;
+            commands: "M 6.4 5.4 L 10.6 8 L 6.4 10.6 Z";
+        }
+    }
+    // ---- music: a purple circle with a note
+    if root.kind == "audio": Rectangle {
+        G {
+            fill: @linear-gradient(180deg, #a855f7 0%, #7e22ce 100%);
+            commands: "M 8 1 A 7 7 0 1 1 7.99 1 Z";
+        }
+        G {
+            fill: white;
+            commands: "M 7.2 4 L 11.2 3.2 L 11.2 4.7 L 8.4 5.3 L 8.4 10.4 A 1.8 1.5 0 1 1 7.2 9.1 Z";
+        }
+    }
+    // ---- archives: a yellow box with a zipper
+    if root.kind == "archive": Rectangle {
+        G {
+            fill: @linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+            commands: "M 2 4 L 14 4 L 14 14 L 2 14 Z";
+        }
+        G {
+            fill: #b45309;
+            commands: "M 1.5 2.2 L 14.5 2.2 L 14.5 4.6 L 1.5 4.6 Z";
+        }
+        G {
+            fill: #3f2a07;
+            commands: "M 7 4.6 L 9 4.6 L 9 5.6 L 7 5.6 Z M 7 6.6 L 9 6.6 L 9 7.6 L 7 7.6 Z M 7 8.6 L 9 8.6 L 9 9.6 L 7 9.6 Z";
+        }
+        G {
+            fill: white;
+            stroke: #3f2a07;
+            stroke-width: 0.6px;
+            commands: "M 6.6 10.2 L 9.4 10.2 L 9.4 12.8 L 6.6 12.8 Z";
+        }
+    }
+    // ---- documents: a page with a folded corner and its sign
+    if root.page: Rectangle {
+        G {
+            fill: @linear-gradient(180deg, root.page-color.brighter(20%) 0%, root.page-color 100%);
+            commands: "M 3 1 L 10 1 L 14 5 L 14 15 L 3 15 Z";
+        }
+        G {
+            fill: root.page-color.darker(35%);
+            commands: "M 10 1 L 14 5 L 10 5 Z";
+        }
+        if root.kind == "pdf" || root.kind == "doc" || root.kind == "text" || root.kind == "general": G {
+            stroke: white;
+            stroke-width: 1.1px;
+            commands: "M 5 7.5 L 12 7.5 M 5 9.8 L 12 9.8 M 5 12.1 L 10 12.1";
+        }
+        if root.kind == "sheet": G {
+            stroke: white;
+            stroke-width: 0.9px;
+            commands: "M 5 7 L 12 7 L 12 13 L 5 13 Z M 5 9 L 12 9 M 5 11 L 12 11 M 8 7 L 8 13";
+        }
+        if root.kind == "slides": G {
+            fill: white;
+            commands: "M 5 12.5 L 6.6 12.5 L 6.6 10 L 5 10 Z M 7.7 12.5 L 9.3 12.5 L 9.3 8 L 7.7 8 Z M 10.4 12.5 L 12 12.5 L 12 9 L 10.4 9 Z";
+        }
+    }
+    // ---- programs: a dark window with a title bar
+    if root.kind == "exe": Rectangle {
+        G {
+            fill: #334155;
+            commands: "M 1.5 2.5 L 14.5 2.5 L 14.5 13.5 L 1.5 13.5 Z";
+        }
+        G {
+            fill: #38bdf8;
+            commands: "M 1.5 2.5 L 14.5 2.5 L 14.5 5 L 1.5 5 Z";
+        }
+        G {
+            fill: white;
+            commands: "M 4 7 L 7 9.2 L 4 11.4 Z M 8 10.4 L 12 10.4 L 12 11.4 L 8 11.4 Z";
+        }
+    }
+    // ---- apps for phones: a green phone
+    if root.kind == "apk": Rectangle {
+        G {
+            fill: @linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
+            commands: "M 4.5 1 L 11.5 1 L 11.5 15 L 4.5 15 Z";
+        }
+        G {
+            fill: white;
+            commands: "M 5.5 2.5 L 10.5 2.5 L 10.5 12 L 5.5 12 Z";
+        }
+        G {
+            fill: white;
+            commands: "M 7.2 13.2 L 8.8 13.2 L 8.8 14.2 L 7.2 14.2 Z";
+        }
+    }
+    // ---- disc images: a silver disc
+    if root.kind == "disc": Rectangle {
+        G {
+            fill: @linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
+            stroke: #64748b;
+            stroke-width: 0.6px;
+            commands: "M 8 1 A 7 7 0 1 1 7.99 1 Z";
+        }
+        G {
+            fill: #475569;
+            commands: "M 8 6 A 2 2 0 1 1 7.99 6 Z";
+        }
+    }
+    // ---- pictures: a teal frame with hills and a sun
+    if root.kind == "image": Rectangle {
+        G {
+            fill: @linear-gradient(180deg, #2dd4bf 0%, #0f766e 100%);
+            commands: "M 1.5 2.5 L 14.5 2.5 L 14.5 13.5 L 1.5 13.5 Z";
+        }
+        G {
+            fill: white;
+            commands: "M 2.5 12.5 L 6.3 7.6 L 8.7 10.4 L 10.3 8.6 L 13.5 12.5 Z";
+        }
+        G {
+            fill: #fde68a;
+            commands: "M 11 4 A 1.4 1.4 0 1 1 10.99 4 Z";
+        }
+    }
+    // ---- torrents: a red and gray magnet
+    if root.kind == "torrent": Rectangle {
+        G {
+            fill: #e11d48;
+            commands: "M 2 2 L 6 2 L 6 8 A 2 2 0 0 0 10 8 L 10 2 L 14 2 L 14 8 A 6 6 0 0 1 2 8 Z";
+        }
+        G {
+            fill: #cbd5e1;
+            commands: "M 2 2 L 6 2 L 6 4.5 L 2 4.5 Z M 10 2 L 14 2 L 14 4.5 L 10 4.5 Z";
+        }
+    }
+}
+
+// Big icon with the file extension under it (dialogs).
+export component BigTypeIcon inherits VerticalLayout {
+    in property <string> kind;
+    in property <string> ext;
+    spacing: 4px;
+    alignment: start;
+    HRow {
+        alignment: center;
+        TypeIcon {
+            kind: root.kind;
+            width: 48px;
+            height: 48px;
+        }
+    }
+    Text {
+        text: root.ext;
+        horizontal-alignment: center;
+        font-size: 11px * Theme.font-scale;
+        font-weight: 700;
+        color: Theme.muted;
+    }
+}

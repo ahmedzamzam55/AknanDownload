@@ -1,0 +1,89 @@
+// Site Logins tab for SettingsDialog.
+
+import { Button, LineEdit } from "std-widgets.slint";
+import { PairRow, Theme, HRow } from "../../common.slint";
+import { Label, Hint } from "../widgets.slint";
+import { PairList } from "../pair_list.slint";
+
+export component SettingsLoginsTab inherits VerticalLayout {
+    in property <[PairRow]> login-rows;
+    in-out property <int> login-current: -1;
+    in-out property <string> login-site;
+    in-out property <string> login-user;
+    in-out property <string> login-password;
+    callback login-pick(int);
+    callback login-add();
+    callback login-remove();
+
+    padding: 14px;
+    spacing: 8px;
+    Label {
+        text: @tr("User names and passwords for sites that ask for them:");
+    }
+    PairList {
+        vertical-stretch: 1;
+        rows: root.login-rows;
+        current <=> root.login-current;
+        head-a: @tr("Site / path");
+        head-b: @tr("User name");
+        width-b: 180px;
+        picked(i) => {
+            root.login-pick(i);
+        }
+    }
+    GridLayout {
+        spacing: 8px;
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 0;
+            text: @tr("Site / path");
+        }
+        LineEdit {
+            col: Theme.rtl ? 0 : 1;
+            row: 0;
+            text <=> root.login-site;
+            placeholder-text: @tr("example.com/members");
+        }
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 1;
+            text: @tr("User name");
+        }
+        LineEdit {
+            col: Theme.rtl ? 0 : 1;
+            row: 1;
+            text <=> root.login-user;
+        }
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 2;
+            text: @tr("Password");
+        }
+        LineEdit {
+            col: Theme.rtl ? 0 : 1;
+            row: 2;
+            text <=> root.login-password;
+            input-type: InputType.password;
+        }
+    }
+    HRow {
+        spacing: 6px;
+        alignment: end;
+        Button {
+            text: @tr("Add / Update");
+            clicked => {
+                root.login-add();
+            }
+        }
+        Button {
+            text: @tr("Remove");
+            enabled: root.login-current >= 0;
+            clicked => {
+                root.login-remove();
+            }
+        }
+    }
+    Hint {
+        text: @tr("Saved in the settings file of your Windows user account.");
+    }
+}

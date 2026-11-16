@@ -1,0 +1,185 @@
+// Torrent pieces, files, peers and trackers tab for DetailsDialog.
+
+import { Button, LineEdit, ListView } from "std-widgets.slint";
+import { TFileRow, TPeerRow, PieceRun, Theme, HRow, CheckBox } from "../../common.slint";
+import { TabButton } from "../widgets.slint";
+
+export component DetailsTorrentTab inherits VerticalLayout {
+    in property <[TFileRow]> t-files;
+    in property <[TPeerRow]> t-peers;
+    in property <[string]> t-trackers;
+    in property <[PieceRun]> t-pieces;
+    in property <string> t-summary;
+    in-out property <int> t-view: 0;
+    in-out property <bool> t-first-last;
+    in-out property <string> t-new-tracker;
+    in property <string> t-note;
+    callback t-file-toggled(int);
+    callback t-add-tracker();
+    callback t-recheck();
+    callback t-copy-magnet();
+    callback t-first-last-changed();
+
+    padding: 10px;
+    spacing: 8px;
+    Text {
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        text: root.t-summary;
+        color: Theme.muted;
+        font-size: 11px * Theme.font-scale;
+    }
+    // which pieces are here
+    Rectangle {
+        height: 12px;
+        background: Theme.bar-bg;
+        border-width: 1px;
+        border-color: Theme.line;
+        clip: true;
+        for run in root.t-pieces: Rectangle {
+            y: 0px;
+            height: parent.height;
+            x: (Theme.rtl ? 1 - run.to : run.from) * parent.width;
+            width: max(1px, (run.to - run.from) * parent.width);
+            background: run.here ? Theme.accent : transparent;
+        }
+    }
+    HRow {
+        spacing: 2px;
+        TabButton {
+            text: @tr("Files");
+            active: root.t-view == 0;
+            clicked => { root.t-view = 0; }
+        }
+        TabButton {
+            text: @tr("People");
+            active: root.t-view == 1;
+            clicked => { root.t-view = 1; }
+        }
+        TabButton {
+            text: @tr("Trackers");
+            active: root.t-view == 2;
+            clicked => { root.t-view = 2; }
+        }
+    }
+    if root.t-view == 0: ListView {
+        // the room that is left (a taller window: a longer list)
+        vertical-stretch: 1;
+        min-height: 96px;
+        for f[i] in root.t-files: HRow {
+            spacing: 8px;
+            padding: 2px;
+            CheckBox {
+                text: "";
+                checked: f.selected;
+                toggled => {
+                    root.t-file-toggled(i);
+                }
+            }
+            Text {
+                text: f.name;
+                color: Theme.text;
+                overflow: elide;
+                horizontal-stretch: 1;
+                min-width: 0px;
+                vertical-alignment: center;
+            }
+            Text {
+                text: f.size;
+                color: Theme.muted;
+                vertical-alignment: center;
+            }
+            Text {
+                text: round(f.done * 100) + "%";
+                color: Theme.muted;
+                vertical-alignment: center;
+                width: 44px;
+            }
+        }
+    }
+    if root.t-view == 1: ListView {
+        vertical-stretch: 1;
+        min-height: 96px;
+        for p in root.t-peers: HRow {
+            spacing: 8px;
+            padding: 2px;
+            Text {
+                text: p.address + (p.seeder ? "  ★" : "");
+                color: Theme.text;
+                horizontal-stretch: 1;
+                min-width: 0px;
+                overflow: elide;
+            }
+            Text {
+                text: "↓ " + p.down;
+                color: Theme.muted;
+            }
+            Text {
+                text: "↑ " + p.up;
+                color: Theme.muted;
+            }
+            Text {
+                text: p.have;
+                color: Theme.muted;
+                width: p.have == "" ? 0px : 44px;
+            }
+        }
+    }
+    if root.t-view == 2: VerticalLayout {
+        spacing: 6px;
+        vertical-stretch: 1;
+        ListView {
+            vertical-stretch: 1;
+            min-height: 64px;
+            for tr in root.t-trackers: Text {
+                text: tr;
+                color: Theme.text;
+                overflow: elide;
+            }
+        }
+        HRow {
+            spacing: 6px;
+            LineEdit {
+                text <=> root.t-new-tracker;
+                placeholder-text: "udp://… / https://…";
+                horizontal-stretch: 1;
+            }
+            Button {
+                text: @tr("Add tracker");
+                clicked => {
+                    root.t-add-tracker();
+                }
+            }
+        }
+    }
+    HRow {
+        spacing: 8px;
+        CheckBox {
+            text: @tr("First and last pieces first");
+            checked <=> root.t-first-last;
+            toggled => {
+                root.t-first-last-changed();
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+        Button {
+            text: @tr("Check the files again");
+            clicked => {
+                root.t-recheck();
+            }
+        }
+        Button {
+            text: @tr("Copy magnet link");
+            clicked => {
+                root.t-copy-magnet();
+            }
+        }
+    }
+    if root.t-note != "": Text {
+        text: root.t-note;
+        color: Theme.muted;
+        font-size: 11px * Theme.font-scale;
+        wrap: word-wrap;
+    }
+}

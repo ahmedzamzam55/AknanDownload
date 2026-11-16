@@ -1,0 +1,146 @@
+// "Download a part of a video": address, quality, from/to, cut mode and preview.
+
+import { Button, LineEdit, ComboBox } from "std-widgets.slint";
+import { Theme, ThemedWindow, HRow } from "../common.slint";
+import { Label } from "widgets.slint";
+import { ClipControls } from "clip_controls.slint";
+
+export component ClipDialog inherits ThemedWindow {
+    forward-focus: url-input;
+    public function focus-input() {
+        url-input.focus();
+    }
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("Download a part of a video");
+    preferred-width: 640px;
+    min-width: 520px;
+    in-out property <string> url;
+    in property <bool> busy;
+    in property <string> status;
+    in property <string> video-title;
+    in property <[string]> qualities;
+    in-out property <int> quality: 0;
+    // seconds; 0 = the length is not known (type the times)
+    in property <float> duration;
+    in-out property <float> from: 0;
+    in-out property <float> to: 0;
+    in-out property <string> from-text;
+    in-out property <string> to-text;
+    in property <string> length-text;
+    // 0 quick (the usual), 1 exact
+    in-out property <int> cut: 0;
+    in property <bool> previewing;
+    in property <string> message;
+    in property <bool> ready;
+    callback fetch();
+    callback from-typed(string);
+    callback to-typed(string);
+    callback slid();
+    callback preview();
+    callback download();
+    callback close-window();
+    property <length> label-w: 90px;
+
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.close-window();
+                return accept;
+            }
+            if (event.text == Key.Return && event.modifiers.control && root.ready) {
+                root.download();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 12px;
+            spacing: 8px;
+            Label {
+                text: @tr("Paste the address of the video (its page, or a link to the video or stream):");
+            }
+            HRow {
+                spacing: 8px;
+                url-input := LineEdit {
+                    text <=> root.url;
+                    placeholder-text: "https://…";
+                    horizontal-stretch: 1;
+                    accepted(t) => {
+                        root.fetch();
+                    }
+                }
+                Button {
+                    text: root.busy ? @tr("Looking…") : @tr("Get the video");
+                    primary: !root.ready;
+                    enabled: !root.busy && root.url != "";
+                    clicked => {
+                        root.fetch();
+                    }
+                }
+            }
+            Text {
+                min-width: 0px;
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                text: root.status;
+                font-size: 11px * Theme.font-scale;
+                color: Theme.muted;
+                overflow: elide;
+            }
+            if root.video-title != "": Text {
+                min-width: 0px;
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                text: root.video-title;
+                font-size: 14px * Theme.font-scale;
+                font-weight: 700;
+                color: Theme.text;
+                overflow: elide;
+            }
+            HRow {
+                spacing: 8px;
+                Label {
+                    width: root.label-w;
+                    text: @tr("Quality:");
+                    vertical-alignment: center;
+                }
+                ComboBox {
+                    horizontal-stretch: 1;
+                    enabled: root.ready;
+                    model: root.qualities;
+                    current-index <=> root.quality;
+                }
+            }
+            ClipControls {
+                label-w: root.label-w;
+                ready: root.ready;
+                duration: root.duration;
+                from <=> root.from;
+                to <=> root.to;
+                from-text <=> root.from-text;
+                to-text <=> root.to-text;
+                length-text: root.length-text;
+                cut <=> root.cut;
+                previewing: root.previewing;
+                message: root.message;
+                from-typed(t) => {
+                    root.from-typed(t);
+                }
+                to-typed(t) => {
+                    root.to-typed(t);
+                }
+                slid => {
+                    root.slid();
+                }
+                preview => {
+                    root.preview();
+                }
+                download => {
+                    root.download();
+                }
+                close-window => {
+                    root.close-window();
+                }
+            }
+        }
+    }
+}

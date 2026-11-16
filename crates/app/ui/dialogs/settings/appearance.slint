@@ -1,0 +1,141 @@
+// Appearance tab for SettingsDialog.
+
+import { Button, LineEdit, ComboBox, Slider } from "std-widgets.slint";
+import { HRow } from "../../common.slint";
+import { Label } from "../widgets.slint";
+
+export component SettingsAppearanceTab inherits VerticalLayout {
+    in-out property <int> theme;
+    in-out property <float> window-opacity: 100;
+    in-out property <float> text-size: 100;
+    in-out property <int> font-index;
+    in-out property <string> bg-image;
+    in-out property <float> bg-strength: 45;
+    callback preview-opacity(float);
+    callback preview-look();
+    callback browse-bg();
+
+    padding: 14px;
+    spacing: 10px;
+    alignment: start;
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Theme");
+        }
+        ComboBox {
+            width: 200px;
+            model: [@tr("Light"), @tr("Dark"), @tr("Ocean blue"), @tr("Midnight purple"), @tr("Forest green"), @tr("Black"), @tr("Sunset"), @tr("Teal night"), @tr("Rose"), @tr("3D"), @tr("Aurora glass"), @tr("Soft clay"), @tr("Cyber neon")];
+            current-index <=> root.theme;
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Window opacity");
+        }
+        Slider {
+            width: 200px;
+            minimum: 50;
+            maximum: 100;
+            value <=> root.window-opacity;
+            changed(v) => {
+                root.preview-opacity(v);
+            }
+        }
+        Label {
+            text: Math.round(root.window-opacity) + "%";
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Text size");
+        }
+        Slider {
+            width: 200px;
+            minimum: 80;
+            maximum: 150;
+            value <=> root.text-size;
+            changed(v) => {
+                root.preview-look();
+            }
+        }
+        Label {
+            text: Math.round(root.text-size) + "%";
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Font");
+        }
+        ComboBox {
+            width: 200px;
+            model: [@tr("Default (Segoe UI)"), "Tahoma", "Arial", "Calibri", "Verdana", "Times New Roman", "Courier New"];
+            current-index <=> root.font-index;
+            selected => {
+                root.preview-look();
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Background picture");
+        }
+        LineEdit {
+            horizontal-stretch: 1;
+            read-only: true;
+            placeholder-text: @tr("none (the theme's colors)");
+            text: root.bg-image;
+        }
+        Button {
+            text: @tr("Browse…");
+            clicked => {
+                root.browse-bg();
+            }
+        }
+        Button {
+            text: @tr("Remove");
+            enabled: root.bg-image != "";
+            clicked => {
+                root.bg-image = "";
+                root.preview-look();
+            }
+        }
+    }
+    if root.bg-image != "": HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Picture visibility");
+        }
+        Slider {
+            width: 200px;
+            minimum: 10;
+            maximum: 80;
+            value <=> root.bg-strength;
+            changed(v) => {
+                root.preview-look();
+            }
+        }
+        Label {
+            text: Math.round(root.bg-strength) + "%";
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+}

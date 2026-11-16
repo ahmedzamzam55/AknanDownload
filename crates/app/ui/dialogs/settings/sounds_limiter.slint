@@ -1,0 +1,118 @@
+// Sounds and Speed Limiter tabs for SettingsDialog.
+
+import { Button, LineEdit, SpinBox } from "std-widgets.slint";
+import { HRow, CheckBox } from "../../common.slint";
+import { Label, Hint } from "../widgets.slint";
+
+component SoundRow inherits HRow {
+    in property <string> label;
+    in-out property <string> path;
+    callback browse();
+    callback play();
+    spacing: 6px;
+    Label {
+        text: root.label;
+        width: 150px;
+    }
+    LineEdit {
+        text <=> root.path;
+        horizontal-stretch: 1;
+    }
+    Button {
+        text: "…";
+        clicked => {
+            root.browse();
+        }
+    }
+    Button {
+        text: @tr("Play");
+        clicked => {
+            root.play();
+        }
+    }
+}
+
+export component SettingsSoundsTab inherits VerticalLayout {
+    in-out property <bool> sounds-on;
+    in-out property <string> sound-complete;
+    in-out property <string> sound-failed;
+    in-out property <string> sound-qstart;
+    in-out property <string> sound-qdone;
+    callback browse(string);
+    callback play(string);
+
+    padding: 14px;
+    spacing: 10px;
+    alignment: start;
+    CheckBox {
+        text: @tr("Play sounds");
+        checked <=> root.sounds-on;
+    }
+    SoundRow {
+        label: @tr("Download complete");
+        path <=> root.sound-complete;
+        browse => { root.browse("sound:complete"); }
+        play => { root.play("complete"); }
+    }
+    SoundRow {
+        label: @tr("Download failed");
+        path <=> root.sound-failed;
+        browse => { root.browse("sound:failed"); }
+        play => { root.play("failed"); }
+    }
+    SoundRow {
+        label: @tr("Queue started");
+        path <=> root.sound-qstart;
+        browse => { root.browse("sound:qstart"); }
+        play => { root.play("qstart"); }
+    }
+    SoundRow {
+        label: @tr("Queue finished");
+        path <=> root.sound-qdone;
+        browse => { root.browse("sound:qdone"); }
+        play => { root.play("qdone"); }
+    }
+    Hint {
+        text: @tr(".wav files. Empty = no sound for that event.");
+    }
+}
+
+export component SettingsLimiterTab inherits VerticalLayout {
+    in-out property <bool> limiter-on;
+    in-out property <int> speed-limit;
+    in-out property <bool> limiter-startup;
+    in-out property <bool> limit-only-active;
+
+    padding: 14px;
+    spacing: 10px;
+    alignment: start;
+    CheckBox {
+        text: @tr("Turn the speed limiter on");
+        checked <=> root.limiter-on;
+    }
+    HRow {
+        spacing: 8px;
+        Label {
+            text: @tr("Maximum download speed (KB/s)");
+        }
+        SpinBox {
+            minimum: 1;
+            maximum: 1000000;
+            value <=> root.speed-limit;
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+    CheckBox {
+        text: @tr("Always turn on the speed limiter when Aknan Download starts");
+        checked <=> root.limiter-startup;
+    }
+    CheckBox {
+        text: @tr("Limit only while I use the computer (full speed after a minute without the mouse or keyboard)");
+        checked <=> root.limit-only-active;
+    }
+    Hint {
+        text: @tr("Every download can also have its own limit: its progress window > Speed Limiter tab.");
+    }
+}

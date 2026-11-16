@@ -1,0 +1,207 @@
+// Scheduler (queues) dialog.
+
+import { Button, LineEdit } from "std-widgets.slint";
+import { PairRow, QueueRow, Theme, ThemedWindow, HRow } from "../common.slint";
+import { Label, TabBtn } from "widgets.slint";
+import { SchedulerSidebar } from "scheduler_sidebar.slint";
+import { SchedulerScheduleTab } from "scheduler_schedule.slint";
+import { SchedulerFilesTab, SchedulerOptionsTab } from "scheduler_tabs.slint";
+
+export component SchedulerDialog inherits ThemedWindow {
+    forward-focus: dlg-keys;
+    public function focus-input() {
+        dlg-keys.focus();
+    }
+    // set for a moment so the window comes in front of the browser
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("Scheduler");
+    preferred-width: 820px;
+    preferred-height: 560px;
+    in property <[QueueRow]> queues;
+    in-out property <int> current: 0;
+    in-out property <int> tab: 0;
+    in property <bool> is-main;
+    in property <bool> running;
+    // queue fields
+    in-out property <string> name;
+    in-out property <bool> start-enabled;
+    in-out property <string> start-time;
+    in-out property <bool> once;
+    in-out property <string> once-date;
+    in-out property <bool> d0;
+    in-out property <bool> d1;
+    in-out property <bool> d2;
+    in-out property <bool> d3;
+    in-out property <bool> d4;
+    in-out property <bool> d5;
+    in-out property <bool> d6;
+    in-out property <bool> on-startup;
+    in-out property <bool> wake;
+    in-out property <bool> stop-enabled;
+    in-out property <string> stop-time;
+    in-out property <int> parallel: 1;
+    in-out property <int> retries;
+    in-out property <string> folder;
+    in-out property <int> when-done;
+    in-out property <bool> open-when-done;
+    in property <[PairRow]> files;
+    in-out property <int> file-current: -1;
+    in property <string> message;
+    callback pick-queue(int);
+    callback new-queue();
+    callback delete-queue();
+    callback browse();
+    callback file-up();
+    callback file-down();
+    callback file-remove();
+    callback start-now();
+    callback stop-queue();
+    callback apply();
+    callback close-window();
+
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.close-window();
+                return accept;
+            }
+            if (event.text == Key.Return && event.modifiers.control) {
+                root.apply();
+                return accept;
+            }
+            reject
+        }
+        GridLayout {
+            // a row that reads from right to left in Arabic (wrapped text needs a grid)
+            padding: 10px;
+            spacing: 10px;
+            SchedulerSidebar {
+                col: Theme.rtl ? 1 : 0;
+                row: 0;
+                queues: root.queues;
+                current: root.current;
+                is-main: root.is-main;
+                pick-queue(i) => { root.pick-queue(i); }
+                new-queue => { root.new-queue(); }
+                delete-queue => { root.delete-queue(); }
+            }
+            VerticalLayout {
+                col: Theme.rtl ? 0 : 1;
+                row: 0;
+                horizontal-stretch: 1;
+                spacing: 8px;
+                HRow {
+                    spacing: 8px;
+                    Label {
+                        text: @tr("Queue name");
+                    }
+                    LineEdit {
+                        text <=> root.name;
+                        horizontal-stretch: 1;
+                    }
+                }
+                HRow {
+                    spacing: 2px;
+                    TabBtn {
+                        text: @tr("Schedule");
+                        active: root.tab == 0;
+                        clicked => { root.tab = 0; }
+                    }
+                    TabBtn {
+                        text: @tr("Files in the queue");
+                        active: root.tab == 1;
+                        clicked => { root.tab = 1; }
+                    }
+                    TabBtn {
+                        text: @tr("Options");
+                        active: root.tab == 2;
+                        clicked => { root.tab = 2; }
+                    }
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+                }
+                Rectangle {
+                    vertical-stretch: 1;
+                    background: Theme.panel;
+                    border-width: 1px;
+                    border-color: Theme.line;
+                    if root.tab == 0: SchedulerScheduleTab {
+                        start-enabled <=> root.start-enabled;
+                        start-time <=> root.start-time;
+                        once <=> root.once;
+                        once-date <=> root.once-date;
+                        d0 <=> root.d0;
+                        d1 <=> root.d1;
+                        d2 <=> root.d2;
+                        d3 <=> root.d3;
+                        d4 <=> root.d4;
+                        d5 <=> root.d5;
+                        d6 <=> root.d6;
+                        wake <=> root.wake;
+                        on-startup <=> root.on-startup;
+                        stop-enabled <=> root.stop-enabled;
+                        stop-time <=> root.stop-time;
+                        when-done <=> root.when-done;
+                    }
+                    if root.tab == 1: SchedulerFilesTab {
+                        files: root.files;
+                        file-current <=> root.file-current;
+                        file-up => { root.file-up(); }
+                        file-down => { root.file-down(); }
+                        file-remove => { root.file-remove(); }
+                    }
+                    if root.tab == 2: SchedulerOptionsTab {
+                        parallel <=> root.parallel;
+                        retries <=> root.retries;
+                        folder <=> root.folder;
+                        open-when-done <=> root.open-when-done;
+                        browse => { root.browse(); }
+                    }
+                }
+                GridLayout {
+                    // a row that reads from right to left in Arabic (wrapped text needs a grid)
+                    spacing: 8px;
+                    Text {
+                        col: Theme.rtl ? 4 : 0;
+                        row: 0;
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        text: root.message;
+                        color: Theme.err;
+                        vertical-alignment: center;
+                        horizontal-stretch: 1;
+                        wrap: word-wrap;
+                    }
+                    Button {
+                        col: Theme.rtl ? 3 : 1;
+                        row: 0;
+                        text: @tr("Start now");
+                        enabled: !root.running;
+                        clicked => { root.start-now(); }
+                    }
+                    Button {
+                        col: Theme.rtl ? 2 : 2;
+                        row: 0;
+                        text: @tr("Stop");
+                        enabled: root.running;
+                        clicked => { root.stop-queue(); }
+                    }
+                    Button {
+                        col: Theme.rtl ? 1 : 3;
+                        row: 0;
+                        text: @tr("Apply");
+                        primary: true;
+                        clicked => { root.apply(); }
+                    }
+                    Button {
+                        col: Theme.rtl ? 0 : 4;
+                        row: 0;
+                        text: @tr("Close");
+                        clicked => { root.close-window(); }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,70 @@
+// Queue list sidebar for SchedulerDialog.
+
+import { Button, ListView } from "std-widgets.slint";
+import { QueueRow, Theme, Cell, Glyph, HRow } from "../common.slint";
+
+export component SchedulerSidebar inherits VerticalLayout {
+    in property <[QueueRow]> queues;
+    in property <int> current: 0;
+    in property <bool> is-main;
+    callback pick-queue(int);
+    callback new-queue();
+    callback delete-queue();
+
+    width: 210px;
+    spacing: 6px;
+    Rectangle {
+        vertical-stretch: 1;
+        background: Theme.panel;
+        border-width: 1px;
+        border-color: Theme.line;
+        ListView {
+            for q[i] in root.queues: Rectangle {
+                height: 24px;
+                background: i == root.current ? Theme.select : qa.has-hover ? Theme.hover : transparent;
+                qa := TouchArea {
+                    clicked => {
+                        root.pick-queue(i);
+                    }
+                }
+                HRow {
+                    padding-left: Theme.rtl ? (0px) : (8px);
+                    padding-right: Theme.rtl ? (8px) : (0px);
+                    spacing: 6px;
+                    VerticalLayout {
+                        alignment: center;
+                        Glyph {
+                            kind: q.running ? "play" : "clock";
+                            tint: q.running ? Theme.ok : Theme.accent;
+                        }
+                    }
+                    Cell {
+                        text: q.name;
+                        horizontal-stretch: 1;
+                    }
+                    Cell {
+                        text: q.count > 0 ? q.count + "  " : "";
+                        color: Theme.muted;
+                    }
+                }
+            }
+        }
+    }
+    HRow {
+        spacing: 6px;
+        Button {
+            text: @tr("New queue");
+            horizontal-stretch: 1;
+            clicked => {
+                root.new-queue();
+            }
+        }
+        Button {
+            text: @tr("Delete");
+            enabled: !root.is-main;
+            clicked => {
+                root.delete-queue();
+            }
+        }
+    }
+}

@@ -1,0 +1,176 @@
+// Foundational RTL-aware layout primitives, themed window base and caption buttons.
+
+import { CheckBox as StdCheckBox, Palette } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+
+// A row that runs from right to left for Arabic (Theme.rtl), otherwise
+// like HorizontalLayout.
+export component HRow inherits FlexboxLayout {
+    flex-direction: Theme.rtl ? FlexboxLayoutDirection.row-reverse : FlexboxLayoutDirection.row;
+    flex-wrap: no-wrap;
+    alignment: stretch;
+}
+
+// The standard check box, with the box on the right for Arabic (Theme.rtl).
+export component CheckBox inherits VerticalLayout {
+    in property <string> text;
+    in property <bool> enabled: true;
+    in-out property <bool> checked;
+    callback toggled();
+    alignment: center;
+    if !Theme.rtl: StdCheckBox {
+        text: root.text;
+        enabled: root.enabled;
+        checked <=> root.checked;
+        toggled => {
+            root.toggled();
+        }
+    }
+    if Theme.rtl: Rectangle {
+        min-height: 20px;
+        accessible-role: checkbox;
+        accessible-checkable: true;
+        accessible-checked: root.checked;
+        accessible-label: root.text;
+        accessible-enabled: root.enabled;
+        accessible-action-default => {
+            if (root.enabled) {
+                root.checked = !root.checked;
+                root.toggled();
+            }
+        }
+        opacity: root.enabled ? 1.0 : 0.45;
+        rtl-touch := TouchArea {
+            enabled: root.enabled;
+            clicked => {
+                root.checked = !root.checked;
+                root.toggled();
+            }
+        }
+        HRow {
+            spacing: 12px;
+            alignment: start;
+            Rectangle {
+                width: 18px;
+                Rectangle {
+                    y: (parent.height - 18px) / 2;
+                    width: 18px;
+                    height: 18px;
+                    border-radius: 3px;
+                    border-width: root.checked ? 0px : 1px;
+                    border-color: Theme.muted;
+                    background: root.checked ? Theme.accent : rtl-touch.has-hover ? Theme.hover : Theme.input-bg;
+                    if root.checked: Path {
+                        x: 3px;
+                        y: 3px;
+                        width: 12px;
+                        height: 12px;
+                        viewbox-width: 12;
+                        viewbox-height: 12;
+                        stroke: white;
+                        stroke-width: 1.6px;
+                        fill: transparent;
+                        commands: "M 1.5 6.5 L 4.5 9.5 L 10.5 2.5";
+                    }
+                }
+            }
+            Text {
+                text: root.text;
+                horizontal-alignment: right;
+                vertical-alignment: center;
+                color: Theme.text;
+            }
+        }
+    }
+}
+
+// Applies the light/dark look to the standard widgets of every window.
+export component ThemedWindow inherits Window {
+    property <bool> dark: Theme.dark;
+    changed dark => {
+        Palette.color-scheme = self.dark ? ColorScheme.dark : ColorScheme.light;
+    }
+    init => {
+        Palette.color-scheme = self.dark ? ColorScheme.dark : ColorScheme.light;
+    }
+    background: Theme.window;
+    // the looks with a picture of their own behind the window
+    if Theme.mode == 10: Rectangle {
+        // Aurora glass: soft lights of color
+        Rectangle {
+            x: -parent.width * 0.25;
+            y: -parent.height * 0.35;
+            width: parent.width * 0.9;
+            height: parent.width * 0.9;
+            background: @radial-gradient(circle, #5b2bd2aa 0%, #5b2bd200 70%);
+        }
+        Rectangle {
+            x: parent.width * 0.45;
+            y: -parent.height * 0.4;
+            width: parent.width * 0.7;
+            height: parent.width * 0.7;
+            background: @radial-gradient(circle, #b0237f88 0%, #b0237f00 70%);
+        }
+        Rectangle {
+            x: parent.width * 0.5;
+            y: parent.height * 0.35;
+            width: parent.width * 0.9;
+            height: parent.width * 0.9;
+            background: @radial-gradient(circle, #0f7fa699 0%, #0f7fa600 70%);
+        }
+    }
+    if Theme.mode == 11: Rectangle {
+        background: @linear-gradient(160deg, #f4f1ff 0%, #e8f0fb 55%, #fdf0f5 100%);
+    }
+    if Theme.mode == 12: Rectangle {
+        // Cyber neon: a glow from the top
+        Rectangle {
+            x: parent.width * 0.1;
+            y: -parent.width * 0.55;
+            width: parent.width * 0.8;
+            height: parent.width * 0.8;
+            background: @radial-gradient(circle, #2a1170cc 0%, #2a117000 70%);
+        }
+    }
+    // below everything (and never seen): when Theme.repaint changes, the whole
+    // window is drawn again, not only the parts that changed
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        background: Math.mod(Theme.repaint, 2) == 0 ? #00000000 : #00000001;
+    }
+    // 12px is the size Windows gives Slint by default (the message font)
+    default-font-size: 12px * Theme.font-scale;
+    default-font-family: Theme.font-family;
+    icon: @image-url("../icon-window.png");
+}
+
+// A button of a window's own title bar (windows drawn without the Windows
+// frame): "tray" (hide next to the clock), "min" or "close".
+export component CaptionButton inherits Rectangle {
+    in property <string> kind;
+    callback clicked();
+    out property <bool> hovered: ca.has-hover;
+    width: 44px;
+    background: ca.pressed ? (root.kind == "close" ? #c50f1f : Theme.line) : ca.has-hover ? (root.kind == "close" ? #e81123 : Theme.hover) : transparent;
+    ca := TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
+    Path {
+        x: (parent.width - 10px) / 2;
+        y: (parent.height - 10px) / 2;
+        width: 10px;
+        height: 10px;
+        viewbox-width: 10;
+        viewbox-height: 10;
+        stroke-width: 1px;
+        stroke: root.kind == "close" && ca.has-hover ? white : Theme.text;
+        fill: transparent;
+        commands: root.kind == "close" ? "M 0 0 L 10 10 M 10 0 L 0 10"
+            : root.kind == "min" ? "M 0 5.5 L 10 5.5"
+            // an arrow down into a tray
+            : "M 5 0 L 5 6.5 M 2.2 3.8 L 5 6.5 L 7.8 3.8 M 0.5 6.5 L 0.5 9.5 L 9.5 9.5 L 9.5 6.5";
+    }
+}

@@ -1,60 +1,24 @@
 // The add-in talks to the program through the program's helper (native
 // messaging); without it (or when it can't reach the program) the port.
 // node extension/test/helper.sim.js
-const fs = require("fs"), path = require("path"), vm = require("vm"), assert = require("assert");
-const dir = path.join(__dirname, "..");
+const assert = require("assert");
+const vm = require("vm");
+const { createSimEnv } = require("./sim-env.js");
 
 function load({ helper, firefox = false, granted = false }) {
-  const on = () => ({ addListener: () => {} });
-  const store = {};
-  const fetched = [];
-  const posted = [];
-  const chrome = {
-    storage: { onChanged: on(), local: { get: async (d) => ({ ...(typeof d === "object" && !Array.isArray(d) ? d : {}), ...store }), set: async (o) => Object.assign(store, o), remove: async () => {} },
-               session: { get: async () => ({}), set: async () => {}, remove: async () => {}, clear: async () => {} } },
-    downloads: { onCreated: on(), onDeterminingFilename: on() },
-    webRequest: { onHeadersReceived: on(), onBeforeRequest: on(), onBeforeSendHeaders: on(), onSendHeaders: on() },
-    tabs: { onUpdated: on(), onRemoved: on(), onCreated: on(), get: async () => null, query: async () => [], sendMessage: async () => {} },
-    action: { setBadgeBackgroundColor: () => {}, setBadgeText: async () => {} },
-    runtime: { id: "abcdefghijklmnopabcdefghijklmnop", onInstalled: on(), onStartup: on(), onMessage: on(), getManifest: () => ({ version: "1.0.11" }), reload: () => {},
-               getURL: (p) => "chrome-extension://sim/" + p },
-    permissions: { contains: async () => granted },
-    contextMenus: { removeAll: () => {}, create: () => {}, onClicked: on() },
-    cookies: { getAll: async () => [] },
-  };
-  if (helper) {
-    chrome.runtime.connectNative = (name) => {
-      assert.strictEqual(name, "com.aknan.download");
-      const msgL = [], discL = [];
-      const port = {
-        onMessage: { addListener: (f) => msgL.push(f) },
-        onDisconnect: { addListener: (f) => discL.push(f) },
-        disconnect: () => {},
-        postMessage: (m) => {
-          posted.push(m);
-          setTimeout(() => {
-            const a = helper(m);
-            if (a === "gone") discL.forEach((f) => f());
-            else msgL.forEach((f) => f({ id: m.id, ...a }));
-          }, 5);
-        },
-      };
-      return port;
-    };
-  }
-  const fetch = async (url, opts = {}) => {
-    fetched.push(url);
-    if (url === "chrome-extension://sim/token.json") return { ok: true, status: 200, json: async () => ({ token: "k".repeat(64), port: 47000 }) };
-    if (url.startsWith("chrome-extension://sim/")) return { ok: true, status: 200, text: async () => "file" };
-    if (url.includes(":9614/ping") || url.includes(":47000/")) return { ok: true, status: 200, json: async () => ({ ok: true, via: "port" }) };
-    throw new TypeError("Failed to fetch");
-  };
-  const ctx = { chrome, fetch, AbortController, TextEncoder, crypto: globalThis.crypto, setTimeout, clearTimeout, console, URL,
-    navigator: { userAgent: firefox ? "Mozilla/5.0 Firefox/150.0" : "Chrome/150" }, importScripts: (...f) => f.forEach((x) => vm.runInContext(fs.readFileSync(path.join(dir, x), "utf8"), ctx)) };
-  vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(dir, "background.js"), "utf8"), ctx);
-  return { ctx, fetched, posted };
+  return createSimEnv({
+    helper,
+    firefox,
+    granted,
+    onFetch: async (url) => {
+      if (url.includes(":9614/ping") || url.includes(":47000/")) {
+        return { ok: true, status: 200, json: async () => ({ ok: true, via: "port" }) };
+      }
+      throw new TypeError("Failed to fetch");
+    },
+  });
 }
+
 const run = (s, code) => vm.runInContext(code, s.ctx);
 
 (async () => {

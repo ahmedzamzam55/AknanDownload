@@ -1,0 +1,193 @@
+// Toolbar tiles, buttons and separators.
+
+import { Theme, ToolTip } from "theme.slint";
+import { HRow } from "primitives.slint";
+import { Glyph } from "glyph.slint";
+import { Icon } from "icon.slint";
+
+// A colored picture tile of the 3D looks: shiny, outlined and glowing
+// (Aurora glass) or neon, as Theme.tile-style says.
+export component Tile inherits Rectangle {
+    in property <color> shade;
+    in property <string> mark;
+    in property <length> size: 26px;
+    width: root.size;
+    height: root.size;
+    border-radius: Theme.tile-style == 2 ? root.size * 0.25 : root.size * 0.31;
+    background: Theme.tile-style == 1 ? #00000040
+        : Theme.tile-style == 2 ? @linear-gradient(180deg, root.shade.brighter(20%) 0%, root.shade 100%)
+        : @linear-gradient(180deg, root.shade.brighter(35%) 0%, root.shade 55%, root.shade.darker(25%) 100%);
+    border-width: Theme.tile-style == 1 ? 1.5px : 0px;
+    border-color: root.shade;
+    drop-shadow-blur: Theme.tile-style == 0 ? 5px : 10px;
+    drop-shadow-offset-y: Theme.tile-style == 0 ? 2px : 0px;
+    drop-shadow-color: Theme.tile-style == 0 ? root.shade.darker(60%).transparentize(40%) : root.shade.transparentize(35%);
+    // the light on its top edge
+    if Theme.tile-style == 0: Rectangle {
+        x: 3px;
+        y: 1px;
+        width: parent.width - 6px;
+        height: parent.height * 0.35;
+        border-radius: 5px;
+        background: @linear-gradient(180deg, #ffffff59 0%, #ffffff00 100%);
+    }
+    Glyph {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: root.size * 0.62;
+        height: root.size * 0.62;
+        kind: root.mark;
+        tint: Theme.tile-style == 1 ? root.shade.brighter(30%) : Theme.tile-style == 2 ? #05060c : white;
+    }
+}
+
+export component ToolBtn inherits Rectangle {
+    in property <string> icon;
+    in property <string> text;
+    in property <bool> enabled: true;
+    // View > Toolbar > Small buttons: icon only
+    in property <bool> small;
+    callback clicked();
+    // small buttons: every one fits a 960 px wide window
+    width: root.small ? 34px : max(56px, 56px * Theme.font-scale);
+    height: root.small ? 34px : max(56px, 30px + 26px * Theme.font-scale);
+    // a name that is still too long never covers the next button
+    clip: !Theme.depth;
+    border-radius: Theme.depth ? Theme.card-radius + 2px : 3px;
+    border-width: Theme.depth ? 1px : ta.has-hover && root.enabled ? 1px : 0px;
+    border-color: Theme.depth ? (ta.has-hover && root.enabled ? Theme.btn-hover-line : Theme.btn-line) : Theme.select-line;
+    background: Theme.depth
+        ? (ta.pressed && root.enabled ? @linear-gradient(180deg, Theme.btn-bottom 0%, Theme.btn-top 100%)
+            : ta.has-hover && root.enabled ? @linear-gradient(180deg, Theme.dark ? Theme.btn-top.brighter(25%) : Theme.btn-top 0%, Theme.btn-bottom 100%)
+            : @linear-gradient(180deg, Theme.btn-top 0%, Theme.btn-bottom 100%))
+        : !root.enabled ? transparent : ta.pressed ? Theme.select : ta.has-hover ? Theme.toolbar-hover : transparent;
+    drop-shadow-blur: Theme.depth ? (ta.pressed ? 3px : 10px) : 0px;
+    drop-shadow-offset-y: Theme.depth ? (ta.pressed ? 1px : Theme.look == 3 ? 5px : 4px) : 0px;
+    drop-shadow-color: Theme.depth ? (Theme.look == 3 && ta.has-hover ? #00d1ff66 : Theme.btn-shadow) : transparent;
+    // the 3D look: each button's picture on a shiny colored tile
+    pure function tile(k: string) -> color {
+        if (k == "add" || k == "resume" || k == "startqueue" || k == "playlist") { return #27b45c; }
+        if (k == "batch" || k == "scheduler") { return #3d7cf5; }
+        if (k == "stop" || k == "stopall" || k == "stopqueue") { return #f0b323; }
+        if (k == "delete" || k == "deletedone" || k == "torrent") { return #ec4652; }
+        if (k == "options" || k == "limiter") { return #9a5cf6; }
+        if (k == "grabber") { return #fb8a2e; }
+        return #6c5cff;
+    }
+    pure function mark(k: string) -> string {
+        if (k == "add") { return "plus"; }
+        if (k == "batch") { return "copy"; }
+        if (k == "resume" || k == "startqueue") { return "play"; }
+        if (k == "stop") { return "pause"; }
+        if (k == "stopall" || k == "stopqueue") { return "stop"; }
+        if (k == "delete") { return "close"; }
+        if (k == "deletedone") { return "check"; }
+        if (k == "options") { return "edit"; }
+        if (k == "scheduler") { return "clock"; }
+        if (k == "limiter") { return "progress"; }
+        if (k == "grabber") { return "down"; }
+        if (k == "playlist") { return "queue"; }
+        if (k == "torrent") { return "down"; }
+        return "info";
+    }
+    // what the button does, shown when the mouse rests on it
+    pure function describe(k: string) -> string {
+        if (k == "add") { return @tr("Download a file from an address you type or paste (Ctrl+N)."); }
+        if (k == "batch") { return @tr("Download many links at once, or numbered files from one address (Ctrl+B)."); }
+        if (k == "resume") { return @tr("Continue the selected downloads from where they stopped."); }
+        if (k == "stop") { return @tr("Pause the selected downloads; they can be resumed later."); }
+        if (k == "stopall") { return @tr("Pause every running download."); }
+        if (k == "delete") { return @tr("Remove the selected downloads from the list. The files stay on your computer."); }
+        if (k == "deletedone") { return @tr("Remove all finished downloads from the list. The files stay on your computer."); }
+        if (k == "options") { return @tr("All the settings of the program."); }
+        if (k == "scheduler") { return @tr("Start or stop queues at the times you choose."); }
+        if (k == "limiter") { return @tr("Limit the download speed so the internet stays usable for other things."); }
+        if (k == "startqueue") { return @tr("Start the files of a queue, one after another."); }
+        if (k == "stopqueue") { return @tr("Stop the files of a queue."); }
+        if (k == "grabber") { return @tr("Collect the files of a web site: pictures, videos, archives…"); }
+        if (k == "playlist") { return @tr("Download all or some videos of a playlist."); }
+        if (k == "torrent") { return @tr("Download a .torrent file or a magnet link."); }
+        return "";
+    }
+    ta := TouchArea {
+        width: parent.width;
+        height: parent.height;
+        enabled: true;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+        changed has-hover => {
+            if (self.has-hover) {
+                ToolTip.title = root.text;
+                ToolTip.text = root.describe(root.icon);
+                ToolTip.x = root.absolute-position.x;
+                ToolTip.y = root.absolute-position.y + root.height + 4px;
+                ToolTip.shown = false;
+                ToolTip.pending = true;
+            } else if (ToolTip.title == root.text) {
+                ToolTip.pending = false;
+                ToolTip.shown = false;
+            }
+        }
+        pointer-event(ev) => {
+            // a click hides the note
+            if (ev.kind == PointerEventKind.down) {
+                ToolTip.pending = false;
+                ToolTip.shown = false;
+            }
+        }
+    }
+    if !root.small: VerticalLayout {
+        alignment: center;
+        spacing: 3px;
+        padding-left: 1px;
+        padding-right: 1px;
+        opacity: root.enabled ? 1.0 : 0.35;
+        HRow {
+            alignment: center;
+            if !Theme.depth: Icon {
+                width: 26px;
+                height: 26px;
+                kind: root.icon;
+            }
+            if Theme.depth: Tile {
+                shade: root.tile(root.icon);
+                mark: root.mark(root.icon);
+            }
+        }
+        // a long name goes on two lines ("Delete / Done"); "…" does not work
+        // for right-to-left (Arabic) text, which would spill over the next button
+        Text {
+            text: root.text;
+            font-size: 10px * Theme.font-scale;
+            // bold, so the names read well on every theme
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: top;
+            wrap: word-wrap;
+            max-height: 26px * Theme.font-scale;
+            color: Theme.toolbar-text;
+        }
+    }
+    if root.small: Icon {
+        x: (parent.width - 24px) / 2;
+        y: (parent.height - 24px) / 2;
+        width: 24px;
+        height: 24px;
+        kind: root.icon;
+        opacity: root.enabled ? 1.0 : 0.35;
+    }
+}
+
+export component ToolSeparator inherits Rectangle {
+    width: 7px;
+    Rectangle {
+        x: 3px;
+        y: 8px;
+        width: 1px;
+        height: parent.height - 16px;
+        background: Theme.line;
+    }
+}

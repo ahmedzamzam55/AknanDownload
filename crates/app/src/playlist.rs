@@ -1,7 +1,6 @@
 //! "Download a playlist": every video of a playlist in one go, in
 //! the quality you choose, into its own queue and folder.
 
-use crate::open_window;
 use crate::*;
 
 use crate::i18n::{t, tf};

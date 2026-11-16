@@ -1,0 +1,45 @@
+// Toolbar Start Queue / Stop Queue dropdown popup.
+
+import { QueueRow, Theme, MenuEntry, MenuLabel } from "../common.slint";
+
+export component QueueMenu inherits PopupWindow {
+    in property <length> qmenu-x;
+    in property <bool> qmenu-start: true;
+    in property <[QueueRow]> queues;
+    callback start-queue(int);
+    callback stop-queue(int);
+
+    x: Theme.rtl ? max(0px, root.qmenu-x + max(62px, 62px * Theme.font-scale) - 220px) : root.qmenu-x;
+    y: max(66px, 40px + 26px * Theme.font-scale);
+    width: 220px;
+    height: qm-list.preferred-height;
+    Rectangle {
+        width: parent.width;
+        height: qm-list.preferred-height;
+        background: Theme.panel;
+        border-width: 1px;
+        border-color: Theme.line;
+        border-radius: 4px;
+        drop-shadow-blur: 10px;
+        drop-shadow-color: #00000055;
+        qm-list := VerticalLayout {
+            padding: 4px;
+            MenuLabel {
+                text: root.qmenu-start ? @tr("Start queue") : @tr("Stop queue");
+            }
+            for q in root.queues: MenuEntry {
+                text: q.name;
+                glyph: q.running ? "play" : "";
+                glyph-color: #2e9e4f;
+                indent: true;
+                clicked => {
+                    if (root.qmenu-start) {
+                        root.start-queue(q.id);
+                    } else {
+                        root.stop-queue(q.id);
+                    }
+                }
+            }
+        }
+    }
+}

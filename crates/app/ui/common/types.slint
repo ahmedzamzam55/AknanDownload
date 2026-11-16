@@ -1,0 +1,121 @@
+// Shared data types for the download list, sidebar, details, grabber and torrents.
+
+export struct DownloadRow {
+    id: int,
+    name: string,
+    // the name is written right to left (Arabic…): shown from the right
+    name-rtl: bool,
+    // file type icon: video, audio, archive, pdf, doc, sheet, slides, text, exe, apk, disc, image, general
+    kind: string,
+    category: string,
+    queue: string,
+    size: string,
+    status: string,
+    progress: float,
+    eta: string,
+    speed: string,
+    last-try: string,
+    description: string,
+    added: string,
+    // part of the multiple selection (Ctrl / Shift click, Ctrl+A)
+    sel: bool,
+    save-to: string,
+    referer: string,
+    parent: string,
+    // 0 queued, 1 running, 2 paused, 3 complete, 4 error
+    state: int,
+}
+
+// a column of the download list, in the order shown (drag to move / resize)
+export struct ColDef {
+    key: string,
+    width: length,
+}
+
+// which list columns are visible (View > Columns)
+export struct Cols {
+    q: bool,
+    size: bool,
+    status: bool,
+    eta: bool,
+    speed: bool,
+    last: bool,
+    desc: bool,
+    added: bool,
+    saveto: bool,
+    referer: bool,
+    parent: bool,
+}
+
+// a category in the sidebar
+export struct CatRow {
+    name: string,
+    // the name in the current language
+    label: string,
+    // icon kind
+    kind: string,
+    count: string,
+    unfinished: string,
+    finished: string,
+    builtin: bool,
+}
+
+// one row of a simple two/three column list (logins, server exceptions...)
+export struct PairRow {
+    a: string,
+    b: string,
+    c: string,
+}
+
+// a file found by the site grabber / "download all links"
+export struct LinkRow {
+    checked: bool,
+    name: string,
+    // the name is written right to left (Arabic…): shown from the right
+    rtl: bool,
+    kind: string,
+    ext: string,
+    text: string,
+    url: string,
+}
+
+export struct QueueRow {
+    id: int,
+    name: string,
+    count: int,
+    running: bool,
+}
+
+// a torrent's file, person and piece run (its window's "Torrent" tab)
+export struct TFileRow {
+    index: int,
+    name: string,
+    size: string,
+    done: float,
+    selected: bool,
+}
+
+export struct TPeerRow {
+    address: string,
+    down: string,
+    up: string,
+    have: string,
+    seeder: bool,
+}
+
+export struct PieceRun {
+    from: float,
+    to: float,
+    here: bool,
+}
+
+// one connection of a download (progress window)
+export struct SegView {
+    // this connection is receiving right now
+    busy: bool,
+    start: float,
+    done: float,
+    number: string,
+    downloaded: string,
+    info: string,
+}

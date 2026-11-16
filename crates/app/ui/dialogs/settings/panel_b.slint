@@ -1,0 +1,94 @@
+// Settings tabs 5..10 (Proxy, Site Logins, Sounds, Speed Limiter, Appearance, Torrents).
+
+import { PairRow } from "../../common.slint";
+import { SettingsProxyTab } from "proxy.slint";
+import { SettingsLoginsTab } from "logins.slint";
+import { SettingsSoundsTab, SettingsLimiterTab } from "sounds_limiter.slint";
+import { SettingsAppearanceTab } from "appearance.slint";
+import { SettingsTorrentsTab } from "torrents.slint";
+
+export component SettingsPanelB inherits Rectangle {
+    in property <int> tab;
+    // Proxy
+    in-out property <int> proxy-mode;
+    in-out property <string> proxy-host;
+    in-out property <int> proxy-port;
+    in-out property <string> proxy-user;
+    in-out property <string> proxy-password;
+    in-out property <string> proxy-bypass;
+    // Site Logins
+    in property <[PairRow]> login-rows;
+    in-out property <int> login-current: -1;
+    in-out property <string> login-site;
+    in-out property <string> login-user;
+    in-out property <string> login-password;
+    // Sounds
+    in-out property <bool> sounds-on;
+    in-out property <string> sound-complete;
+    in-out property <string> sound-failed;
+    in-out property <string> sound-qstart;
+    in-out property <string> sound-qdone;
+    // Speed Limiter
+    in-out property <bool> limiter-on;
+    in-out property <bool> limit-only-active;
+    in-out property <int> speed-limit;
+    in-out property <bool> limiter-startup;
+    // Appearance
+    in-out property <int> theme;
+    in-out property <float> window-opacity: 100;
+    in-out property <float> text-size: 100;
+    in-out property <int> font-index;
+    in-out property <string> bg-image;
+    in-out property <float> bg-strength: 45;
+    // Torrents
+    in-out property <int> seed-minutes;
+    in-out property <int> seed-ratio;
+    in-out property <int> torrent-upload;
+    in-out property <bool> torrent-main;
+
+    callback browse(string);
+    callback play(string);
+    callback login-add();
+    callback login-remove();
+    callback login-pick(int);
+    callback preview-opacity(float);
+    callback browse-bg();
+    callback preview-look();
+
+    if root.tab == 5: SettingsProxyTab {
+        proxy-mode <=> root.proxy-mode; proxy-host <=> root.proxy-host;
+        proxy-port <=> root.proxy-port; proxy-user <=> root.proxy-user;
+        proxy-password <=> root.proxy-password; proxy-bypass <=> root.proxy-bypass;
+    }
+    if root.tab == 6: SettingsLoginsTab {
+        login-rows: root.login-rows; login-current <=> root.login-current;
+        login-site <=> root.login-site; login-user <=> root.login-user;
+        login-password <=> root.login-password;
+        login-pick(i) => { root.login-pick(i); }
+        login-add => { root.login-add(); }
+        login-remove => { root.login-remove(); }
+    }
+    if root.tab == 7: SettingsSoundsTab {
+        sounds-on <=> root.sounds-on; sound-complete <=> root.sound-complete;
+        sound-failed <=> root.sound-failed; sound-qstart <=> root.sound-qstart;
+        sound-qdone <=> root.sound-qdone;
+        browse(k) => { root.browse(k); }
+        play(k) => { root.play(k); }
+    }
+    if root.tab == 8: SettingsLimiterTab {
+        limiter-on <=> root.limiter-on; speed-limit <=> root.speed-limit;
+        limiter-startup <=> root.limiter-startup; limit-only-active <=> root.limit-only-active;
+    }
+    if root.tab == 9: SettingsAppearanceTab {
+        theme <=> root.theme; window-opacity <=> root.window-opacity;
+        text-size <=> root.text-size; font-index <=> root.font-index;
+        bg-image <=> root.bg-image; bg-strength <=> root.bg-strength;
+        preview-opacity(v) => { root.preview-opacity(v); }
+        browse-bg => { root.browse-bg(); }
+        preview-look => { root.preview-look(); }
+    }
+    if root.tab == 10: SettingsTorrentsTab {
+        torrent-main <=> root.torrent-main; seed-minutes <=> root.seed-minutes;
+        seed-ratio <=> root.seed-ratio; torrent-upload <=> root.torrent-upload;
+    }
+}

@@ -1,0 +1,106 @@
+// Proxy / Server tab for SettingsDialog.
+
+import { LineEdit, SpinBox } from "std-widgets.slint";
+import { Theme, HRow } from "../../common.slint";
+import { Label, Hint, Radio } from "../widgets.slint";
+
+export component SettingsProxyTab inherits VerticalLayout {
+    in-out property <int> proxy-mode;
+    in-out property <string> proxy-host;
+    in-out property <int> proxy-port;
+    in-out property <string> proxy-user;
+    in-out property <string> proxy-password;
+    in-out property <string> proxy-bypass;
+
+    padding: 14px;
+    spacing: 8px;
+    alignment: start;
+    Radio {
+        text: @tr("No proxy");
+        checked: root.proxy-mode == 0;
+        clicked => {
+            root.proxy-mode = 0;
+        }
+    }
+    Radio {
+        text: @tr("Use the system settings (like your browser)");
+        checked: root.proxy-mode == 1;
+        clicked => {
+            root.proxy-mode = 1;
+        }
+    }
+    Radio {
+        text: @tr("Manual proxy configuration (HTTP / HTTPS)");
+        checked: root.proxy-mode == 2;
+        clicked => {
+            root.proxy-mode = 2;
+        }
+    }
+    GridLayout {
+        spacing: 8px;
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 0;
+            text: @tr("Proxy address");
+        }
+        HRow {
+            col: Theme.rtl ? 0 : 1;
+            row: 0;
+            spacing: 6px;
+            LineEdit {
+                text <=> root.proxy-host;
+                enabled: root.proxy-mode == 2;
+                placeholder-text: @tr("proxy.example.com");
+                horizontal-stretch: 1;
+            }
+            Label {
+                text: @tr("Port");
+            }
+            SpinBox {
+                width: 100px;
+                minimum: 1;
+                maximum: 65535;
+                value <=> root.proxy-port;
+                enabled: root.proxy-mode == 2;
+            }
+        }
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 1;
+            text: @tr("User name");
+        }
+        LineEdit {
+            col: Theme.rtl ? 0 : 1;
+            row: 1;
+            text <=> root.proxy-user;
+            enabled: root.proxy-mode == 2;
+        }
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 2;
+            text: @tr("Password");
+        }
+        LineEdit {
+            col: Theme.rtl ? 0 : 1;
+            row: 2;
+            text <=> root.proxy-password;
+            input-type: InputType.password;
+            enabled: root.proxy-mode == 2;
+        }
+        Label {
+            col: Theme.rtl ? 1 : 0;
+            row: 3;
+            text: @tr("Don't use the proxy for");
+        }
+        LineEdit {
+            col: Theme.rtl ? 0 : 1;
+            row: 3;
+            text <=> root.proxy-bypass;
+            enabled: root.proxy-mode == 2;
+            placeholder-text: @tr("localhost 127.0.0.1 *.local");
+        }
+    }
+    Hint {
+        text: @tr("Addresses separated by spaces. SOCKS proxies: use the system settings.");
+    }
+}

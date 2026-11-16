@@ -1,0 +1,70 @@
+// Save To tab for SettingsDialog.
+
+import { Button, LineEdit } from "std-widgets.slint";
+import { Theme, HRow, CheckBox } from "../../common.slint";
+import { Label, Hint } from "../widgets.slint";
+
+export component SettingsSaveToTab inherits VerticalLayout {
+    in-out property <string> download-dir;
+    in-out property <bool> category-folders;
+    in-out property <string> temp-dir;
+    callback browse(string);
+    callback reset-paths();
+
+    padding: 14px;
+    spacing: 8px;
+    alignment: start;
+    Label {
+        text: @tr("Main download folder");
+    }
+    HRow {
+        spacing: 6px;
+        LineEdit {
+            text <=> root.download-dir;
+            horizontal-stretch: 1;
+        }
+        Button {
+            text: @tr("Browse…");
+            clicked => {
+                root.browse("download");
+            }
+        }
+    }
+    CheckBox {
+        text: @tr("Sort files into folders by category (Video, Music, Programs, Compressed, Documents, Images…)");
+        checked <=> root.category-folders;
+    }
+    Hint {
+        text: @tr("Each category's own folder and file types: right click it in the sidebar > Properties.");
+    }
+    Button {
+        text: @tr("Forget remembered category paths");
+        clicked => {
+            root.reset-paths();
+        }
+    }
+    Rectangle {
+        height: 1px;
+        background: Theme.grid;
+    }
+    Label {
+        text: @tr("Temporary folder (parts while downloading)");
+    }
+    HRow {
+        spacing: 6px;
+        LineEdit {
+            text <=> root.temp-dir;
+            placeholder-text: @tr("next to the file (default)");
+            horizontal-stretch: 1;
+        }
+        Button {
+            text: @tr("Browse…");
+            clicked => {
+                root.browse("temp");
+            }
+        }
+    }
+    Hint {
+        text: @tr("Tip: a temporary folder on another drive than the download folder makes joining the parts faster.");
+    }
+}

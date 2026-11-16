@@ -1,0 +1,108 @@
+// Classic flat Download status tab for DetailsDialog.
+
+import { Theme, TypeIcon, HRow } from "../../common.slint";
+
+component StatRow inherits HRow {
+    in property <string> label;
+    in property <string> value;
+    in property <color> tint: Theme.text;
+    spacing: 6px;
+    Text {
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        text: root.label;
+        color: Theme.muted;
+        width: 115px;
+    }
+    Text {
+        // a long name is cut ("…"), it never makes the window wider
+        min-width: 0px;
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        text: root.value;
+        color: root.tint;
+        horizontal-stretch: 1;
+        overflow: elide;
+    }
+}
+
+export component DetailsStatusFlat inherits VerticalLayout {
+    in property <string> kind: "general";
+    in property <string> url;
+    in property <string> status;
+    in property <int> state;
+    in property <string> size;
+    in property <string> downloaded;
+    in property <string> speed;
+    in property <string> eta;
+    in property <string> resumable;
+    in property <bool> resumable-ok;
+    in property <string> error;
+
+    padding: 8px;
+    spacing: 4px;
+    alignment: start;
+    HRow {
+        spacing: 8px;
+        TypeIcon {
+            kind: root.kind;
+            width: 20px;
+            height: 20px;
+        }
+        Rectangle {
+            // clipped so long URLs never stretch the window wider, still selectable and copyable
+            min-width: 0px;
+            horizontal-stretch: 1;
+            clip: true;
+            height: max(20px, det-url-f.preferred-height);
+            det-url-f := TextInput {
+                width: parent.width;
+                y: (parent.height - self.preferred-height) / 2;
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                text: root.url;
+                font-size: 11px * Theme.font-scale;
+                color: Theme.accent;
+                read-only: true;
+                single-line: true;
+            }
+        }
+    }
+    Rectangle {
+        height: 1px;
+        background: Theme.grid;
+    }
+    VerticalLayout {
+        spacing: 2px;
+        StatRow {
+            label: @tr("Status");
+            value: root.status;
+            tint: root.state == 4 ? Theme.err : Theme.text;
+        }
+        StatRow {
+            label: @tr("File size");
+            value: root.size;
+        }
+        StatRow {
+            label: @tr("Downloaded");
+            value: root.downloaded;
+        }
+        StatRow {
+            label: @tr("Transfer rate");
+            value: root.speed;
+        }
+        StatRow {
+            label: @tr("Time left");
+            value: root.eta;
+        }
+        StatRow {
+            label: @tr("Resume capability");
+            value: root.resumable;
+            tint: root.resumable-ok ? Theme.ok : Theme.err;
+        }
+    }
+    if root.error != "": Text {
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        text: root.error;
+        color: Theme.err;
+        wrap: word-wrap;
+        font-size: 11px * Theme.font-scale;
+    }
+}

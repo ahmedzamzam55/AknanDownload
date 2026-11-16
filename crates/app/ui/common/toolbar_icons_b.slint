@@ -1,0 +1,96 @@
+// Toolbar icons (second half), drawn on a 32x32 grid.
+
+import { P } from "toolbar_icons_a.slint";
+
+export component ToolbarIconsB inherits Rectangle {
+    in property <string> kind;
+    if root.kind == "stopall": Rectangle {
+        P {
+            fill: #f2a7a2;
+            commands: "M 11 3 L 29 3 L 29 21 L 11 21 Z";
+        }
+        P {
+            fill: @linear-gradient(180deg, #ef5a50 0%, #c62f27 100%);
+            commands: "M 4 9 L 22 9 L 22 27 L 4 27 Z";
+        }
+    }
+    if root.kind == "delete": P {
+        stroke: #e0443b;
+        stroke-width: 4.5px;
+        commands: "M 8 8 L 24 24 M 24 8 L 8 24";
+    }
+    if root.kind == "deletedone": Rectangle {
+        P {
+            fill: #8a96a3;
+            commands: "M 7 7 L 25 7 L 25 10 L 7 10 Z M 13 4 L 19 4 L 19 7 L 13 7 Z M 9 11 L 23 11 L 21.5 29 L 10.5 29 Z";
+        }
+        P {
+            stroke: #3fcf7a;
+            stroke-width: 3.5px;
+            commands: "M 12 19 L 15.5 23 L 22 15";
+        }
+    }
+    if root.kind == "options": Rectangle {
+        P {
+            stroke: #7d8b9a;
+            stroke-width: 2.5px;
+            commands: "M 4 9 L 28 9 M 4 16 L 28 16 M 4 23 L 28 23";
+        }
+        P {
+            fill: #3b82f6;
+            stroke: white;
+            stroke-width: 1px;
+            commands: "M 11 5 A 4 4 0 1 1 10.99 5 Z M 21 12 A 4 4 0 1 1 20.99 12 Z M 14 19 A 4 4 0 1 1 13.99 19 Z";
+        }
+    }
+    if root.kind == "scheduler": Rectangle {
+        P {
+            fill: white;
+            stroke: #3b82f6;
+            stroke-width: 3px;
+            commands: "M 16 3.5 A 12.5 12.5 0 1 1 15.99 3.5 Z";
+        }
+        P {
+            stroke: #2d3a48;
+            stroke-width: 2.5px;
+            commands: "M 16 9 L 16 16 L 21.5 19.5";
+        }
+    }
+    if root.kind == "limiter": Rectangle {
+        P {
+            stroke: #7d8b9a;
+            stroke-width: 3px;
+            commands: "M 5 22 A 11 11 0 1 1 27 22";
+        }
+        P {
+            stroke: #e0443b;
+            stroke-width: 3px;
+            commands: "M 16 22 L 22 12";
+        }
+        P {
+            fill: #2d3a48;
+            commands: "M 16 19.5 A 2.5 2.5 0 1 1 15.99 19.5 Z";
+        }
+    }
+    if root.kind == "startqueue" || root.kind == "stopqueue": Rectangle {
+        P {
+            stroke: #7d8b9a;
+            stroke-width: 3px;
+            commands: "M 3 7 L 19 7 M 3 13 L 19 13 M 3 19 L 12 19";
+        }
+        if root.kind == "startqueue": P {
+            fill: #2e9e4f;
+            commands: "M 16 15 L 29 22.5 L 16 30 Z";
+        }
+        if root.kind == "stopqueue": P {
+            fill: #e0443b;
+            commands: "M 16 17 L 28 17 L 28 29 L 16 29 Z";
+        }
+    }
+    if root.kind == "folder": P {
+        fill: @linear-gradient(180deg, #ffd86b 0%, #f2b632 100%);
+        stroke: #c99a1e;
+        stroke-width: 1.2px;
+        commands: "M 3 8 L 12 8 L 15 11 L 29 11 L 29 27 L 3 27 Z";
+    }
+}

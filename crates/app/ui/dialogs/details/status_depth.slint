@@ -1,0 +1,203 @@
+// 3D look Download status tab for DetailsDialog.
+
+import { Theme, TypeIcon, HRow } from "../../common.slint";
+import { DCard, StatCard } from "cards.slint";
+
+export component DetailsStatusDepth inherits VerticalLayout {
+    in property <string> name;
+    in property <string> percent;
+    in property <string> url;
+    in property <string> status;
+    in property <string> size;
+    in property <string> downloaded;
+    in property <string> speed;
+    in property <string> eta;
+    in property <string> resumable;
+    in property <bool> resumable-ok;
+    in property <string> error;
+    in property <string> kind: "general";
+    in property <int> state;
+    in property <string> ring-path;
+    in property <string> speed-line;
+    in property <string> speed-area;
+
+    padding: 10px;
+    spacing: 10px;
+    alignment: start;
+    HRow {
+        spacing: 14px;
+        // how much is here, as a ring
+        Rectangle {
+            width: 150px;
+            height: 150px;
+            Path {
+                width: 100%;
+                height: 100%;
+                viewbox-width: 100;
+                viewbox-height: 100;
+                fill: transparent;
+                stroke: Theme.bar-bg;
+                stroke-width: 11px;
+                commands: "M 50 7 A 43 43 0 1 1 49.99 7";
+            }
+            Path {
+                width: 100%;
+                height: 100%;
+                viewbox-width: 100;
+                viewbox-height: 100;
+                fill: transparent;
+                stroke: @linear-gradient(135deg, Theme.bar-a 0%, Theme.bar-b 100%);
+                stroke-width: 11px;
+                commands: root.ring-path;
+            }
+            VerticalLayout {
+                alignment: center;
+                spacing: 0px;
+                Text {
+                    text: root.percent;
+                    horizontal-alignment: center;
+                    font-size: 30px * Theme.font-scale;
+                    font-weight: 800;
+                    color: Theme.text;
+                }
+                Text {
+                    text: root.speed;
+                    horizontal-alignment: center;
+                    font-size: 11px * Theme.font-scale;
+                    color: Theme.muted;
+                }
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: 8px;
+            DCard {
+                HRow {
+                    padding: 10px;
+                    spacing: 10px;
+                    Rectangle {
+                        width: 30px;
+                        TypeIcon {
+                            kind: root.kind;
+                            x: 3px;
+                            y: (parent.height - 22px) / 2;
+                            width: 22px;
+                            height: 22px;
+                        }
+                    }
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        alignment: center;
+                        Text {
+                            min-width: 0px;
+                            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                            text: root.name;
+                            font-weight: 700;
+                            font-size: 13px * Theme.font-scale;
+                            color: Theme.text;
+                            overflow: elide;
+                        }
+                        Rectangle {
+                            min-width: 0px;
+                            clip: true;
+                            height: det-url-d.preferred-height;
+                            det-url-d := TextInput {
+                                width: parent.width;
+                                y: 0px;
+                                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                                text: root.url;
+                                font-size: 10.5px * Theme.font-scale;
+                                color: Theme.muted;
+                                read-only: true;
+                                single-line: true;
+                            }
+                        }
+                    }
+                }
+            }
+            // the speed of the last minute
+            DCard {
+                vertical-stretch: 1;
+                min-height: 84px;
+                Text {
+                    x: Theme.rtl ? parent.width - self.width - 10px : 10px;
+                    y: 6px;
+                    text: @tr("Transfer rate");
+                    font-size: 10.5px * Theme.font-scale;
+                    color: Theme.muted;
+                }
+                Path {
+                    x: 8px;
+                    y: 22px;
+                    width: parent.width - 16px;
+                    height: parent.height - 28px;
+                    viewbox-width: 200;
+                    viewbox-height: 30;
+                    fill: @linear-gradient(180deg, Theme.bar-a.transparentize(45%) 0%, Theme.bar-a.transparentize(100%) 100%);
+                    stroke: transparent;
+                    commands: root.speed-area;
+                }
+                Path {
+                    x: 8px;
+                    y: 22px;
+                    width: parent.width - 16px;
+                    height: parent.height - 28px;
+                    viewbox-width: 200;
+                    viewbox-height: 30;
+                    fill: transparent;
+                    stroke: Theme.bar-a;
+                    stroke-width: 2px;
+                    commands: root.speed-line;
+                }
+            }
+        }
+    }
+    GridLayout {
+        spacing: 8px;
+        StatCard {
+            row: 0;
+            col: Theme.rtl ? 2 : 0;
+            label: @tr("Status");
+            value: root.status;
+            tint: root.state == 4 ? Theme.err : Theme.text;
+        }
+        StatCard {
+            row: 0;
+            col: 1;
+            label: @tr("File size");
+            value: root.size;
+        }
+        StatCard {
+            row: 0;
+            col: Theme.rtl ? 0 : 2;
+            label: @tr("Downloaded");
+            value: root.downloaded;
+        }
+        StatCard {
+            row: 1;
+            col: Theme.rtl ? 2 : 0;
+            label: @tr("Transfer rate");
+            value: root.speed;
+        }
+        StatCard {
+            row: 1;
+            col: 1;
+            label: @tr("Time left");
+            value: root.eta;
+        }
+        StatCard {
+            row: 1;
+            col: Theme.rtl ? 0 : 2;
+            label: @tr("Resume capability");
+            value: root.resumable;
+            tint: root.resumable-ok ? Theme.ok : Theme.err;
+        }
+    }
+    if root.error != "": Text {
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        text: root.error;
+        color: Theme.err;
+        wrap: word-wrap;
+        font-size: 11px * Theme.font-scale;
+    }
+}

@@ -1,0 +1,108 @@
+// Tip of the day dialog.
+
+import { Button } from "std-widgets.slint";
+import { Theme, ThemedWindow, Glyph, HRow, CheckBox } from "../common.slint";
+
+export component TipDialog inherits ThemedWindow {
+    forward-focus: dlg-keys;
+    public function focus-input() {
+        dlg-keys.focus();
+    }
+    // set for a moment so the window comes in front of the browser
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("Tip of the day");
+    // a set size: a wrapped text that decides the window's size can make the
+    // window measure itself again and again
+    preferred-width: 480px;
+    preferred-height: 210px;
+    min-width: 420px;
+    min-height: 200px;
+    in property <string> tip;
+    in property <string> counter;
+    in-out property <bool> show-on-start: true;
+    callback next();
+    callback close-window();
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape || event.text == Key.Return) {
+                root.close-window();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 16px;
+            spacing: 12px;
+            GridLayout {
+                // a row that reads from right to left in Arabic (wrapped text needs a grid)
+                spacing: 14px;
+                Rectangle {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 0;
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 22px;
+                    background: @linear-gradient(135deg, #8b5cf6 0%, #2563eb 100%);
+                    Glyph {
+                        x: 10px;
+                        y: 10px;
+                        width: 24px;
+                        height: 24px;
+                        kind: "bulb";
+                    }
+                }
+                VerticalLayout {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 0;
+                    spacing: 6px;
+                    horizontal-stretch: 1;
+                    Text {
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        text: @tr("Did you know…");
+                        font-size: 14px * Theme.font-scale;
+                        font-weight: 700;
+                        color: Theme.text;
+                    }
+                    Text {
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        text: root.tip;
+                        wrap: word-wrap;
+                        color: Theme.text;
+                        font-size: 12px * Theme.font-scale;
+                        vertical-stretch: 1;
+                    }
+                    Text {
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        text: root.counter;
+                        color: Theme.muted;
+                        font-size: 11px * Theme.font-scale;
+                    }
+                }
+            }
+            HRow {
+                spacing: 8px;
+                CheckBox {
+                    text: @tr("Show tips at startup");
+                    checked <=> root.show-on-start;
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+                Button {
+                    text: @tr("Next tip");
+                    clicked => {
+                        root.next();
+                    }
+                }
+                Button {
+                    text: @tr("Close");
+                    primary: true;
+                    clicked => {
+                        root.close-window();
+                    }
+                }
+            }
+        }
+    }
+}

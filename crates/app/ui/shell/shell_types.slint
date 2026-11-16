@@ -1,0 +1,21 @@
+// Internal shell state aggregate shared between MainWindow and shell components.
+
+export struct ShellState {
+    selected-id: int,
+    selected-state: int,
+    sel-count: int,
+    can-resume: bool,
+    can-stop: bool,
+    current-queue: int,
+    limiter-on: bool,
+    hide-categories: bool,
+    sort-by: string,
+    sort-desc: bool,
+    toolbar-small: bool,
+    native-menu: bool,
+    count-all: string,
+    count-unfinished: string,
+    count-finished: string,
+    status-text: string,
+    limiter-text: string,
+}

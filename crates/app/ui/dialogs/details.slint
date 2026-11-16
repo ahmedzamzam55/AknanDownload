@@ -1,0 +1,153 @@
+// Per-download progress window (tabs like a classic download manager).
+
+import { SegView, TFileRow, TPeerRow, PieceRun, Theme, ThemedWindow, HRow } from "../common.slint";
+import { TabButton } from "widgets.slint";
+import { DetailsStatusDepth } from "details/status_depth.slint";
+import { DetailsStatusFlat } from "details/status_flat.slint";
+import { DetailsLimiterTab, DetailsCompletionTab } from "details/limiter_completion.slint";
+import { DetailsTorrentTab } from "details/torrent_tab.slint";
+import { DetailsConnectionsPane } from "details/connections_pane.slint";
+import { DetailsProgressFooter } from "details/footer.slint";
+
+export component DetailsDialog inherits ThemedWindow {
+    forward-focus: dlg-keys;
+    public function focus-input() {
+        dlg-keys.focus();
+    }
+    in property <bool> front;
+    always-on-top: root.front;
+    title: root.percent + " " + root.name;
+    preferred-width: 500px;
+    min-width: 440px;
+
+    in property <string> name;
+    in property <string> percent;
+    in property <string> url;
+    in property <string> status;
+    in property <string> size;
+    in property <string> downloaded;
+    in property <string> speed;
+    in property <string> eta;
+    in property <string> resumable;
+    in property <bool> resumable-ok;
+    in property <string> error;
+    in property <string> kind: "general";
+    in property <float> progress;
+    in property <string> step;
+    in property <float> step-progress;
+    in property <int> state;
+    in property <[SegView]> segs;
+    in property <string> ring-path;
+    in property <string> speed-line;
+    in property <string> speed-area;
+    in-out property <bool> show-details: false;
+    in-out property <int> tab: 0;
+    in-out property <bool> limit-on;
+    in-out property <int> limit-kb: 500;
+    in-out property <int> when-done: 0;
+    in-out property <bool> complete-dialog: true;
+    in-out property <bool> force-close;
+    callback pause();
+    callback resume();
+    callback cancel-download();
+    callback close-window();
+    callback hide-to-tray();
+    callback limit-changed();
+    callback completion-changed();
+    out property <length> content-height: outer.preferred-height;
+    callback details-toggled();
+    in property <bool> is-torrent;
+    in property <[TFileRow]> t-files;
+    in property <[TPeerRow]> t-peers;
+    in property <[string]> t-trackers;
+    in property <[PieceRun]> t-pieces;
+    in property <string> t-summary;
+    in-out property <int> t-view: 0;
+    in-out property <bool> t-first-last;
+    in-out property <string> t-new-tracker;
+    in-out property <string> t-note;
+    callback t-file-toggled(int);
+    callback t-add-tracker();
+    callback t-recheck();
+    callback t-copy-magnet();
+    callback t-first-last-changed();
+
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.close-window();
+                return accept;
+            }
+            reject
+        }
+        outer := VerticalLayout {
+            padding: 0px;
+            spacing: 0px;
+            VerticalLayout {
+                padding: 10px;
+                spacing: 0px;
+                HRow {
+                    spacing: 2px;
+                    TabButton { text: @tr("Download status"); active: root.tab == 0; clicked => { root.tab = 0; } }
+                    TabButton { text: @tr("Speed Limiter"); active: root.tab == 1; clicked => { root.tab = 1; } }
+                    TabButton { text: @tr("Options on completion"); active: root.tab == 2; clicked => { root.tab = 2; } }
+                    if root.is-torrent: TabButton { text: @tr("Torrent"); active: root.tab == 3; clicked => { root.tab = 3; } }
+                    Rectangle { horizontal-stretch: 1; }
+                }
+                Rectangle {
+                    background: Theme.depth && root.tab == 0 ? transparent : Theme.panel;
+                    border-width: Theme.depth && root.tab == 0 ? 0px : 1px;
+                    border-color: Theme.line;
+                    border-radius: Theme.depth ? Theme.card-radius : 0px;
+                    vertical-stretch: root.show-details ? 0 : 1;
+                    min-height: Theme.depth && root.tab == 0 ? (root.error != "" ? 330px : 300px) * max(1, Theme.font-scale)
+                        : root.tab == 3 && root.is-torrent ? 330px * max(1, Theme.font-scale) : 150px;
+                    clip: true;
+                    if root.tab == 0 && Theme.depth: DetailsStatusDepth {
+                        name: root.name; percent: root.percent; url: root.url; status: root.status;
+                        size: root.size; downloaded: root.downloaded; speed: root.speed; eta: root.eta;
+                        resumable: root.resumable; resumable-ok: root.resumable-ok; error: root.error;
+                        kind: root.kind; state: root.state;
+                        ring-path: root.ring-path; speed-line: root.speed-line; speed-area: root.speed-area;
+                    }
+                    if root.tab == 0 && !Theme.depth: DetailsStatusFlat {
+                        kind: root.kind; url: root.url; status: root.status; state: root.state;
+                        size: root.size; downloaded: root.downloaded; speed: root.speed; eta: root.eta;
+                        resumable: root.resumable; resumable-ok: root.resumable-ok; error: root.error;
+                    }
+                    if root.tab == 1: DetailsLimiterTab {
+                        speed: root.speed; limit-on <=> root.limit-on; limit-kb <=> root.limit-kb;
+                        limit-changed => { root.limit-changed(); }
+                    }
+                    if root.tab == 2: DetailsCompletionTab {
+                        when-done <=> root.when-done; complete-dialog <=> root.complete-dialog; force-close <=> root.force-close;
+                        completion-changed => { root.completion-changed(); }
+                    }
+                    if root.tab == 3 && root.is-torrent: DetailsTorrentTab {
+                        t-files: root.t-files; t-peers: root.t-peers; t-trackers: root.t-trackers; t-pieces: root.t-pieces;
+                        t-summary: root.t-summary; t-view <=> root.t-view; t-first-last <=> root.t-first-last;
+                        t-new-tracker <=> root.t-new-tracker; t-note: root.t-note;
+                        t-file-toggled(i) => { root.t-file-toggled(i); }
+                        t-add-tracker => { root.t-add-tracker(); }
+                        t-recheck => { root.t-recheck(); }
+                        t-copy-magnet => { root.t-copy-magnet(); }
+                        t-first-last-changed => { root.t-first-last-changed(); }
+                    }
+                }
+                DetailsProgressFooter {
+                    progress: root.progress; step: root.step; step-progress: root.step-progress;
+                    state: root.state; show-details <=> root.show-details;
+                    details-toggled => { root.details-toggled(); }
+                    hide-to-tray => { root.hide-to-tray(); }
+                    pause => { root.pause(); }
+                    resume => { root.resume(); }
+                    close-window => { root.close-window(); }
+                    cancel-download => { root.cancel-download(); }
+                }
+                if root.show-details: DetailsConnectionsPane {
+                    segs: root.segs;
+                }
+            }
+        }
+    }
+}

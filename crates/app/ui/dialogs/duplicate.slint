@@ -1,0 +1,97 @@
+// Duplicate download link dialog.
+
+import { Button } from "std-widgets.slint";
+import { Theme, ThemedWindow, HRow, CheckBox } from "../common.slint";
+import { Label, Radio } from "widgets.slint";
+
+export component DuplicateDialog inherits ThemedWindow {
+    forward-focus: dlg-keys;
+    public function focus-input() {
+        dlg-keys.focus();
+    }
+    // set for a moment so the window comes in front of the browser
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("Duplicate download link");
+    preferred-width: 520px;
+    in property <string> file-name;
+    in property <string> existing-status;
+    in-out property <int> choice: 1;
+    in-out property <bool> remember;
+    callback ok();
+    callback cancel();
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.cancel();
+                return accept;
+            }
+            if (event.text == Key.Return) {
+                root.ok();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 16px;
+            spacing: 8px;
+            Label {
+                text: @tr("This address is already in the download list:");
+            }
+            Text {
+                // a long name is cut ("…"), it never makes the window wider
+                min-width: 0px;
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                text: root.file-name + "  (" + root.existing-status + ")";
+                font-weight: 600;
+                color: Theme.accent;
+                overflow: elide;
+            }
+            Rectangle {
+                height: 4px;
+            }
+            Radio {
+                text: @tr("Add it with a new name (numbered)");
+                checked: root.choice == 1;
+                clicked => {
+                    root.choice = 1;
+                }
+            }
+            Radio {
+                text: @tr("Add it and replace the old download (overwrite the file)");
+                checked: root.choice == 2;
+                clicked => {
+                    root.choice = 2;
+                }
+            }
+            Radio {
+                text: @tr("If it is finished show it, if not resume it");
+                checked: root.choice == 3;
+                clicked => {
+                    root.choice = 3;
+                }
+            }
+            CheckBox {
+                text: @tr("Remember my choice (Options > Downloads)");
+                checked <=> root.remember;
+            }
+            HRow {
+                alignment: end;
+                spacing: 8px;
+                Button {
+                    text: @tr("OK");
+                    primary: true;
+                    clicked => {
+                        root.ok();
+                    }
+                }
+                Button {
+                    text: @tr("Cancel");
+                    clicked => {
+                        root.cancel();
+                    }
+                }
+            }
+        }
+    }
+}

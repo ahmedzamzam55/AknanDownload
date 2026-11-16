@@ -1,0 +1,103 @@
+// Checkable file list table for TorrentDialog.
+
+import { ListView } from "std-widgets.slint";
+import { LinkRow, Theme, TypeIcon, HeaderCell, Cell, Glyph, HRow } from "../common.slint";
+
+export component TorrentFilesBox inherits Rectangle {
+    in property <[LinkRow]> files;
+    in property <bool> magnet;
+    callback toggle(int);
+    vertical-stretch: 1;
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.line;
+    VerticalLayout {
+        padding: 1px;
+        Rectangle {
+            height: 22px;
+            background: @linear-gradient(180deg, Theme.header-top 0%, Theme.header-bottom 100%);
+            HRow {
+                HeaderCell {
+                    text: "";
+                    width: 34px;
+                }
+                HeaderCell {
+                    text: @tr("File");
+                    horizontal-stretch: 1;
+                }
+                HeaderCell {
+                    text: @tr("Size");
+                    width: 90px;
+                }
+            }
+        }
+        ListView {
+            vertical-stretch: 1;
+            for f[i] in root.files: Rectangle {
+                height: 24px;
+                background: fa.has-hover ? Theme.hover : transparent;
+                fa := TouchArea {
+                    clicked => {
+                        root.toggle(i);
+                    }
+                }
+                HRow {
+                    padding-left: Theme.rtl ? (0px) : (8px);
+                    padding-right: Theme.rtl ? (8px) : (0px);
+                    spacing: 4px;
+                    Rectangle {
+                        width: 26px;
+                        Rectangle {
+                            y: (parent.height - 14px) / 2;
+                            width: 14px;
+                            height: 14px;
+                            border-width: 1px;
+                            border-radius: 2px;
+                            border-color: f.checked ? Theme.accent : Theme.muted;
+                            background: f.checked ? Theme.accent : Theme.input-bg;
+                            if f.checked: Glyph {
+                                x: 1px;
+                                y: 1px;
+                                width: 12px;
+                                height: 12px;
+                                kind: "check";
+                                tint: white;
+                            }
+                        }
+                    }
+                    Rectangle {
+                        width: 16px;
+                        TypeIcon {
+                            kind: f.kind;
+                            width: 16px;
+                            height: 16px;
+                            y: 4px;
+                        }
+                    }
+                    Cell {
+                        text: f.name;
+                        horizontal-alignment: f.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        horizontal-stretch: 1;
+                    }
+                    Cell {
+                        text: f.ext;
+                        width: 86px;
+                        color: Theme.muted;
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.left : TextHorizontalAlignment.right;
+                    }
+                }
+            }
+        }
+    }
+    if root.files.length == 0: Text {
+        y: 60px;
+        width: parent.width - 40px;
+        x: 20px;
+        horizontal-alignment: center;
+        wrap: word-wrap;
+        text: root.magnet
+            ? @tr("A magnet link brings its file list from the other computers when it starts: all its files are downloaded.")
+            : @tr("Paste a magnet link or open a .torrent file: what it shares shows up here.");
+        color: Theme.muted;
+    }
+}

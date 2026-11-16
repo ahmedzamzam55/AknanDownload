@@ -1,0 +1,169 @@
+// File properties dialog.
+
+import { Button, LineEdit } from "std-widgets.slint";
+import { Theme, ThemedWindow, HRow, CheckBox } from "../common.slint";
+import { Label } from "widgets.slint";
+import { PropertiesMetaHeader, PropertiesFooter } from "properties_parts.slint";
+
+export component PropertiesDialog inherits ThemedWindow {
+    forward-focus: save-to-input;
+    public function focus-input() {
+        save-to-input.focus();
+    }
+    // set for a moment so the window comes in front of the browser
+    in property <bool> front;
+    always-on-top: root.front;
+    title: @tr("File Properties – {}", root.file-name);
+    preferred-width: 600px;
+    in property <string> file-name;
+    in property <string> kind: "general";
+    in property <string> ext;
+    in property <string> type-text;
+    in property <string> status;
+    in property <string> size;
+    in property <string> added;
+    in property <string> last-try;
+    in property <string> result;
+    in property <bool> done;
+    in-out property <string> save-to;
+    in-out property <string> url;
+    in-out property <string> referer;
+    in-out property <string> description;
+    in-out property <string> checksum;
+    in-out property <bool> use-login;
+    in-out property <string> user;
+    in-out property <string> password;
+    in property <string> message;
+    callback browse();
+    callback open-file();
+    callback save();
+    callback cancel();
+    dlg-keys := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.cancel();
+                return accept;
+            }
+            if (event.text == Key.Return && event.modifiers.control) {
+                root.save();
+                return accept;
+            }
+            reject
+        }
+        VerticalLayout {
+            padding: 14px;
+            spacing: 10px;
+            PropertiesMetaHeader {
+                kind: root.kind;
+                ext: root.ext;
+                type-text: root.type-text;
+                status: root.status;
+                size: root.size;
+                added: root.added;
+                last-try: root.last-try;
+                done: root.done;
+            }
+            GridLayout {
+                spacing: 8px;
+                Label {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 0;
+                    text: @tr("Save To");
+                }
+                HRow {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 0;
+                    spacing: 6px;
+                    save-to-input := LineEdit {
+                        text <=> root.save-to;
+                        horizontal-stretch: 1;
+                    }
+                    Button {
+                        text: "…";
+                        clicked => {
+                            root.browse();
+                        }
+                    }
+                }
+                Label {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 1;
+                    text: @tr("Address");
+                }
+                LineEdit {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 1;
+                    text <=> root.url;
+                    read-only: root.done;
+                }
+                Label {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 2;
+                    text: @tr("Referer");
+                }
+                LineEdit {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 2;
+                    text <=> root.referer;
+                }
+                Label {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 3;
+                    text: @tr("Description");
+                }
+                LineEdit {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 3;
+                    text <=> root.description;
+                }
+                Label {
+                    col: Theme.rtl ? 1 : 0;
+                    row: 4;
+                    text: @tr("Checksum");
+                }
+                LineEdit {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 4;
+                    placeholder-text: @tr("MD5 / SHA-1 / SHA-256 (optional)");
+                    text <=> root.checksum;
+                }
+            }
+            CheckBox {
+                text: @tr("Use authorization (server login)");
+                checked <=> root.use-login;
+            }
+            if root.use-login: HRow {
+                spacing: 8px;
+                Label {
+                    text: @tr("Login");
+                }
+                LineEdit {
+                    text <=> root.user;
+                    horizontal-stretch: 1;
+                }
+                Label {
+                    text: @tr("Password");
+                }
+                LineEdit {
+                    text <=> root.password;
+                    input-type: InputType.password;
+                    horizontal-stretch: 1;
+                }
+            }
+            PropertiesFooter {
+                result: root.result;
+                done: root.done;
+                message: root.message;
+                open-file => {
+                    root.open-file();
+                }
+                save => {
+                    root.save();
+                }
+                cancel => {
+                    root.cancel();
+                }
+            }
+        }
+    }
+}

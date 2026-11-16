@@ -1,0 +1,52 @@
+// Filter search box inside the main toolbar.
+
+import { LineEdit } from "std-widgets.slint";
+
+export component ToolbarSearch inherits VerticalLayout {
+    in-out property <string> search;
+    callback search-changed();
+    callback act(string);
+    callback focus-main();
+
+    public function focus-search() {
+        search-input.focus();
+    }
+
+    alignment: center;
+    FocusScope {
+        width: 96px;
+        height: search-input.preferred-height;
+        forward-focus: search-input;
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                if (root.search != "") {
+                    root.search = "";
+                    root.search-changed();
+                }
+                root.focus-main();
+                return accept;
+            }
+            if (event.text == Key.Return || event.text == Key.DownArrow) {
+                root.focus-main();
+                return accept;
+            }
+            if (event.modifiers.control) {
+                if (event.text == "f" || event.text == "F" || event.text == "ب") {
+                    root.act("find");
+                } else if (event.text == "q" || event.text == "Q" || event.text == "ض") {
+                    root.act("quit");
+                }
+                return accept;
+            }
+            reject
+        }
+        search-input := LineEdit {
+            width: parent.width;
+            placeholder-text: @tr("Filter the list…");
+            text <=> root.search;
+            edited(t) => {
+                root.search-changed();
+            }
+        }
+    }
+}

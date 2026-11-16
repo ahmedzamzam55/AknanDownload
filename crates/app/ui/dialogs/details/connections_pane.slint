@@ -1,0 +1,96 @@
+// Connection segments bar and table for DetailsDialog ("Show details >>").
+
+import { ListView } from "std-widgets.slint";
+import { SegView, Theme, HeaderCell, Cell, HRow } from "../../common.slint";
+
+export component DetailsConnectionsPane inherits VerticalLayout {
+    in property <[SegView]> segs;
+
+    spacing: 6px;
+    padding-top: 8px;
+    vertical-stretch: 1;
+    Text {
+        vertical-stretch: 0;
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        text: @tr("Start positions and download progress by connections");
+        font-size: 11px * Theme.font-scale;
+        color: Theme.muted;
+    }
+    Rectangle {
+        height: 20px;
+        vertical-stretch: 0;
+        border-width: 1px;
+        border-color: Theme.line;
+        background: Theme.panel;
+        clip: true;
+        for s in root.segs: Rectangle {
+            x: Theme.rtl ? parent.width - 1px - (parent.width - 2px) * s.start - self.width : 1px + (parent.width - 2px) * s.start;
+            y: 1px;
+            width: (parent.width - 2px) * (s.done - s.start);
+            height: parent.height - 2px;
+            background: Theme.accent;
+            animate width {
+                duration: 100ms;
+                easing: linear;
+            }
+        }
+        for s in root.segs: Rectangle {
+            x: Theme.rtl ? parent.width - 2px - (parent.width - 2px) * s.start : 1px + (parent.width - 2px) * s.start;
+            y: 0;
+            width: 1px;
+            height: parent.height;
+            background: Theme.err;
+        }
+    }
+    Rectangle {
+        min-height: 150px;
+        vertical-stretch: 1;
+        background: Theme.panel;
+        border-width: 1px;
+        border-color: Theme.line;
+        VerticalLayout {
+            padding: 1px;
+            Rectangle {
+                height: 22px;
+                background: @linear-gradient(180deg, Theme.header-top 0%, Theme.header-bottom 100%);
+                HRow {
+                    HeaderCell {
+                        text: @tr("N.");
+                        width: 34px;
+                    }
+                    HeaderCell {
+                        text: @tr("Downloaded");
+                        width: 110px;
+                    }
+                    HeaderCell {
+                        text: @tr("Info");
+                        horizontal-stretch: 1;
+                    }
+                }
+            }
+            ListView {
+                vertical-stretch: 1;
+                for s in root.segs: Rectangle {
+                    height: 19px;
+                    HRow {
+                        Cell {
+                            text: s.number;
+                            width: 34px;
+                            horizontal-alignment: center;
+                        }
+                        Cell {
+                            text: " " + s.downloaded;
+                            width: 110px;
+                            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        }
+                        Cell {
+                            text: s.info;
+                            horizontal-stretch: 1;
+                            color: s.busy ? Theme.accent : Theme.muted;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,68 @@
+// Selectable two/three-column list (logins, server exceptions, queue files).
+
+import { ListView } from "std-widgets.slint";
+import { PairRow, Theme, HeaderCell, Cell, HRow } from "../common.slint";
+
+export component PairList inherits Rectangle {
+    in property <[PairRow]> rows;
+    in property <string> head-a;
+    in property <string> head-b;
+    in property <string> head-c;
+    in property <length> width-b: 140px;
+    in property <length> width-c: 0px;
+    in-out property <int> current: -1;
+    callback picked(int);
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.line;
+    VerticalLayout {
+        padding: 1px;
+        Rectangle {
+            height: 22px;
+            background: @linear-gradient(180deg, Theme.header-top 0%, Theme.header-bottom 100%);
+            HRow {
+                HeaderCell {
+                    text: root.head-a;
+                    horizontal-stretch: 1;
+                }
+                if root.head-b != "": HeaderCell {
+                    text: root.head-b;
+                    width: root.width-b;
+                }
+                if root.head-c != "": HeaderCell {
+                    text: root.head-c;
+                    width: root.width-c;
+                }
+            }
+        }
+        ListView {
+            vertical-stretch: 1;
+            for r[i] in root.rows: Rectangle {
+                height: 21px;
+                background: i == root.current ? Theme.select : rt.has-hover ? Theme.hover : transparent;
+                rt := TouchArea {
+                    clicked => {
+                        root.current = i;
+                        root.picked(i);
+                    }
+                }
+                HRow {
+                    padding-left: Theme.rtl ? (0px) : (6px);
+                    padding-right: Theme.rtl ? (6px) : (0px);
+                    Cell {
+                        text: r.a;
+                        horizontal-stretch: 1;
+                    }
+                    if root.head-b != "": Cell {
+                        text: "  " + r.b;
+                        width: root.width-b;
+                    }
+                    if root.head-c != "": Cell {
+                        text: "  " + r.c;
+                        width: root.width-c;
+                    }
+                }
+            }
+        }
+    }
+}
