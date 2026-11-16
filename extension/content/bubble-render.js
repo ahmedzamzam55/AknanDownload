@@ -20,20 +20,23 @@
   };
 
   // One line of the menu, in plain words: "MP4 file · 1080p [Full HD] AV1",
-  // under it "12:34 · 2,500 kbps · 245 MB".
-  CS.describe = (m) => {
+  // under it "17:20 · 728.3 MB [+ Arabic subtitles]".
+  CS.describe = (m, b, subSuffix) => {
     const y = m.yt;
     if (!y) return { main: m.label, tag: "", codec: "", sub: m.sub || "" };
     const audio = y.quality === "audio" || y.quality === "mp3" || /^audio\|/.test(y.key || "");
-    const ext = (y.ext || "mp4").toUpperCase();
+    const ext = y.ext === "ts" ? "MP4" : (y.ext || "mp4").toUpperCase();
     const q = audio ? "" : y.quality || "";
     const tag = audio ? "" : y.tag || CS.tagOf(CS.heightOf(q));
     const codec = audio ? "" : y.codec || (/\bAV1\b/.test(m.label || "") ? "AV1" : "");
-    const kbps = y.kbps || (y.size && y.duration ? Math.round((y.size * 8) / y.duration / 1000) : 0);
+    const dur = y.duration || (b && b.video && Number.isFinite(b.video.duration) && b.video.duration > 1 ? Math.round(b.video.duration) : 0);
+    const size = y.size || (!audio && dur && y.kbps ? Math.round((dur * y.kbps * 1000) / 8) : 0);
+    const kbps = size ? 0 : y.kbps || 0;
+    const sizeText = size ? (y.quality === "mp3" ? aknanI18n.t("about ") : "") + CS.fmtSize(size) : "";
+    const meta = [CS.fmtLen(dur), sizeText].filter(Boolean).join(" · ") + (subSuffix ? ` ${subSuffix}` : "");
     const sub = [
-      CS.fmtLen(y.duration),
+      meta,
       kbps ? `${kbps.toLocaleString("en")} ${aknanI18n.t("kbps")}` : "",
-      y.size ? (y.quality === "mp3" ? aknanI18n.t("about ") : "") + CS.fmtSize(y.size) : "",
       y.quality === "mp3" ? aknanI18n.t("made into MP3 after the download") : "",
       // some players play only the sound of an AV1 video
       codec === "AV1" ? aknanI18n.t("AV1: smaller file, needs a newer player") : "",
@@ -65,13 +68,25 @@
     b.root.getElementById("help").setAttribute("aria-label", aknanI18n.t("Help"));
     b.root.getElementById("close").setAttribute("title", aknanI18n.t("Hide"));
     b.root.getElementById("close").setAttribute("aria-label", aknanI18n.t("Hide"));
-    b.root.getElementById("label").textContent = usable.length > 1 ? aknanI18n.t("Download this video ({})", usable.length) : aknanI18n.t("Download this video");
+    const titleText = usable.length > 1 ? aknanI18n.t("Download this video ({})", usable.length) : aknanI18n.t("Download this video");
+    b.root.getElementById("label").textContent = titleText;
     b.root.getElementById("spin").hidden = !busy;
     b.root.querySelector("svg").style.display = busy ? "none" : "";
     b.root.getElementById("main").classList.toggle("open", b.open);
     const box = b.root.getElementById("list");
     box.hidden = !b.open;
     box.replaceChildren();
+    const ph = el("span", { text: "?", title: aknanI18n.t("Help"), role: "button", tabindex: "0" });
+    const px = el("span", { text: "✕", title: aknanI18n.t("Hide"), role: "button", tabindex: "0" });
+    ph.addEventListener("click", () => {
+      b.help = !b.help;
+      CS.renderOne(b);
+    });
+    px.addEventListener("click", () => {
+      b.open = false;
+      CS.renderOne(b);
+    });
+    box.appendChild(el("div", { class: "pbar" }, el("span", { text: `⬇ ${titleText}` }), el("span", { class: "pacts" }, ph, px)));
     if (b.help) {
       box.appendChild(
         el("div", {
@@ -99,31 +114,49 @@
       box.appendChild(el("div", { class: "msg", text: aknanI18n.t("Looking for the video qualities…") }));
       return;
     }
-    const title = (list.find((m) => m.yt && m.yt.title) || {}).yt;
+    const meta = (list.find((m) => m.yt && m.yt.title) || {});
+    const title = meta.yt;
     box.appendChild(el("div", { class: "head", dir: "auto", title: (title && title.title) || CS.cleanTitle(), text: (title && title.title) || CS.cleanTitle() }));
-    // two tabs: the whole video (never a part), or a part of it
+    const subs = CS.subsOf ? CS.subsOf(b, list) : [];
     const partOk = usable.some(CS.canCut);
-    const partTab = b.clipMode && partOk;
-    if (partOk) {
-      const tab = (on, text, part) => {
-        const t = el("div", { class: "tab" + (part ? " part" : "") + (on ? " on" : ""), text });
+    const validTabs = ["whole", ...(subs.length ? ["with-subs", "subs"] : []), ...(partOk ? ["part"] : [])];
+    if (!validTabs.includes(b.tab)) b.tab = "whole";
+    b.clipMode = b.tab === "part";
+    if (validTabs.length > 1) {
+      const labels = {
+        whole: aknanI18n.t("⬇ Whole video"),
+        "with-subs": aknanI18n.t("💬 With subtitles"),
+        subs: aknanI18n.t("📝 Subtitles"),
+        part: aknanI18n.t("✂ Part"),
+      };
+      const row = el("div", { class: "tabs" });
+      for (const id of validTabs) {
+        const t = el("div", { class: "tab" + (id === "part" ? " part" : "") + (b.tab === id ? " on" : ""), text: labels[id] });
         t.addEventListener("click", () => {
-          if (b.clipMode === part) return;
-          b.clipMode = part;
-          if (part && !b.clip) {
+          if (b.tab === id) return;
+          b.tab = id;
+          if (id === "part" && !b.clip) {
             const v = b.video;
             const at = Math.floor(v.currentTime || 0);
             const dur = Number.isFinite(v.duration) ? v.duration : 0;
             b.clip = { from: at, to: dur ? Math.min(dur, at + 30) : at + 30, exact: false };
           }
-          if (!part) CS.stopPart(b);
+          if (id !== "part") CS.stopPart(b);
           CS.renderOne(b);
         });
-        return t;
-      };
-      box.appendChild(el("div", { class: "tabs" }, tab(!partTab, aknanI18n.t("⬇ Whole video"), false), tab(partTab, aknanI18n.t("✂ Part"), true)));
+        row.appendChild(t);
+      }
+      box.appendChild(row);
     }
-    if (partTab) {
+    if (b.tab === "with-subs" && CS.withSubsPanel) {
+      box.appendChild(CS.withSubsPanel(b, usable, subs));
+      return;
+    }
+    if (b.tab === "subs" && CS.subsOnlyPanel) {
+      box.appendChild(CS.subsOnlyPanel(b, subs, meta.site || ""));
+      return;
+    }
+    if (b.tab === "part") {
       box.appendChild(CS.clipPanel(b, usable));
       return;
     }
@@ -135,7 +168,7 @@
     }
     let n = 0;
     list.forEach((m) => {
-      const d = CS.describe(m);
+      const d = CS.describe(m, b);
       const t = el("div", { class: "t" }, el("span", { text: d.main }));
       if (d.tag) t.append(el("span", { class: "tag " + d.tag.replace(/\s/g, "").replace(/^(\d)K$/, "K$1"), text: d.tag }));
       if (d.codec) t.append(el("span", { class: "codec", text: d.codec }));

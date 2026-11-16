@@ -57,6 +57,7 @@ const OWN_FILES = [
   "content/styles.js",
   "content/bubble-dom.js",
   "content/bubble-actions.js",
+  "content/subs-tab.js",
   "content/bubble-render.js",
   "content/clip-tab.js",
   "content/place.js",

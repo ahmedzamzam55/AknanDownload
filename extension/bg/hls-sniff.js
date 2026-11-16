@@ -76,8 +76,8 @@ async function resolveHlsThroughApp(tabId, url) {
   const target = fresh.find((m) => m.url === url);
   if (!target) return;
   target.resolvedOptions = r.resolved;
-  const inside = new Set(r.resolved.options.map((o) => o.videoUrl).filter(Boolean));
-  for (const m of fresh) if (m !== target && inside.has(m.url)) m.child = true;
+  const inside = r.resolved.options.map((o) => o.videoUrl).filter(Boolean);
+  for (const m of fresh) if (m !== target && inside.some((u) => sameStreamPath(u, m.url))) m.child = true;
   await chrome.storage.session.set({ [key]: fresh });
   pushToTab(tabId);
 }
@@ -107,11 +107,13 @@ async function readHls(tabId, url) {
   if (!me) return;
   if (master) {
     me.master = master;
-    const inside = new Set(master.variants.map((v) => v.url));
-    for (const m of current) if (m !== me && inside.has(m.url)) m.child = true;
+    const inside = master.variants.map((v) => v.url);
+    for (const m of current) if (m !== me && inside.some((u) => sameStreamPath(u, m.url))) m.child = true;
   } else {
     me.media = true;
-    if (current.some((m) => m.master && m.master.variants.some((v) => v.url === url))) me.child = true;
+    if (current.some((m) => (m.master && m.master.variants.some((v) => sameStreamPath(v.url, url))) || (m.resolvedOptions && m.resolvedOptions.options && m.resolvedOptions.options.some((o) => sameStreamPath(o.videoUrl, url))))) {
+      me.child = true;
+    }
   }
   await chrome.storage.session.set({ [key]: current });
   pushToTab(tabId);

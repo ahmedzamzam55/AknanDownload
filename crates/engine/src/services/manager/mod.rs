@@ -25,6 +25,7 @@ mod edit;
 mod finish;
 mod init;
 mod post_http;
+mod post_subs;
 mod probe_ops;
 mod pump;
 mod queries;

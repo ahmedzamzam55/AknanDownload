@@ -125,7 +125,7 @@ function mergePairs(primary, secondary) {
   return out;
 }
 
-async function sendToApp({ url, audioUrl, referrer, fileName, headers, reqHeaders, sourcePage, sourceKey, alsoUrl, clip, store, form }) {
+async function sendToApp({ url, audioUrl, referrer, fileName, headers, reqHeaders, sourcePage, sourceKey, alsoUrl, clip, store, form, direct, group, subtitle, subConvert }) {
   const { port } = await getOpts();
   const captured = reqHeaders && reqHeaders.length ? reqHeaders : (browserRequest(url, alsoUrl) || []).map((h) => [h.name, h.value]);
   const combined = mergePairs(headers, captured);
@@ -146,6 +146,10 @@ async function sendToApp({ url, audioUrl, referrer, fileName, headers, reqHeader
     userAgent: sentUa || navigator.userAgent,
     fileName: fileName || null,
     clip: clip || null,
+    ...(direct ? { direct: true } : {}),
+    ...(group ? { group } : {}),
+    ...(subtitle ? { subtitle } : {}),
+    ...(subConvert ? { subConvert } : {}),
     ...(form ? form : {}),
   };
   const r = await fetchWithTimeout(

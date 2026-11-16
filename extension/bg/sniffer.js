@@ -4,6 +4,15 @@ const MEDIA_TYPE = /^(video|audio)\//i;
 const HLS_TYPE = /mpegurl/i;
 const DASH_TYPE = /dash\+xml/i;
 const DISGUISED_HLS = /\/hls\d*\/.*\.(txt|m3u)(\?|$)/i;
+const AD_HOSTS = /(^|\.)(doubleclick\.net|googlesyndication\.com|imasdk\.googleapis\.com|ahmybid\.net|vidwestxyz\.com|exoclick\.com|juicyads\.com|popads\.net|adnxs\.com|tsyndicate\.com|hilltopads\.net)$/i;
+
+function isAdMediaUrl(u) {
+  try {
+    return AD_HOSTS.test(new URL(u).hostname);
+  } catch {
+    return false;
+  }
+}
 
 function headerMap(list) {
   const out = {};
@@ -27,11 +36,19 @@ async function addMedia(tabId, item) {
     if (changed) await chrome.storage.session.set({ [key]: current });
     return;
   }
+  if (item.type === "HLS stream") {
+    const isChild = current.some(
+      (m) =>
+        (m.master && m.master.variants.some((v) => sameStreamPath(v.url, item.url))) ||
+        (m.resolvedOptions && m.resolvedOptions.options && m.resolvedOptions.options.some((o) => sameStreamPath(o.videoUrl, item.url)))
+    );
+    if (isChild) item.child = true;
+  }
   current.push(item);
   while (current.length > 20) current.shift();
   await chrome.storage.session.set({ [key]: current });
   pushToTab(tabId);
-  if (item.type === "HLS stream") readHls(tabId, item.url).catch(() => {});
+  if (item.type === "HLS stream" && !item.child) readHls(tabId, item.url).catch(() => {});
 }
 
 function onMediaHeadersReceived(d) {
@@ -39,7 +56,7 @@ function onMediaHeadersReceived(d) {
   const url = d.url;
   if (!/^https?:/i.test(url)) return;
   if (/googlevideo\.com/i.test(url)) return;
-  if (isTelegramStream(url)) return;
+  if (isTelegramStream(url) || isAdMediaUrl(url)) return;
   const h = headerMap(d.responseHeaders);
   const type = (h["content-type"] || "").toLowerCase();
   const isHls = HLS_TYPE.test(type) || /\.m3u8(\?|$)/i.test(url) || DISGUISED_HLS.test(url);

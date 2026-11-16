@@ -170,7 +170,7 @@ fn handle_resolve(mut req: Request) {
         let referer = r.referer.as_deref().filter(|u| is_http(u));
         let body = match swiftget_engine::ytdlp::resolve_with_headers(&r.url, cookies, referer, &r.headers) {
             Ok(info) => serde_json::json!({
-                "ok": true, "title": info.title, "site": info.site, "options": info.options
+                "ok": true, "title": info.title, "site": info.site, "options": info.options, "subtitles": info.subtitles
             }),
             Err(e) => serde_json::json!({ "ok": false, "error": crate::err_text(&format!("{e:#}")) }),
         };

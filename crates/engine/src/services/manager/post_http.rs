@@ -50,6 +50,9 @@ impl Manager {
         cancel: &CancellationToken,
         part: &Path,
     ) -> anyhow::Result<()> {
+        if let Some(fmt) = rec.sub_convert.as_deref() {
+            self.apply_sub_convert(id, part, fmt, progress)?;
+        }
         if rec.source_key.as_deref() == Some(ytdlp::MP3_KEY) {
             // "Audio · MP3": the sound is here, now make the MP3 file
             progress.assembling.store(true, Ordering::Relaxed);
@@ -92,7 +95,9 @@ impl Manager {
                 let _ = std::fs::remove_file(&tmp);
             }
         }
-        self.finish_file(id, &rec, &progress, &cancel).await
+        let latest = self.inner.lock_ok().entries.get(&id).map(|e| e.rec.clone()).unwrap_or_else(|| rec.clone());
+        self.process_video_subtitle(id, &latest, progress, cancel, part).await?;
+        self.finish_file(id, rec, progress, cancel).await
     }
 }
 

@@ -61,6 +61,8 @@ pub enum Step {
     Cut,
     /// the finished file compared with its checksum
     Check,
+    /// subtitles rendered directly onto the video frames
+    BurnSubs,
 }
 
 impl Step {
@@ -72,6 +74,7 @@ impl Step {
             4 => Step::Move,
             5 => Step::Cut,
             6 => Step::Check,
+            7 => Step::BurnSubs,
             _ => return None,
         })
     }
@@ -83,8 +86,19 @@ impl Step {
             Step::Move => 4,
             Step::Cut => 5,
             Step::Check => 6,
+            Step::BurnSubs => 7,
         }
     }
+}
+
+/// Subtitle attachment or burn-in requested alongside a video download.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SubtitleTask {
+    pub lang: String,
+    #[serde(default)]
+    pub url: Option<String>,
+    #[serde(default)]
+    pub burn: bool,
 }
 
 /// Extra request data, usually handed over by the browser extension so that
@@ -175,4 +189,8 @@ pub struct NewDownload {
     pub clip: Option<Clip>,
     /// the checksum the finished file must have (what the user pasted)
     pub checksum: Option<String>,
+    /// subtitle track to save alongside or burn into a downloaded video
+    pub subtitle: Option<SubtitleTask>,
+    /// target format ("srt", "vtt", "txt") when downloading a standalone subtitle file
+    pub sub_convert: Option<String>,
 }

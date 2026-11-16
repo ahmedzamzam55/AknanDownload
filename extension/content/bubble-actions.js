@@ -22,6 +22,8 @@
     b.ownFor = "";
     b.loading = false;
     b.open = false;
+    b.tab = "whole";
+    b.clipMode = false;
     CS.renderOne(b);
   };
 
@@ -124,11 +126,12 @@
     });
   }
 
-  // "Download all": the whole playlist (YouTube list), or every file found
+  // "Download all": the whole playlist (YouTube list), or raw multi-file captures
   CS.downloadAllOf = (b, usable) => {
     if (CS.TOP && /youtube\.com/i.test(location.hostname) && /[?&]list=/.test(location.search)) {
       return { text: aknanI18n.t("Download all videos of this playlist"), run: () => sendPlaylist(b) };
     }
+    if (usable.some((m) => m.yt)) return null;
     const files = usable.filter((m) => !m.yt && m.url);
     if (files.length >= 2) {
       return {
@@ -148,14 +151,14 @@
     }, 2500);
   };
 
-  CS.download = (b, m) => {
+  CS.download = (b, m, subtitle) => {
     // a stream whose qualities are not known yet: ask the app for them
     if (m.resolve) return CS.lookUp(b, m.resolve, m.reqHeaders);
     const fileName = `${CS.cleanTitle()}.${m.ext || "mp4"}`;
     chrome.runtime.sendMessage(
-      { type: "swiftget-download", item: m, title: document.title, fileName, referrer: location.href },
+      { type: "swiftget-download", item: m, title: document.title, fileName, referrer: location.href, subtitle: subtitle || undefined },
       (res) => {
-        if (chrome.runtime.lastError || !res || !res.ok) CS.notRunning(b, () => CS.download(b, m));
+        if (chrome.runtime.lastError || !res || !res.ok) CS.notRunning(b, () => CS.download(b, m, subtitle));
         else CS.flashOne(b, aknanI18n.t("Sent to Aknan Download ✔"), false);
       }
     );

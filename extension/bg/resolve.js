@@ -12,7 +12,7 @@ function isManifestUrl(u) {
   return /\.(m3u8|m3u|mpd)(\?|$)|\/hls\d*\/.*\.txt(\?|$)/i.test(u || "");
 }
 
-async function downloadVideo(option, pageTitle, pageUrl, clip, store, reqHeaders) {
+async function downloadVideo(option, pageTitle, pageUrl, clip, store, reqHeaders, subtitle) {
   const title = cleanYoutubeTitle(option.title || pageTitle);
   const name = option.quality === "mp3" ? `${title}.mp3` : `${title} [${option.quality}].${option.ext}`;
   const srcRef = option.source && !isYoutube(option.source) && !isManifestUrl(option.source) ? option.source : "";
@@ -27,6 +27,8 @@ async function downloadVideo(option, pageTitle, pageUrl, clip, store, reqHeaders
     sourceKey: option.key,
     clip,
     store,
+    direct: true,
+    subtitle: subtitle || undefined,
   });
 }
 
@@ -69,7 +71,7 @@ async function askApp(page, referer, startApp = false, reqHeaders = null) {
   );
   const data = await r.json();
   return data.ok
-    ? { resolved: { title: data.title, site: data.site, options: data.options } }
+    ? { resolved: { title: data.title, site: data.site, options: data.options, subtitles: data.subtitles || [] } }
     : { resolveError: data.error || "unknown error" };
 }
 

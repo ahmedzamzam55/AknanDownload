@@ -9,11 +9,27 @@ async function readTab(tabId) {
   return { media: r[keys[0]] || [], yt: r[keys[1]] || null, res: r[keys[2]] || null };
 }
 
+function streamPathKey(u) {
+  try {
+    const p = new URL(u);
+    return p.origin + p.pathname;
+  } catch {
+    return u || "";
+  }
+}
+
+function sameStreamPath(a, b) {
+  return !!a && !!b && (a === b || streamPathKey(a) === streamPathKey(b));
+}
+
 function optionItems(resolved, source, reqHeaders) {
-  return resolved.options.map((o) => ({
+  const subs = resolved.subtitles && resolved.subtitles.length ? resolved.subtitles : undefined;
+  return resolved.options.map((o, idx) => ({
     label: o.label,
     sub: o.sub,
     reqHeaders: reqHeaders && reqHeaders.length ? reqHeaders : undefined,
+    subs: idx === 0 ? subs : undefined,
+    site: idx === 0 ? resolved.site || "" : undefined,
     yt: { ...o, title: resolved.title, source },
   }));
 }
@@ -86,7 +102,11 @@ async function itemsForTab(tabId, preferFrameId = 0) {
 function mediaItems(list) {
   const items = [];
   let hlsAsked = false;
+  const mainHls = list.find((m) => !m.child && (m.resolvedOptions || m.master));
   for (const m of list) {
+    if (mainHls && m.type !== "HLS stream" && !m.dash && m.frameId !== mainHls.frameId && m.size > 0 && m.size < 15 * 1024 * 1024) {
+      continue;
+    }
     const rh = m.reqHeaders && m.reqHeaders.length ? m.reqHeaders : undefined;
     if (m.dash) {
       items.push({ label: aknanI18n.t("Video stream (DASH) · choose a quality"), sub: m.url, resolve: m.url, reqHeaders: rh, ext: "mp4" });
@@ -114,6 +134,7 @@ function mediaItems(list) {
         });
         continue;
       }
+      if (mainHls && m !== mainHls && m.frameId === mainHls.frameId) continue;
       items.push({ label: `${qualityOf(m.url) || aknanI18n.t("Video")} · MP4 · ${aknanI18n.t("stream")}`, sub: m.url, url: m.url, reqHeaders: rh, ext: "ts" });
       if (!hlsAsked && !m.media) {
         hlsAsked = true;
@@ -130,7 +151,13 @@ function mediaItems(list) {
       ext: m.ext,
     });
   }
-  return items;
+  const seen = new Set();
+  return items.filter((it) => {
+    const k = it.yt ? `yt|${it.label}|${it.yt.key || ""}|${it.yt.kbps || 0}|${it.yt.duration || 0}` : `${it.label}|${streamPathKey(it.url || it.resolve || "")}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 }
 
 function qualityOf(url) {

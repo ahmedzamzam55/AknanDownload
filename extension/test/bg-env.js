@@ -32,6 +32,10 @@ function createBgEnv() {
               { key: "1080p|MP4", label: "1080p · MP4", sub: "94 MB", quality: "1080p", videoUrl: "https://gv/137", audioUrl: "https://gv/140", ext: "mp4", size: 94e6, headers: [["User-Agent", "YtDlpUA"]] },
               { key: "audio|M4A", label: "Audio only · M4A 130k", sub: "4 MB", quality: "audio", videoUrl: "https://gv/140", audioUrl: null, ext: "m4a", size: 4e6, headers: [] },
             ],
+            subtitles: [
+              { lang: "ar", name: "Arabic", url: "https://sub.example/ar.vtt", ext: "vtt", auto: false },
+              { lang: "en", name: "English", url: "https://sub.example/en.json3", ext: "json3", auto: true },
+            ],
           }),
         };
       }

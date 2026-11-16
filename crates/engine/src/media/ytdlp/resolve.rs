@@ -86,7 +86,7 @@ fn resolve_now(
     });
     let mut info = match (found, &drive) {
         (Ok(json), _) => build_options(&json),
-        (Err(_), Some(_)) => YtInfo { title: String::new(), site: "Google Drive".into(), options: Vec::new() },
+        (Err(_), Some(_)) => YtInfo { title: String::new(), site: "Google Drive".into(), options: Vec::new(), subtitles: Vec::new() },
         (Err(e), None) => {
             if let Ok(Some(hls)) = try_resolve_hls(page_url, cookies, referer, extra_headers) {
                 return Ok(hls);

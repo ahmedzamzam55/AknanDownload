@@ -46,6 +46,7 @@ const EXTENSION_FILES: &[(&str, &[u8])] = &[
     ("content/place.js", include_bytes!("../../../../extension/content/place.js")),
     ("content/state.js", include_bytes!("../../../../extension/content/state.js")),
     ("content/styles.js", include_bytes!("../../../../extension/content/styles.js")),
+    ("content/subs-tab.js", include_bytes!("../../../../extension/content/subs-tab.js")),
     ("content/videos.js", include_bytes!("../../../../extension/content/videos.js")),
     ("icons/icon16.png", include_bytes!("../../../../extension/icons/icon16.png")),
     ("icons/icon32.png", include_bytes!("../../../../extension/icons/icon32.png")),

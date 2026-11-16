@@ -52,7 +52,65 @@ const { createBgEnv } = require("./bg-env.js");
   assert.strictEqual(dlRes.ok, true);
   const sent1 = sent[sent.length - 1];
   assert.strictEqual(sent1.referrer, "https://okprimeone.site/embed-1.html", "iframe Referer must not be overwritten by wrapper page");
+  assert.strictEqual(sent1.direct, true, "video downloads must bypass hidden AddDialog");
   assert(sent1.headers.some(([k, v]) => k === "Origin" && v === "https://okprimeone.site"), "Origin must be forwarded");
+  assert(Array.isArray(items1.items[0].subs) && items1.items[0].subs.length === 2, "resolved subtitles attached");
+
+  // Ad domains and duplicate child variant playlists must not clutter menu
+  listeners.headers({
+    tabId,
+    frameId: 0,
+    requestId: "ad1",
+    url: "https://assets.ahmybid.net/d1b2/ad.mp4",
+    statusCode: 200,
+    responseHeaders: [{ name: "Content-Type", value: "video/mp4" }, { name: "Content-Length", value: "8800000" }],
+  });
+  listeners.headers({
+    tabId,
+    frameId: 5,
+    requestId: "child1",
+    url: "https://gv/137?token=child2",
+    statusCode: 200,
+    responseHeaders: m3u8Hdr,
+  });
+  for (let i = 0; i < 4; i++) await tick();
+  const afterAd = await new Promise((r) => listeners.msg({ type: "swiftget-resolve-video", frame: true }, { tab: { id: tabId, url: outerUrl }, frameId: 5 }, r));
+  assert(!afterAd.items.some((x) => /ahmybid\.net/.test(x.url || "")), "ad domain filtered");
+  assert.strictEqual(afterAd.items.filter((x) => x.yt && x.yt.quality === "1080p").length, 1, "no duplicate 1080p entries");
+
+  // Video + burn-in subtitle, and batch subtitle download
+  const burnRes = await new Promise((r) =>
+    listeners.msg(
+      { type: "swiftget-download", item: items1.items[0], title: "Ep 01", subtitle: { lang: "ar", url: "https://sub.example/ar.vtt", burn: true } },
+      { tab: { id: tabId, url: outerUrl }, frameId: 5 },
+      r
+    )
+  );
+  assert.strictEqual(burnRes.ok, true);
+  assert.deepStrictEqual(sent[sent.length - 1].subtitle, { lang: "ar", url: "https://sub.example/ar.vtt", burn: true });
+
+  const subRes = await new Promise((r) =>
+    listeners.msg(
+      {
+        type: "swiftget-download-subs",
+        format: "srt",
+        title: "Ep 01",
+        tracks: [
+          { lang: "ar", url: "https://sub.example/ar.vtt" },
+          { lang: "en", url: "https://sub.example/en.json3" },
+        ],
+      },
+      { tab: { id: tabId, url: outerUrl } },
+      r
+    )
+  );
+  assert.strictEqual(subRes.ok, true);
+  const sAr = sent[sent.length - 2];
+  const sEn = sent[sent.length - 1];
+  assert.strictEqual(sAr.subConvert, "srt");
+  assert.strictEqual(sAr.direct, true);
+  assert.strictEqual(sEn.subConvert, "srt");
+  assert(sAr.group && sAr.group === sEn.group, "batch subtitles share group id");
 
   // Switching to Server 2 on same frame clears Server 1's stream and picks up Server 2
   const srv2Mp4 = "https://uqload.cx/v/video.mp4";

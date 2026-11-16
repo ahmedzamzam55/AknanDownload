@@ -13,6 +13,7 @@ mod hls_direct;
 mod options;
 mod playlist;
 mod resolve;
+mod sub_tracks;
 mod subtitles;
 #[cfg(test)]
 mod tests_options;
@@ -24,4 +25,5 @@ pub use cookies::{netscape_cookies, remember_cookies, remembered_cookies, Browse
 pub use options::{mp3_kbps, quality_tag, set_mp3_kbps, YtInfo, YtOption, MP3_KBPS, MP3_KEY};
 pub use playlist::{parse_playlist, pick_option, playlist, PlaylistEntry, PlaylistInfo};
 pub use resolve::{drive_file_id, forget, resolve, resolve_for, resolve_key, resolve_with_headers, update_if_due, update_now};
+pub use sub_tracks::YtSubtitle;
 pub use subtitles::fetch_subtitles;

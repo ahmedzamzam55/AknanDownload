@@ -73,12 +73,12 @@ impl Manager {
             DownloadKind::Dash
         } else {
             probe.as_ref().map(|p| p.kind).unwrap_or_else(|| {
-            if req.url.to_ascii_lowercase().split('?').next().unwrap_or("").ends_with(".m3u8") {
-                DownloadKind::Hls
-            } else {
-                DownloadKind::Http
-            }
-        })
+                if crate::http::looks_like_hls(&req.url, None) {
+                    DownloadKind::Hls
+                } else {
+                    DownloadKind::Http
+                }
+            })
         };
 
         // a part of a video: its name says which part
@@ -160,6 +160,8 @@ impl Manager {
                 .and_then(crate::checksum::Expected::parse)
                 .or_else(|| probe.as_ref().and_then(|p| p.digest.as_deref()).and_then(crate::checksum::Expected::parse))
                 .map(|e| e.text()),
+            subtitle: req.subtitle,
+            sub_convert: req.sub_convert,
         };
         let mut rec = rec;
         if early {

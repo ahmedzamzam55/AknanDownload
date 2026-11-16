@@ -16,7 +16,7 @@ pub mod services;
 pub use domain::{category, ef2, filename, model, segments};
 pub use infra::{checksum, config, fileio, limiter, secret, store, sync, system};
 pub use protocols::{bt, ftp, hls, http, http_download, m3u8, torrent};
-pub use media::{clip, clipserve, mux, ytdlp};
+pub use media::{clip, clipserve, mux, subs, ytdlp};
 pub use services::{grabber, manager, selfupdate, tools};
 
 pub use config::{AfterDone, Schedule, Settings};

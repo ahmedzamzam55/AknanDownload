@@ -90,13 +90,19 @@ fn handle_api(ui: &Ui, event: api::ApiEvent) {
         api::ApiEvent::Playlist(url) => playlist::open_url(ui, &url),
         api::ApiEvent::Links(l) => grab::open_links(ui, l),
         api::ApiEvent::Add(req) => {
-            // the same address again within a few seconds (an older browser
-            // add-in could send a download over and over): show nothing new
+            // the same request again within a couple seconds: ignore duplicate clicks/retries
+            let dedup_key = format!(
+                "{}|{}|{}|{}",
+                req.url,
+                req.file_name.as_deref().unwrap_or(""),
+                req.sub_convert.as_deref().unwrap_or(""),
+                req.subtitle.as_ref().map(|s| format!("{}:{}", s.lang, s.burn)).unwrap_or_default()
+            );
             let repeat = LAST_API_ADD.with(|l| {
                 let mut l = l.borrow_mut();
                 let now = Instant::now();
-                let same = l.as_ref().map(|(u, at)| *u == req.url && now.duration_since(*at) < Duration::from_secs(10)).unwrap_or(false);
-                *l = Some((req.url.clone(), now));
+                let same = l.as_ref().map(|(u, at)| *u == dedup_key && now.duration_since(*at) < Duration::from_secs(3)).unwrap_or(false);
+                *l = Some((dedup_key, now));
                 same
             });
             if repeat {
@@ -166,8 +172,9 @@ fn handle_api(ui: &Ui, event: api::ApiEvent) {
                 source_key: req.source_key,
             };
             let s = ui.ctx.mgr.settings();
-            if !s.show_start_dialog && ui.ctx.mgr.find_url(&req.url).is_none() {
-                // straight to the list, without the "Download File Info" window
+            if req.direct || (!s.show_start_dialog && ui.ctx.mgr.find_url(&req.url).is_none()) {
+                // straight to the list, without hiding behind the "Download File Info" window
+                let is_sub_file = req.sub_convert.is_some();
                 let id = ui.ctx.mgr.add(NewDownload {
                     url: req.url,
                     file_name: req.file_name,
@@ -175,10 +182,15 @@ fn handle_api(ui: &Ui, event: api::ApiEvent) {
                     audio_url: extra.audio_url,
                     source_page: extra.source_page,
                     source_key: extra.source_key,
+                    group: req.group,
+                    subtitle: req.subtitle,
+                    sub_convert: req.sub_convert,
                     start: true,
                     ..Default::default()
                 });
-                show_progress_for_start(ui, id);
+                if !is_sub_file {
+                    show_progress_for_start(ui, id);
+                }
                 refresh(ui);
                 return;
             }

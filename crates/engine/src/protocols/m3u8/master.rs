@@ -9,6 +9,31 @@ pub struct Variant {
     pub bandwidth: u64,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct HlsSub {
+    pub lang: String,
+    pub name: String,
+    pub url: String,
+}
+
+/// Parse `#EXT-X-MEDIA:TYPE=SUBTITLES` entries with a `URI` attribute.
+pub fn parse_subtitles_media(base: &str, text: &str) -> Vec<HlsSub> {
+    let mut out = Vec::new();
+    for line in text.lines().map(str::trim) {
+        let Some(attrs) = line.strip_prefix("#EXT-X-MEDIA:") else { continue };
+        let a = parse_attrs(attrs);
+        if !a.get("TYPE").is_some_and(|t| t.eq_ignore_ascii_case("SUBTITLES")) {
+            continue;
+        }
+        let Some(uri) = a.get("URI").filter(|u| !u.is_empty()) else { continue };
+        let Ok(url) = resolve(base, uri) else { continue };
+        let lang = a.get("LANGUAGE").cloned().unwrap_or_else(|| "und".into());
+        let name = a.get("NAME").cloned().unwrap_or_else(|| lang.clone());
+        out.push(HlsSub { lang, name, url });
+    }
+    out
+}
+
 /// Parse a master `#EXTM3U` playlist into sorted, deduplicated quality variants
 /// and report whether audio comes in separate `#EXT-X-MEDIA` playlists.
 pub fn parse_master(base: &str, text: &str) -> anyhow::Result<(Vec<Variant>, bool)> {

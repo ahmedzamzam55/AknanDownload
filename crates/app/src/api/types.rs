@@ -36,6 +36,18 @@ pub struct AddRequest {
     pub post: Option<String>,
     #[serde(default)]
     pub post_type: Option<String>,
+    /// start immediately in the main list without hiding behind Download File Info
+    #[serde(default)]
+    pub direct: bool,
+    /// optional batch/group id (e.g. downloading multiple subtitle tracks together)
+    #[serde(default)]
+    pub group: Option<u64>,
+    /// target subtitle format ("srt", "vtt", "txt") when converting a subtitle download
+    #[serde(default)]
+    pub sub_convert: Option<String>,
+    /// optional subtitle track to save next to or burn into this video download
+    #[serde(default)]
+    pub subtitle: Option<swiftget_engine::SubtitleTask>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

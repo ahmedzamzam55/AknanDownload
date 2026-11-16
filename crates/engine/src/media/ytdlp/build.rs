@@ -55,15 +55,22 @@ pub fn build_options(full: &Value) -> YtInfo {
                 continue;
             }
             let ext = if v.hls { "ts" } else { container };
+            let size = if v.size > 0 {
+                v.size
+            } else if duration > 0 && v.tbr > 0.0 {
+                ((duration as f64) * v.tbr * 1000.0 / 8.0) as u64
+            } else {
+                0
+            };
             options.push(YtOption {
                 label: format!("{} · {}", with_tag(&q, v.height), ext.to_uppercase()),
-                sub: fmt_size(v.size),
+                sub: fmt_size(size),
                 key,
                 quality: q,
                 video_url: v.url.clone(),
                 audio_url: None,
                 ext: ext.into(),
-                size: v.size,
+                size,
                 headers: v.headers.clone(),
                 tag: quality_tag(v.height).into(),
                 codec: v.codec_name().into(),
@@ -150,7 +157,7 @@ pub fn build_options(full: &Value) -> YtInfo {
             });
         }
     }
-    YtInfo { title, site, options }
+    YtInfo { title, site, options, subtitles: super::sub_tracks::parse_subtitles(info) }
 }
 
 /// Use the headers yt-dlp asked for when downloading the links.

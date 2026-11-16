@@ -94,3 +94,22 @@ fn formats() {
     assert_eq!(format_for("a.webm"), "webm");
     assert_eq!(format_for("a.mkv"), "matroska");
 }
+
+#[test]
+fn burns_subtitles_into_mp4() {
+    let Some(ffmpeg) = find_ffmpeg() else { return };
+    let dir = std::env::temp_dir().join(format!("swiftget-burn-test-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&dir);
+    let v = dir.join("in.mp4");
+    let ok = Command::new(&ffmpeg)
+        .args(["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "testsrc=size=320x240:rate=25:duration=1", "-c:v", "mpeg4", "-an"])
+        .arg(&v)
+        .status()
+        .unwrap();
+    assert!(ok.success());
+    let out = dir.join("out.mp4.sgpart");
+    let srt = "1\n00:00:00,000 --> 00:00:00,900\nمرحبا\n\n";
+    burn_subtitles(&v, srt, &out, "Clip.mp4", &|_| {}, None).unwrap();
+    assert!(std::fs::metadata(&out).unwrap().len() > 1000);
+    let _ = std::fs::remove_dir_all(&dir);
+}

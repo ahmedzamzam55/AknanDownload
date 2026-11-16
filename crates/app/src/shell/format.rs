@@ -162,5 +162,6 @@ pub(super) fn step_text(st: swiftget_engine::Step) -> String {
         Step::Move => "Moving the file to its folder",
         Step::Cut => "Cutting the part",
         Step::Check => "Checking the file",
+        Step::BurnSubs => "Burning subtitles into the video",
     })
 }

@@ -19,9 +19,35 @@ function onRuntimeMessage(msg, sender, sendResponse) {
       return reply(
         storeOf(sender.tab).then((store) =>
           item.yt
-            ? downloadVideo(item.yt, msg.title, referrer, clip, store, item.reqHeaders)
-            : sendToApp({ url: item.url, referrer, reqHeaders: item.reqHeaders, fileName: msg.fileName, clip, store })
+            ? downloadVideo(item.yt, msg.title, referrer, clip, store, item.reqHeaders, msg.subtitle)
+            : sendToApp({ url: item.url, referrer, reqHeaders: item.reqHeaders, fileName: msg.fileName, clip, store, direct: true, subtitle: msg.subtitle })
         ),
+        sendResponse
+      );
+    }
+    case "swiftget-download-subs": {
+      const tracks = Array.isArray(msg.tracks) ? msg.tracks.filter((t) => t && /^https?:/i.test(t.url || "")) : [];
+      if (!tracks.length) return reply(Promise.reject(new Error("no subtitles selected")), sendResponse);
+      const fmt = /^(srt|vtt|txt)$/i.test(msg.format || "") ? msg.format.toLowerCase() : "srt";
+      const base = cleanYoutubeTitle(msg.title || "video");
+      const ref = sender.tab ? sender.tab.url : msg.referrer || "";
+      const group = Date.now();
+      return reply(
+        storeOf(sender.tab).then(async (store) => {
+          for (const t of tracks) {
+            const lang = String(t.lang || "sub").replace(/[^a-zA-Z0-9._-]/g, "_") || "sub";
+            await sendToApp({
+              url: t.url,
+              referrer: ref,
+              sourcePage: ref,
+              fileName: `${base}.${lang}.${fmt}`,
+              subConvert: fmt,
+              group,
+              direct: true,
+              store,
+            });
+          }
+        }),
         sendResponse
       );
     }

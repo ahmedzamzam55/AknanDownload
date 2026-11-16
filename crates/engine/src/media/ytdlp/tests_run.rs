@@ -174,3 +174,32 @@ fn extra_headers_forwarded_to_ytdlp_and_direct_hls() {
     assert!(info.options[0].headers.iter().any(|(k, v)| k == "Referer" && v == "https://embed.example/v1"));
 }
 
+#[test]
+fn hls_direct_computes_duration_and_byte_size_from_variant() {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    let t = std::thread::spawn(move || {
+        use std::io::{Read, Write};
+        for s in listener.incoming().flatten().take(2) {
+            let mut sock = s;
+            let mut buf = [0u8; 4096];
+            let n = sock.read(&mut buf).unwrap_or(0);
+            let req = String::from_utf8_lossy(&buf[..n]);
+            let first = req.lines().next().unwrap_or("");
+            let body = if first.contains("/master.m3u8") {
+                "#EXTM3U\n#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID=\"subs\",NAME=\"Arabic\",LANGUAGE=\"ar\",URI=\"ar.vtt\"\n#EXT-X-STREAM-INF:BANDWIDTH=1145000,RESOLUTION=960x532,SUBTITLES=\"subs\"\n532/index.m3u8\n"
+            } else {
+                "#EXTM3U\n#EXTINF:1200.0,\nseg0.ts\n#EXTINF:1200.0,\nseg1.ts\n#EXT-X-ENDLIST\n"
+            };
+            let resp = format!("HTTP/1.1 200 OK\r\nContent-Type: application/vnd.apple.mpegurl\r\nConnection: close\r\n\r\n{body}");
+            let _ = sock.write_all(resp.as_bytes());
+        }
+    });
+    let info = try_resolve_hls(&format!("http://{addr}/master.m3u8"), None, None, &[]).unwrap().unwrap();
+    let _ = t.join();
+    assert_eq!(info.options[0].duration, 2400);
+    assert_eq!(info.options[0].size, 2400 * 1_145_000 / 8);
+    assert_eq!(info.subtitles.len(), 1);
+    assert_eq!(info.subtitles[0].lang, "ar");
+}
+

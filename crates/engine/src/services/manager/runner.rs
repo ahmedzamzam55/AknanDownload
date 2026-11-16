@@ -164,7 +164,12 @@ impl Manager {
             if finished && settings.subtitles && !settings.subtitle_langs.trim().is_empty() {
                 // a site's video: its subtitles next to it (when there are any)
                 if let Some(e) = inner.entries.get(&id) {
-                    if let (Some(page), DownloadKind::Dash | DownloadKind::Http | DownloadKind::Hls) = (e.rec.source_page.clone(), e.rec.kind) {
+                    if let (Some(page), DownloadKind::Dash | DownloadKind::Http | DownloadKind::Hls, None, None) = (
+                        e.rec.source_page.clone(),
+                        e.rec.kind,
+                        e.rec.subtitle.as_ref(),
+                        e.rec.sub_convert.as_ref(),
+                    ) {
                         let (dir, langs) = (e.rec.save_dir.clone(), settings.subtitle_langs.clone());
                         let (stem, _) = filename::split_ext(&e.rec.file_name);
                         let stem = stem.to_string();

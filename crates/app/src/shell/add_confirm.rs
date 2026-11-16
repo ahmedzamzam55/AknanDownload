@@ -120,6 +120,7 @@ pub(super) fn confirm_add(ui: &Ui, start: bool) {
             torrent_select: None,
             clip: None,
             checksum: checksum.clone(),
+            ..Default::default()
         }
     };
     let _ = d.hide();

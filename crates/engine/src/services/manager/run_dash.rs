@@ -152,6 +152,8 @@ impl Manager {
         joined?;
         let _ = std::fs::remove_file(rec.video_part_path());
         let _ = std::fs::remove_file(rec.audio_part_path());
+        let part = rec.part_path();
+        self.process_video_subtitle(id, &rec, &progress, &cancel, &part).await?;
         self.finish_file(id, &rec, &progress, &cancel).await
     }
 

@@ -129,7 +129,7 @@ fn drive_files_are_known() {
     assert_eq!(drive_file_id("https://drive.google.com/open?id=1aLKUiTGVrngA6Mez").as_deref(), Some("1aLKUiTGVrngA6Mez"));
     assert_eq!(drive_file_id("https://drive.google.com/drive/my-drive"), None);
     assert_eq!(drive_file_id("https://example.com/file/d/1aLKUiTGVrngA6MeznJ/view"), None);
-    let o = drive_original("1aLKUiTGVrngA6Mez", &YtInfo { title: String::new(), site: String::new(), options: Vec::new() });
+    let o = drive_original("1aLKUiTGVrngA6Mez", &YtInfo { title: String::new(), site: String::new(), options: Vec::new(), subtitles: Vec::new() });
     assert!(o.video_url.starts_with("https://drive.usercontent.google.com/download?id=1aLKUiTGVrngA6Mez"));
 }
 
@@ -149,5 +149,30 @@ fn headers_are_applied() {
     assert_eq!(h.user_agent.as_deref(), Some("Mozilla/5.0 test"));
     assert!(h.extra.iter().any(|(k, _)| k == "Sec-Fetch-Mode"));
     assert!(!h.extra.iter().any(|(k, _)| k == "Accept"));
+}
+
+#[test]
+fn subtitle_tracks_sorted_and_curated() {
+    let j = json!({
+        "title": "Demo",
+        "duration": 2400,
+        "formats": [{"url": "https://cdn/v.m3u8", "protocol": "m3u8_native", "ext": "mp4", "height": 532, "tbr": 1145.0, "vcodec": "avc1", "acodec": "mp4a"}],
+        "subtitles": {
+            "en": [{"url": "https://cdn/en.vtt", "ext": "vtt"}],
+            "ar": [{"url": "https://cdn/ar.srt", "ext": "srt"}, {"url": "https://cdn/ar.vtt", "ext": "vtt"}]
+        },
+        "automatic_captions": {
+            "fr": [{"url": "https://cdn/fr.json3?tlang=fr", "ext": "json3"}],
+            "en": [{"url": "https://cdn/auto-en.vtt", "ext": "vtt"}],
+            "xx-ignored": [{"url": "https://cdn/xx.vtt?tlang=xx", "ext": "vtt"}]
+        }
+    });
+    let info = build_options(&j);
+    assert!(info.options[0].size > 300_000_000, "HLS bitrate * duration estimates MB size: {}", info.options[0].size);
+    let langs: Vec<&str> = info.subtitles.iter().map(|s| s.lang.as_str()).collect();
+    assert_eq!(langs, ["ar", "en", "fr"]);
+    assert_eq!(info.subtitles[0].ext, "srt");
+    assert!(!info.subtitles[0].auto);
+    assert!(info.subtitles[2].auto);
 }
 

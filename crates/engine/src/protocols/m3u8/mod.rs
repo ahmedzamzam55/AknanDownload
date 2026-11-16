@@ -66,7 +66,7 @@ pub(super) fn resolve(base: &str, rel: &str) -> anyhow::Result<String> {
 }
 
 mod master;
-pub use master::{parse_master, Variant};
+pub use master::{parse_master, parse_subtitles_media, HlsSub, Variant};
 
 /// For a master playlist, return the URL of the highest bandwidth variant.
 pub fn best_variant(base: &str, text: &str) -> anyhow::Result<Option<String>> {

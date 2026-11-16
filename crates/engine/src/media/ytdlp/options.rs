@@ -32,6 +32,8 @@ pub struct YtInfo {
     /// e.g. "YouTube", "Instagram", "TikTok"
     pub site: String,
     pub options: Vec<YtOption>,
+    #[serde(default)]
+    pub subtitles: Vec<super::sub_tracks::YtSubtitle>,
 }
 
 /// The "MP3" choice: the sound is downloaded, then turned into an MP3 file.

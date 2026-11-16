@@ -26,6 +26,16 @@ pub(crate) fn bring_to_front(ctx: &Ctx) {
         to_front!(w);
         w.invoke_focus_list();
     }
+    if ctx.add.upgrade().is_some_and(|d| d.window().is_visible()) {
+        let add_weak = ctx.add.clone();
+        Timer::single_shot(Duration::from_millis(60), move || {
+            if let Some(d) = add_weak.upgrade() {
+                if d.window().is_visible() {
+                    to_front!(d);
+                }
+            }
+        });
+    }
 }
 
 // ------------------------------------------------------------ window sizes

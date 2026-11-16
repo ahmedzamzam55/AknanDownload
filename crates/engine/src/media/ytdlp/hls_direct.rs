@@ -1,9 +1,10 @@
 use super::build::apply_headers;
 use super::cookies::{remembered_cookies, BrowserCookie};
 use super::options::{quality_tag, with_tag, YtInfo, YtOption};
+use super::sub_tracks::YtSubtitle;
 use crate::http::{build_client, request, SendOrdered};
-use crate::m3u8::{parse_master, parse_media, MAX_PLAYLIST_BYTES};
-use crate::model::RequestHeaders;
+use crate::m3u8::{parse_master, parse_media, parse_subtitles_media, MAX_PLAYLIST_BYTES};
+use crate::model::{fmt_size, RequestHeaders};
 
 fn cookie_header_for(url: &str, list: &[BrowserCookie]) -> Option<String> {
     let u = url::Url::parse(url).ok()?;
@@ -37,11 +38,10 @@ where
     tokio::runtime::Builder::new_current_thread().enable_all().build()?.block_on(fut)
 }
 
-async fn fetch_m3u8(url: String, headers: RequestHeaders, ua: String) -> anyhow::Result<(String, String)> {
-    let client = build_client()?;
+async fn fetch_m3u8(client: &reqwest::Client, url: &str, headers: &RequestHeaders, ua: &str, wait_secs: u64) -> anyhow::Result<(String, String)> {
     let resp = tokio::time::timeout(
-        std::time::Duration::from_secs(20),
-        request(&client, &url, &headers, &ua).send_ordered(),
+        std::time::Duration::from_secs(wait_secs),
+        request(client, url, headers, ua).send_ordered(),
     )
     .await
     .map_err(|_| anyhow::anyhow!("timed out"))??;
@@ -56,16 +56,61 @@ async fn fetch_m3u8(url: String, headers: RequestHeaders, ua: String) -> anyhow:
     Ok((String::from_utf8_lossy(&bytes).into_owned(), final_url))
 }
 
-/// Resolve an `.m3u8` / HLS URL directly with full browser headers (`Origin`, `Referer`, `Cookie`)
-/// so protected embedded video servers never fail with `HTTP 403`.
-pub(super) fn try_resolve_hls(
-    url: &str,
-    cookies: Option<&[BrowserCookie]>,
-    referer: Option<&str>,
-    extra_headers: &[(String, String)],
-) -> anyhow::Result<Option<YtInfo>> {
+async fn probe_seg_len(client: &reqwest::Client, seg_url: &str, headers: &RequestHeaders, ua: &str) -> Option<u64> {
+    let mut rb = client.head(seg_url).header(reqwest::header::USER_AGENT, ua);
+    if let Some(r) = &headers.referer {
+        rb = rb.header(reqwest::header::REFERER, r);
+    }
+    for (k, v) in &headers.extra {
+        rb = rb.header(k.as_str(), v.as_str());
+    }
+    let resp = tokio::time::timeout(std::time::Duration::from_secs(4), rb.send_ordered()).await.ok()?.ok()?;
+    if !resp.status().is_success() {
+        return None;
+    }
+    resp.headers()
+        .get(reqwest::header::CONTENT_LENGTH)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.parse::<u64>().ok())
+        .filter(|&n| n > 0)
+}
+
+async fn fetch_hls_bundle(url: String, headers: RequestHeaders, ua: String) -> anyhow::Result<HlsFetched> {
+    let client = build_client()?;
+    let (text, final_url) = fetch_m3u8(&client, &url, &headers, &ua, 20).await?;
+    if !text.trim_start().starts_with("#EXTM3U") {
+        return Ok(HlsFetched { text, final_url, master_duration: 0, seg_len: 0 });
+    }
+    let (variants, separate_audio) = parse_master(&final_url, &text)?;
+    let mut master_duration = 0u64;
+    if let (Some(v), false) = (variants.first(), separate_audio) {
+        if let Ok((v_text, v_url)) = fetch_m3u8(&client, &v.url, &headers, &ua, 8).await {
+            if let Ok(pl) = parse_media(&v_url, &v_text) {
+                master_duration = pl.duration().round() as u64;
+            }
+        }
+    }
+    let mut seg_len = 0u64;
+    if variants.is_empty() {
+        if let Ok(pl) = parse_media(&final_url, &text) {
+            if let Some(part) = pl.parts.get(pl.parts.len() / 2) {
+                seg_len = probe_seg_len(&client, &part.url, &headers, &ua).await.unwrap_or(0);
+            }
+        }
+    }
+    Ok(HlsFetched { text, final_url, master_duration, seg_len })
+}
+
+struct HlsFetched {
+    text: String,
+    final_url: String,
+    master_duration: u64,
+    seg_len: u64,
+}
+
+fn fill_headers(url: &str, cookies: Option<&[BrowserCookie]>, referer: Option<&str>, extra: &[(String, String)]) -> (RequestHeaders, String, Vec<(String, String)>) {
     let mut h = RequestHeaders { referer: referer.map(str::to_string), ..Default::default() };
-    apply_headers(&mut h, extra_headers);
+    apply_headers(&mut h, extra);
     if h.cookies.is_none() {
         let kept = cookies
             .filter(|c| !c.is_empty())
@@ -76,16 +121,8 @@ pub(super) fn try_resolve_hls(
             h.cookies = cookie_header_for(url, &list);
         }
     }
-    let ua = h
-        .user_agent
-        .clone()
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| crate::config::DEFAULT_USER_AGENT.to_string());
-    let (text, final_url) = run_blocking(fetch_m3u8(url.to_string(), h.clone(), ua.clone()))?;
-    if !text.trim_start().starts_with("#EXTM3U") {
-        return Ok(None);
-    }
-    let mut out_headers = vec![("User-Agent".to_string(), ua)];
+    let ua = h.user_agent.clone().filter(|s| !s.is_empty()).unwrap_or_else(|| crate::config::DEFAULT_USER_AGENT.to_string());
+    let mut out_headers = vec![("User-Agent".to_string(), ua.clone())];
     if let Some(r) = &h.referer {
         if !r.is_empty() {
             out_headers.push(("Referer".into(), r.clone()));
@@ -94,58 +131,77 @@ pub(super) fn try_resolve_hls(
     for (k, v) in &h.extra {
         out_headers.push((k.clone(), v.clone()));
     }
-    let (variants, separate_audio) = parse_master(&final_url, &text)?;
+    (h, ua, out_headers)
+}
+
+/// Resolve an `.m3u8` / HLS URL directly with full browser headers (`Origin`, `Referer`, `Cookie`)
+/// and probe its variant/segments so exact episode duration, byte size, and subtitles are returned.
+pub(super) fn try_resolve_hls(
+    url: &str,
+    cookies: Option<&[BrowserCookie]>,
+    referer: Option<&str>,
+    extra_headers: &[(String, String)],
+) -> anyhow::Result<Option<YtInfo>> {
+    let (h, ua, out_headers) = fill_headers(url, cookies, referer, extra_headers);
+    let fetched = run_blocking(fetch_hls_bundle(url.to_string(), h, ua))?;
+    if !fetched.text.trim_start().starts_with("#EXTM3U") {
+        return Ok(None);
+    }
+    let subtitles: Vec<YtSubtitle> = parse_subtitles_media(&fetched.final_url, &fetched.text)
+        .into_iter()
+        .map(|s| YtSubtitle { lang: s.lang, name: s.name, url: s.url, ext: "vtt".into(), auto: false })
+        .collect();
+    let (variants, separate_audio) = parse_master(&fetched.final_url, &fetched.text)?;
     if !variants.is_empty() {
         if separate_audio {
             return Ok(None);
         }
+        let dur = fetched.master_duration;
         let options = variants
             .into_iter()
             .map(|v| {
-                let q = if v.height > 0 {
-                    format!("{}p", v.height)
-                } else if v.bandwidth > 0 {
-                    format!("{}k", v.bandwidth / 1000)
-                } else {
-                    "Video".into()
-                };
+                let q = if v.height > 0 { format!("{}p", v.height) } else if v.bandwidth > 0 { format!("{}k", v.bandwidth / 1000) } else { "Video".into() };
+                let size = if v.bandwidth > 0 && dur > 0 { dur.saturating_mul(v.bandwidth) / 8 } else { 0 };
                 YtOption {
                     key: format!("{q}|TS"),
                     label: format!("{} · MP4", with_tag(&q, v.height)),
-                    sub: String::new(),
+                    sub: if size > 0 { fmt_size(size) } else { String::new() },
                     quality: q,
                     video_url: v.url,
                     audio_url: None,
                     ext: "ts".into(),
-                    size: 0,
+                    size,
                     headers: out_headers.clone(),
                     tag: quality_tag(v.height).into(),
                     codec: String::new(),
-                    duration: 0,
+                    duration: dur,
                     kbps: v.bandwidth / 1000,
                 }
             })
             .collect();
-        return Ok(Some(YtInfo { title: String::new(), site: String::new(), options }));
+        return Ok(Some(YtInfo { title: String::new(), site: String::new(), options, subtitles }));
     }
-    let pl = parse_media(&final_url, &text)?;
+    let pl = parse_media(&fetched.final_url, &fetched.text)?;
     if pl.parts.is_empty() {
         return Ok(None);
     }
+    let dur = pl.duration().round() as u64;
+    let size = if fetched.seg_len > 0 { fetched.seg_len.saturating_mul(pl.parts.len() as u64) } else { 0 };
+    let kbps = if size > 0 && dur > 0 { (size * 8 / dur / 1000) as u64 } else { 0 };
     let options = vec![YtOption {
         key: "hls|TS".into(),
         label: "Video · MP4".into(),
-        sub: String::new(),
+        sub: if size > 0 { fmt_size(size) } else { String::new() },
         quality: "Video".into(),
-        video_url: final_url,
+        video_url: fetched.final_url,
         audio_url: None,
         ext: "ts".into(),
-        size: 0,
+        size,
         headers: out_headers,
         tag: String::new(),
         codec: String::new(),
-        duration: pl.duration().round() as u64,
-        kbps: 0,
+        duration: dur,
+        kbps,
     }];
-    Ok(Some(YtInfo { title: String::new(), site: String::new(), options }))
+    Ok(Some(YtInfo { title: String::new(), site: String::new(), options, subtitles }))
 }

@@ -160,7 +160,11 @@ mod tests {
 
     #[test]
     fn whats_new_and_shortcuts_in_every_language() {
-        let texts: Vec<&str> = crate::extra::WHATS_NEW.iter().copied().chain([crate::SHORTCUTS, "Checking the file"]).collect();
+        let texts: Vec<&str> = crate::extra::WHATS_NEW
+            .iter()
+            .copied()
+            .chain([crate::SHORTCUTS, "Checking the file", "Burning subtitles into the video"])
+            .collect();
         for en in texts {
             for (code, _) in LANGS.iter().skip(1) {
                 assert!(table(code).expect("table").contains_key(en), "{code}: {en}");

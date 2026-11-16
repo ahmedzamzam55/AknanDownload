@@ -59,10 +59,12 @@ pub fn format_for(file_name: &str) -> &'static str {
 /// time, minutes for a big video, and a file on the computer plays and
 /// winds forward as well without it.
 
+mod burn;
 mod runner;
 #[cfg(test)]
 mod tests;
 
+pub use burn::burn_subtitles;
 pub use runner::{merge, run_watched, ts_to_mp4};
 pub(crate) use runner::hide_window;
 use runner::len_of;

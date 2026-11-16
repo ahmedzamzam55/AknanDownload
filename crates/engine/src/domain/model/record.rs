@@ -109,6 +109,10 @@ pub struct DownloadRecord {
     /// else the one the server sent
     #[serde(default)]
     pub checksum: Option<String>,
+    #[serde(default)]
+    pub subtitle: Option<super::SubtitleTask>,
+    #[serde(default)]
+    pub sub_convert: Option<String>,
 }
 
 impl DownloadRecord {

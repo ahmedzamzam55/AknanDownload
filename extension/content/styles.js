@@ -25,8 +25,13 @@
     /* the list floats under the button (the button never moves): to its
        left when the button is on the right of the video, else to its right,
        and above it when there is no room below */
-    .list { position: absolute; top: 100%; right: 0; width: 330px; margin-top: 4px; background: #fff; border-radius: 6px;
-            box-shadow: 0 6px 22px rgba(0,0,0,.28); overflow: hidden; max-height: 360px; overflow-y: auto; border: 1px solid #d5dbe4; }
+    .list { position: absolute; top: 100%; right: 0; width: 365px; margin-top: 4px; background: #fff; border-radius: 6px;
+            box-shadow: 0 6px 22px rgba(0,0,0,.28); overflow: hidden; max-height: 430px; overflow-y: auto; border: 1px solid #d5dbe4; }
+    .pbar { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px;
+            background: linear-gradient(#24a357, #168542); color: #fff; font-weight: 700; font-size: 11.5px; }
+    .pbar .pacts { display: inline-flex; align-items: center; gap: 8px; }
+    .pbar .pacts span { cursor: pointer; padding: 0 3px; opacity: .9; }
+    .pbar .pacts span:hover { opacity: 1; }
     .wrap.toright .list { right: auto; left: 0; }
     .wrap.up .list { top: auto; bottom: 100%; margin-top: 0; margin-bottom: 4px; }
     .btn.locked { background: linear-gradient(#7b8794, #5b6573); border-color: #4a535f; }
@@ -68,10 +73,31 @@
     .cliprow .t { color: #1d63d6; }
     /* "⬇ Whole video" / "✂ Part" (the part in orange) */
     .tabs { display: flex; border-bottom: 1px solid #e3e8ef; background: #f4f6fa; }
-    .tab { flex: 1; text-align: center; padding: 7px 4px; cursor: default; color: #5b6575; font-weight: 600; border-bottom: 3px solid transparent; }
+    .tab { flex: 1; text-align: center; padding: 6px 4px; cursor: default; color: #5b6575; font-weight: 600; font-size: 10.5px; line-height: 1.2;
+           border-bottom: 3px solid transparent; display: flex; align-items: center; justify-content: center; }
     .tab:hover { background: #eef2f8; }
     .tab.on { color: #1d63d6; border-bottom-color: #1d63d6; background: #fff; }
     .tab.part.on { color: #e8590c; border-bottom-color: #e8590c; }
+    .subcfg { padding: 8px 10px; border-bottom: 1px solid #e3e8ef; background: #fff; }
+    .subselrow { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+    .subselrow .lbl { color: #334; white-space: nowrap; font-weight: 600; }
+    .sel { flex: 1; font: inherit; padding: 3px 6px; border: 1px solid #c9d1dc; border-radius: 4px; color: #1f2733; background: #fff; }
+    .sel.sm { flex: none; padding: 2px 6px; }
+    .submode { display: flex; align-items: center; gap: 12px; color: #1f2733; }
+    .submode label { display: inline-flex; align-items: center; gap: 5px; cursor: default; }
+    .subtop { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid #e3e8ef; background: #fafbfd; }
+    .suball, .subfmt { display: inline-flex; align-items: center; gap: 6px; color: #1f2733; }
+    .subrow { display: flex; align-items: center; gap: 7px; padding: 6px 10px; border-bottom: 1px solid #eef1f5; cursor: default; color: #1f2733; }
+    .subrow:hover { background: #f4f7fc; }
+    .subrow .code { color: #6b7686; }
+    .autobadge { background: #fef3c7; color: #b45309; font-size: 9.5px; padding: 0 5px; border-radius: 3px; font-weight: 600; }
+    .submore { padding: 6px 10px 4px; color: #6b7686; cursor: pointer; font-weight: 600; }
+    .submore:hover { color: #1d63d6; }
+    .subfoot { padding: 8px 10px 10px; background: #fff; }
+    .subbtn { width: 100%; border: 0; border-radius: 5px; padding: 7px 10px; background: #1d63d6; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+    .subbtn:hover { background: #1854b8; }
+    .subbtn.off { opacity: .5; cursor: default; }
+    .subnote { margin-top: 6px; color: #6b7686; font-size: 10px; text-align: center; }
     .cut { padding: 9px 12px 11px; background: #fff; }
     .cut .lead { color: #e8590c; font-weight: 700; margin-bottom: 8px; }
     .cut .times { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
