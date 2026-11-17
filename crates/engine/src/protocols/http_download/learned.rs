@@ -59,6 +59,18 @@ pub(crate) fn learn(url: &str, n: u32) {
     }
 }
 
+/// Record a higher proven concurrency when a site safely handles more streams.
+pub(crate) fn raise_learned(url: &str, n: u32) {
+    let Some(site) = site_of(url) else { return };
+    let mut l = LEARNED.lock_ok();
+    if let Some((old, _)) = l.0.get(&site) {
+        if n > *old {
+            l.0.insert(site, (n, now_secs()));
+            l.1 = true;
+        }
+    }
+}
+
 /// The limits seen before (at start), as kept by `take_learned_changes`:
 /// {"site": [n, seconds]}. Older files ({"site": n}, no time) are not taken:
 /// their limits were kept for ever, and are let go now.

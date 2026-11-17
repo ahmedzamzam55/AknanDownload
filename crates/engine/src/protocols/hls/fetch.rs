@@ -92,6 +92,7 @@ pub(super) async fn fetch_part_stream(
     job: &HlsJob,
     progress: &Progress,
     ok_active: &AtomicUsize,
+    peak_ok: &AtomicUsize,
     slot: usize,
     part: &Part,
     key: Option<&[u8]>,
@@ -105,7 +106,8 @@ pub(super) async fn fetch_part_stream(
     if !resp.status().is_success() {
         return Err(HttpStatus(resp.status().as_u16()).into());
     }
-    ok_active.fetch_add(1, Ordering::Relaxed);
+    let cur_ok = ok_active.fetch_add(1, Ordering::Relaxed) + 1;
+    peak_ok.fetch_max(cur_ok, Ordering::Relaxed);
     let _ok = OkGuard(ok_active);
     let partial = resp.status() == reqwest::StatusCode::PARTIAL_CONTENT;
     let cap = part.range.map(|(_, l)| l as usize).unwrap_or_else(|| resp.content_length().unwrap_or(0) as usize).min(8 << 20);

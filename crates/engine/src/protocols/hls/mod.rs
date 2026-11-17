@@ -11,8 +11,9 @@ use crate::model::RequestHeaders;
 use anyhow::{anyhow, bail, Context};
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
+use tokio::sync::Notify;
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
@@ -34,7 +35,7 @@ pub struct HlsJob {
 mod fetch;
 mod worker;
 use fetch::{fetch_bytes, fetch_text, join_parts, part_file};
-use worker::{run_worker, HlsPool};
+use worker::{ramp_task, run_worker, HlsPool};
 
 /// Gets the stream (or only the parts of `job.clip`) into `job.output`.
 /// Gives when the first part it took starts in the stream (seconds; 0
@@ -112,18 +113,28 @@ pub async fn run(
     progress.hls_workers[0].0.store(done_bytes, Ordering::Relaxed);
 
     let total_dur_ms: u64 = chosen.iter().map(|&i| (parts[i].duration.max(0.0) * 1000.0) as u64).sum();
-    let sample_url = chosen.first().map(|&i| parts[i].url.as_str()).unwrap_or(&url);
-    let conns = learned_limit(sample_url).unwrap_or(job.connections).clamp(1, 16) as usize;
-    let want_workers = conns.min(todo.len().max(1)).min(16);
+    let sample_url = chosen.first().map(|&i| parts[i].url.as_str()).unwrap_or(&url).to_string();
+    let max_workers = job.connections.clamp(1, 16).min(todo.len().max(1) as u32) as usize;
+    let learned = learned_limit(&sample_url).map(|n| (n as usize).clamp(1, max_workers));
+    let initial_want = learned.unwrap_or_else(|| max_workers.min(2));
+    let ceiling = learned.unwrap_or(max_workers);
     let pool = Arc::new(HlsPool {
         shared: shared.clone(),
         job: job.clone(),
         progress: progress.clone(),
         parts: parts.clone(),
         keys: keys.clone(),
+        sample_url,
         queue: Mutex::new(todo),
-        want: AtomicUsize::new(want_workers),
+        busy: AtomicUsize::new(0),
+        want: AtomicUsize::new(initial_want),
+        ceiling: AtomicUsize::new(ceiling),
+        max_workers,
         ok_active: AtomicUsize::new(0),
+        peak_ok: AtomicUsize::new(0),
+        last_throttled: AtomicU64::new(0),
+        finished: AtomicBool::new(false),
+        wake: Notify::new(),
         done_bytes: AtomicU64::new(done_bytes),
         done_dur_ms: AtomicU64::new(done_dur_ms),
         done_parts: AtomicU32::new(done),
@@ -134,8 +145,9 @@ pub async fn run(
 
     if !pool.queue.lock().map(|q| q.is_empty()).unwrap_or(true) {
         let child = cancel.child_token();
+        let ramp = tokio::spawn(ramp_task(pool.clone(), child.clone()));
         let mut set = JoinSet::new();
-        for slot in 0..want_workers {
+        for slot in 0..max_workers {
             set.spawn(run_worker(pool.clone(), slot, child.clone()));
         }
         let mut first_error = None;
@@ -148,6 +160,7 @@ pub async fn run(
                 child.cancel();
             }
         }
+        ramp.abort();
         if cancel.is_cancelled() {
             return Err(Cancelled.into());
         }

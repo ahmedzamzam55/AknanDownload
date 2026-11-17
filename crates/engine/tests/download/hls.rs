@@ -135,7 +135,7 @@ async fn hls_throttles_on_503_and_resumes_cleanly() {
                         let head = format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len());
                         let _ = w.write_all(head.as_bytes()).await;
                         for chunk in body.chunks(8000) {
-                            tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+                            tokio::time::sleep(std::time::Duration::from_millis(45)).await;
                             if w.write_all(chunk).await.is_err() {
                                 break;
                             }
@@ -162,7 +162,7 @@ async fn hls_throttles_on_503_and_resumes_cleanly() {
     };
     let shared = Arc::new(Shared::new(build_client().unwrap(), SpeedLimiter::new(0)));
 
-    // Phase 1: run until >= 4 parts done despite 503 throttling, verify live estimate, then pause.
+    // Phase 1: run until >= 6 parts done so ramp_task probes past 2, hits 503, and settles on 2.
     let p1 = Arc::new(Progress::default());
     let c1 = CancellationToken::new();
     let h1 = tokio::spawn({
@@ -170,17 +170,18 @@ async fn hls_throttles_on_503_and_resumes_cleanly() {
         async move { swiftget_engine::hls::run(s, j, p, c).await }
     });
     for _ in 0..200 {
-        if p1.parts_done.load(Ordering::Relaxed) >= 4 {
+        if p1.parts_done.load(Ordering::Relaxed) >= 6 && hit_503.load(Ordering::SeqCst) > 0 {
             break;
         }
         tokio::time::sleep(std::time::Duration::from_millis(25)).await;
     }
-    assert!(p1.parts_done.load(Ordering::Relaxed) >= 4);
+    assert!(p1.parts_done.load(Ordering::Relaxed) >= 6);
     assert!(p1.est_total.load(Ordering::Relaxed) > 0, "estimated total should be populated mid-stream");
     assert!(p1.bytes.load(Ordering::Relaxed) > 0);
     c1.cancel();
     assert!(h1.await.unwrap().is_err());
     assert!(hit_503.load(Ordering::SeqCst) > 0, "server 503 throttling path must be exercised");
+    assert_eq!(swiftget_engine::http_download::learned_limit(&job.url), Some(2));
 
     // Phase 2: resume from same temp_dir; finished parts must not be fetched again.
     let saved_parts = std::fs::read_dir(&job.temp_dir).unwrap().count();
