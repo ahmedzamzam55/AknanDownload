@@ -28,6 +28,10 @@ pub struct Progress {
     /// after the data: what it does (Step code, 0 = nothing) and how far (per mille)
     pub step: std::sync::atomic::AtomicU8,
     pub step_done: AtomicU32,
+    /// streams whose exact size is estimated from completed parts/duration
+    pub est_total: AtomicU64,
+    /// per-worker (downloaded_bytes, active) for HLS connection display
+    pub hls_workers: [(AtomicU64, AtomicBool); 16],
 }
 
 impl Progress {
@@ -39,6 +43,13 @@ impl Progress {
     /// How far the step is (0..1).
     pub fn step_at(&self, f: f64) {
         self.step_done.store((f.clamp(0.0, 1.0) * 1000.0) as u32, Ordering::Relaxed);
+    }
+
+    pub fn reset_hls_workers(&self) {
+        for (b, a) in &self.hls_workers {
+            b.store(0, Ordering::Relaxed);
+            a.store(false, Ordering::Relaxed);
+        }
     }
 
     /// Data arrived: the connection works (again).

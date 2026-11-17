@@ -80,6 +80,14 @@ impl Manager {
             } else {
                 rec.downloaded
             };
+            if rec.kind == DownloadKind::Hls {
+                rec.resumable = true;
+                if bytes > 0 && rec.parts_done > 0 && rec.parts_total >= rec.parts_done {
+                    let est = ((bytes as u128 * rec.parts_total as u128) / rec.parts_done as u128) as u64;
+                    progress.est_total.store(est.max(bytes), Ordering::Relaxed);
+                    progress.hls_workers[0].0.store(bytes, Ordering::Relaxed);
+                }
+            }
             progress.bytes.store(bytes, Ordering::Relaxed);
             progress.parts_total.store(rec.parts_total, Ordering::Relaxed);
             progress.parts_done.store(rec.parts_done, Ordering::Relaxed);

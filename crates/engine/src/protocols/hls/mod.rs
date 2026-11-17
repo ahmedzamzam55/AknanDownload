@@ -4,16 +4,15 @@
 //! DRM protected streams (SAMPLE-AES, Widevine, FairPlay...) are refused on
 //! purpose. Live streams (no #EXT-X-ENDLIST) are refused too.
 
-use crate::http::{ConnGuard, Progress, Shared};
-use crate::http_download::Cancelled;
+use crate::http::{Progress, Shared};
+use crate::http_download::{learned_limit, Cancelled};
+use crate::m3u8::{best_variant, parse_media};
 use crate::model::RequestHeaders;
 use anyhow::{anyhow, bail, Context};
-use std::collections::HashMap;
-use crate::m3u8::{best_variant, parse_media};
+use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
+use std::sync::atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
@@ -33,7 +32,9 @@ pub struct HlsJob {
 }
 
 mod fetch;
-use fetch::{decrypt, fetch_bytes, fetch_full, fetch_text, join_parts, part_file};
+mod worker;
+use fetch::{fetch_bytes, fetch_text, join_parts, part_file};
+use worker::{run_worker, HlsPool};
 
 /// Gets the stream (or only the parts of `job.clip`) into `job.output`.
 /// Gives when the first part it took starts in the stream (seconds; 0
@@ -91,107 +92,70 @@ pub async fn run(
 
     // 3. parts, several at a time; finished parts survive pause/resume
     let total = chosen.len();
+    progress.reset_hls_workers();
     progress.parts_total.store(total as u32, Ordering::Relaxed);
     let mut done_bytes = 0u64;
+    let mut done_dur_ms = 0u64;
     let mut done = 0u32;
+    let mut todo = VecDeque::new();
     for &i in chosen.iter() {
         if let Ok(m) = std::fs::metadata(part_file(&job.temp_dir, i)) {
             done += 1;
             done_bytes += m.len();
+            done_dur_ms += (parts[i].duration.max(0.0) * 1000.0) as u64;
+        } else {
+            todo.push_back(i);
         }
     }
     progress.parts_done.store(done, Ordering::Relaxed);
     progress.bytes.store(done_bytes, Ordering::Relaxed);
+    progress.hls_workers[0].0.store(done_bytes, Ordering::Relaxed);
 
-    let next = Arc::new(AtomicUsize::new(0));
-    let child = cancel.child_token();
-    let mut set = JoinSet::new();
-    for _ in 0..job.connections.clamp(1, 16) {
-        let (shared, job, progress, child, next, parts, keys, chosen) = (
-            shared.clone(),
-            job.clone(),
-            progress.clone(),
-            child.clone(),
-            next.clone(),
-            parts.clone(),
-            keys.clone(),
-            chosen.clone(),
-        );
-        set.spawn(async move {
-            loop {
-                let n = next.fetch_add(1, Ordering::Relaxed);
-                if n >= chosen.len() {
-                    return Ok::<(), anyhow::Error>(());
+    let total_dur_ms: u64 = chosen.iter().map(|&i| (parts[i].duration.max(0.0) * 1000.0) as u64).sum();
+    let sample_url = chosen.first().map(|&i| parts[i].url.as_str()).unwrap_or(&url);
+    let conns = learned_limit(sample_url).unwrap_or(job.connections).clamp(1, 16) as usize;
+    let want_workers = conns.min(todo.len().max(1)).min(16);
+    let pool = Arc::new(HlsPool {
+        shared: shared.clone(),
+        job: job.clone(),
+        progress: progress.clone(),
+        parts: parts.clone(),
+        keys: keys.clone(),
+        queue: Mutex::new(todo),
+        want: AtomicUsize::new(want_workers),
+        ok_active: AtomicUsize::new(0),
+        done_bytes: AtomicU64::new(done_bytes),
+        done_dur_ms: AtomicU64::new(done_dur_ms),
+        done_parts: AtomicU32::new(done),
+        total_dur_ms,
+        total_parts: total as u64,
+    });
+    pool.update_estimate();
+
+    if !pool.queue.lock().map(|q| q.is_empty()).unwrap_or(true) {
+        let child = cancel.child_token();
+        let mut set = JoinSet::new();
+        for slot in 0..want_workers {
+            set.spawn(run_worker(pool.clone(), slot, child.clone()));
+        }
+        let mut first_error = None;
+        while let Some(r) = set.join_next().await {
+            let r = r.map_err(|e| anyhow!("worker crashed: {e}")).and_then(|r| r);
+            if let Err(e) = r {
+                if first_error.is_none() && !cancel.is_cancelled() {
+                    first_error = Some(e);
                 }
-                let i = chosen[n];
-                let path = part_file(&job.temp_dir, i);
-                if path.exists() {
-                    continue;
-                }
-                let mut attempt = 0;
-                loop {
-                    let fut = async {
-                        let _g = ConnGuard::new(&progress);
-                        let mut data = fetch_full(&shared, &job, &parts[i].url, parts[i].range).await?.0;
-                        shared.limiter.acquire(data.len()).await;
-                        job.limiter.acquire(data.len()).await;
-                        if let Some(k) = &parts[i].key {
-                            let key = keys.get(&k.uri).ok_or_else(|| anyhow!("missing key"))?;
-                            let iv = k
-                                .iv
-                                .unwrap_or_else(|| (parts[i].sequence as u128).to_be_bytes());
-                            decrypt(key, &iv, &mut data)?;
-                        }
-                        // on the disk before it counts as there (a power
-                        // cut left empty pieces that were taken as done)
-                        let tmp = path.with_extension("tmp");
-                        {
-                            use std::io::Write;
-                            let mut f = std::fs::File::create(&tmp)?;
-                            f.write_all(&data)?;
-                            f.sync_data()?;
-                        }
-                        std::fs::rename(&tmp, &path)?;
-                        Ok::<u64, anyhow::Error>(data.len() as u64)
-                    };
-                    let r = tokio::select! {
-                        r = fut => r,
-                        _ = child.cancelled() => return Err(Cancelled.into()),
-                    };
-                    match r {
-                        Ok(n) => {
-                            progress.bytes.fetch_add(n, Ordering::Relaxed);
-                            progress.parts_done.fetch_add(1, Ordering::Relaxed);
-                            break;
-                        }
-                        Err(e) => {
-                            attempt += 1;
-                            if attempt > job.retries {
-                                return Err(e);
-                            }
-                            tokio::time::sleep(Duration::from_secs((attempt as u64 * 2).min(20))).await;
-                        }
-                    }
-                }
+                child.cancel();
             }
-        });
-    }
-    let mut first_error = None;
-    while let Some(r) = set.join_next().await {
-        let r = r.map_err(|e| anyhow!("worker crashed: {e}")).and_then(|r| r);
-        if let Err(e) = r {
-            if first_error.is_none() && !cancel.is_cancelled() {
-                first_error = Some(e);
-            }
-            child.cancel();
+        }
+        if cancel.is_cancelled() {
+            return Err(Cancelled.into());
+        }
+        if let Some(e) = first_error {
+            return Err(e);
         }
     }
-    if cancel.is_cancelled() {
-        return Err(Cancelled.into());
-    }
-    if let Some(e) = first_error {
-        return Err(e);
-    }
+    progress.est_total.store(pool.done_bytes.load(Ordering::Relaxed), Ordering::Relaxed);
     join_parts(&shared, &job, &progress, playlist.init_url.as_deref(), playlist.init_range, chosen).await?;
     progress.assembling.store(false, Ordering::Relaxed);
     Ok(first_at)

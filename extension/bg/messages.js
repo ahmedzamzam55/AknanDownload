@@ -13,14 +13,15 @@ function onRuntimeMessage(msg, sender, sendResponse) {
       const item = msg.item || {};
       // a video inside a frame (embedded player): that frame's page
       const referrer = sender.frameId && msg.referrer ? msg.referrer : sender.tab ? sender.tab.url : msg.referrer;
+      const tabPage = sender.tab && /^https?:/i.test(sender.tab.url || "") && !isManifestUrl(sender.tab.url) ? sender.tab.url : "";
       // a part only from the "✂ Part" tab (the whole video never carries one)
       const clip = msg.part ? partOf(msg.clip) : null;
       if (msg.part && !clip) return reply(Promise.reject(new Error("the part is not right")), sendResponse);
       return reply(
         storeOf(sender.tab).then((store) =>
           item.yt
-            ? downloadVideo(item.yt, msg.title, referrer, clip, store, item.reqHeaders, msg.subtitle)
-            : sendToApp({ url: item.url, referrer, reqHeaders: item.reqHeaders, fileName: msg.fileName, clip, store, direct: true, subtitle: msg.subtitle })
+            ? downloadVideo(item.yt, msg.title, referrer, clip, store, item.reqHeaders, msg.subtitle, tabPage)
+            : sendToApp({ url: item.url, referrer, reqHeaders: item.reqHeaders, fileName: msg.fileName, sourcePage: tabPage || null, clip, store, direct: true, subtitle: msg.subtitle })
         ),
         sendResponse
       );

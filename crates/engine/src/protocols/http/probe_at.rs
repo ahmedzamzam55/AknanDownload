@@ -126,7 +126,7 @@ pub(super) async fn probe_at(
         final_url,
         file_name,
         total_size: if kind == DownloadKind::Hls { None } else { total_size },
-        resumable: kind == DownloadKind::Http && resumable,
+        resumable: kind == DownloadKind::Hls || (kind == DownloadKind::Http && resumable),
         content_type,
         kind,
         last_modified,

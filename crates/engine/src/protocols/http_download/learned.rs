@@ -44,7 +44,7 @@ pub fn learned_limit(url: &str) -> Option<u32> {
     l.0.get(&site).filter(|(_, at)| now_secs().saturating_sub(*at) < LEARNED_FOR).map(|(n, _)| *n)
 }
 
-pub(super) fn learn(url: &str, n: u32) {
+pub(crate) fn learn(url: &str, n: u32) {
     let Some(site) = site_of(url) else { return };
     let mut l = LEARNED.lock_ok();
     let n = n.max(1);

@@ -12,10 +12,11 @@ function isManifestUrl(u) {
   return /\.(m3u8|m3u|mpd)(\?|$)|\/hls\d*\/.*\.txt(\?|$)/i.test(u || "");
 }
 
-async function downloadVideo(option, pageTitle, pageUrl, clip, store, reqHeaders, subtitle) {
+async function downloadVideo(option, pageTitle, pageUrl, clip, store, reqHeaders, subtitle, fallbackPage) {
   const title = cleanYoutubeTitle(option.title || pageTitle);
   const name = option.quality === "mp3" ? `${title}.mp3` : `${title} [${option.quality}].${option.ext}`;
   const srcRef = option.source && !isYoutube(option.source) && !isManifestUrl(option.source) ? option.source : "";
+  const sourcePage = option.source || (!isManifestUrl(fallbackPage) ? fallbackPage : "") || null;
   await sendToApp({
     url: option.videoUrl,
     audioUrl: option.audioUrl,
@@ -23,7 +24,7 @@ async function downloadVideo(option, pageTitle, pageUrl, clip, store, reqHeaders
     fileName: name,
     headers: option.headers,
     reqHeaders,
-    sourcePage: option.source,
+    sourcePage,
     sourceKey: option.key,
     clip,
     store,

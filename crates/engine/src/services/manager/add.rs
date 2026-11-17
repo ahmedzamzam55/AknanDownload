@@ -114,7 +114,7 @@ impl Manager {
                 DownloadKind::Torrent => torrent_info.as_ref().map(|i| i.total),
                 _ => probe.as_ref().and_then(|p| p.total_size),
             },
-            resumable: probe.as_ref().map(|p| p.resumable).unwrap_or(false),
+            resumable: kind != DownloadKind::Http || probe.as_ref().is_some_and(|p| p.resumable),
             segments: Vec::new(),
             audio_url,
             audio_segments: Vec::new(),

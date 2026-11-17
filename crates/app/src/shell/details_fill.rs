@@ -59,8 +59,8 @@ pub(super) fn fill_details(d: &DetailsDialog, model: &VecModel<SegView>, v: &Dow
     };
     d.set_status(status.into());
     d.set_size(v.total_size.map(fmt_size).unwrap_or_else(|| t("Unknown")).into());
-    let done = if v.parts_total > 0 && v.total_size.is_none() {
-        format!("{} ({}/{} parts)", fmt_size(v.downloaded), v.parts_done, v.parts_total)
+    let done = if v.parts_total > 0 {
+        format!("{} ({:.1} % · {}/{})", fmt_size(v.downloaded), pct * 100.0, v.parts_done, v.parts_total)
     } else {
         format!("{} ({:.2} %)", fmt_size(v.downloaded), pct * 100.0)
     };

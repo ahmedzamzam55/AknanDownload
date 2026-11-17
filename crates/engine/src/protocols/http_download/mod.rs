@@ -16,6 +16,7 @@ mod worker;
 #[cfg(test)]
 mod tests;
 
+pub(crate) use learned::learn;
 pub use learned::{learned_limit, set_learned, site_of, take_learned_changes};
 pub use run::run;
 pub use types::{max_request_for, Cancelled, FileChanged, FileCheck, HttpJob, SegTable, FILE_CHANGED};

@@ -114,9 +114,8 @@ impl Manager {
         let (Some(page), Some(key)) = (rec.source_page.clone(), rec.source_key.clone()) else {
             return Ok(());
         };
-        let started = !rec.segments.is_empty() || rec.downloaded > 0;
         let old = Utc::now().signed_duration_since(rec.added_at) > chrono::Duration::minutes(30);
-        if !started && !old {
+        if !old && !self.relink.lock_ok().contains(&id) {
             return Ok(());
         }
         let job = tokio::task::spawn_blocking(move || ytdlp::resolve_key(&page, &key));

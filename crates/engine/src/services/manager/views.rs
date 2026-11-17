@@ -29,6 +29,39 @@ pub(super) fn ready_from_start(segs: &[segments::Segment]) -> u64 {
     }
     ready
 }
+fn hls_segments(progress: &crate::http::Progress, total: u64) -> Vec<(u64, u64, u64, bool)> {
+    let used: Vec<(u64, bool)> = progress
+        .hls_workers
+        .iter()
+        .map(|(b, a)| (b.load(Ordering::Relaxed), a.load(Ordering::Relaxed)))
+        .filter(|(b, a)| *b > 0 || *a)
+        .collect();
+    if used.is_empty() {
+        return Vec::new();
+    }
+    let sum_done: u64 = used.iter().map(|w| w.0).sum();
+    let base = total.max(sum_done).max(1);
+    let mut rem = base.saturating_sub(sum_done);
+    let active_only = used.iter().any(|w| w.1);
+    let mut sharers = if active_only { used.iter().filter(|w| w.1).count() } else { used.len() };
+    let mut at = 0u64;
+    let mut out = Vec::with_capacity(used.len());
+    for (bytes, active) in used {
+        let take = if active || !active_only {
+            let part = if sharers <= 1 { rem } else { rem / sharers as u64 };
+            sharers = sharers.saturating_sub(1);
+            rem = rem.saturating_sub(part);
+            part
+        } else {
+            0
+        };
+        let end = at + bytes + take;
+        out.push((at, at + bytes, end, active));
+        at = end;
+    }
+    out
+}
+
 pub(super) fn make_view(e: &Entry) -> DownloadView {
     view_of(e, true)
 }
@@ -39,22 +72,26 @@ pub(super) fn view_of(e: &Entry, with_parts: bool) -> DownloadView {
     if status == Status::Downloading && e.progress.assembling.load(Ordering::Relaxed) {
         status = Status::Assembling;
     }
+    let est = e.progress.est_total.load(Ordering::Relaxed);
     let downloaded = if status == Status::Completed {
         e.rec.total_size.unwrap_or(bytes.max(e.rec.downloaded))
     } else {
         bytes
     };
+    let total_size = e.rec.total_size.or_else(|| (est > 0).then_some(est.max(downloaded)));
     let speed = if status.is_running() { e.speed.value } else { 0.0 };
     // the time left: from the steady speed (the speed of this very moment
     // jumps, and a short stop made it disappear)
     let steady = if status.is_running() { e.speed.steady } else { 0.0 };
     let pace = if steady > 1.0 { steady } else { speed };
-    let eta_secs = match e.rec.total_size {
+    let eta_secs = match total_size {
         Some(t) if pace > 1.0 => Some((t.saturating_sub(downloaded) as f64 / pace) as u64),
         _ => None,
     };
     let segments = if status == Status::Completed || !with_parts {
         Vec::new()
+    } else if e.rec.kind == DownloadKind::Hls {
+        hls_segments(&e.progress, total_size.unwrap_or(downloaded))
     } else {
         e.segs.lock_ok().iter().map(|s| (s.start, s.pos, s.end, s.active)).collect()
     };
@@ -67,7 +104,7 @@ pub(super) fn view_of(e: &Entry, with_parts: bool) -> DownloadView {
         kind: e.rec.kind,
         status,
         error: e.rec.error.clone(),
-        total_size: e.rec.total_size,
+        total_size,
         downloaded,
         speed,
         eta_secs,
@@ -76,7 +113,7 @@ pub(super) fn view_of(e: &Entry, with_parts: bool) -> DownloadView {
         waiting: status.is_running()
             && e.progress.waiting.load(Ordering::Relaxed)
             && e.progress.connections.load(Ordering::Relaxed) == 0,
-        resumable: e.rec.resumable,
+        resumable: e.rec.resumable || e.rec.kind != DownloadKind::Http || e.rec.clip.is_some(),
         parts_total: e.progress.parts_total.load(Ordering::Relaxed),
         parts_done: e.progress.parts_done.load(Ordering::Relaxed),
         segments,

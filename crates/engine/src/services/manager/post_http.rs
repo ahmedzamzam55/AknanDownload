@@ -71,28 +71,31 @@ impl Manager {
             made?;
             std::fs::rename(&tmp, &part)?;
         }
-        if rec.kind == DownloadKind::Hls && filename::extension(&rec.file_name) == "ts" && mux::find_ffmpeg().is_some() {
-            // a joined stream: an ordinary MP4 plays everywhere and can be
-            // wound forward; if that fails the .ts file stays as it is
-            progress.assembling.store(true, Ordering::Relaxed);
-            let (input, tmp) = (part.to_path_buf(), part.with_extension("mp4tmp"));
-            let t2 = tmp.clone();
-            // ffmpeg missing: fetched again first
-            crate::tools::restore_ffmpeg(&self.client()).await;
-            progress.set_step(Some(Step::ToMp4));
-            let (p2, c2) = (progress.clone(), cancel.clone());
-            let r = tokio::task::spawn_blocking(move || mux::ts_to_mp4(&input, &t2, &|f| p2.step_at(f), Some(&c2))).await;
-            if cancel.is_cancelled() {
-                progress.set_step(None);
-                return Err(Cancelled.into());
+        if rec.kind == DownloadKind::Hls && filename::extension(&rec.file_name) == "ts" {
+            if mux::find_ffmpeg().is_none() {
+                crate::tools::restore_ffmpeg(&self.client()).await;
             }
-            let made = r.map(|r| r.is_ok()).unwrap_or(false);
-            if made && std::fs::rename(&tmp, &part).is_ok() {
-                let (stem, _) = filename::split_ext(&rec.file_name);
-                let name = filename::unique_name(&rec.save_dir, &format!("{stem}.mp4"));
-                self.update(id, move |x| x.file_name = name);
-            } else {
-                let _ = std::fs::remove_file(&tmp);
+            if mux::find_ffmpeg().is_some() {
+                // a joined stream: an ordinary MP4 plays everywhere and can be
+                // wound forward; if that fails the .ts file stays as it is
+                progress.assembling.store(true, Ordering::Relaxed);
+                let (input, tmp) = (part.to_path_buf(), part.with_extension("mp4tmp"));
+                let t2 = tmp.clone();
+                progress.set_step(Some(Step::ToMp4));
+                let (p2, c2) = (progress.clone(), cancel.clone());
+                let r = tokio::task::spawn_blocking(move || mux::ts_to_mp4(&input, &t2, &|f| p2.step_at(f), Some(&c2))).await;
+                if cancel.is_cancelled() {
+                    progress.set_step(None);
+                    return Err(Cancelled.into());
+                }
+                let made = r.map(|r| r.is_ok()).unwrap_or(false);
+                if made && std::fs::rename(&tmp, &part).is_ok() {
+                    let (stem, _) = filename::split_ext(&rec.file_name);
+                    let name = filename::unique_name(&rec.save_dir, &format!("{stem}.mp4"));
+                    self.update(id, move |x| x.file_name = name);
+                } else {
+                    let _ = std::fs::remove_file(&tmp);
+                }
             }
         }
         let latest = self.inner.lock_ok().entries.get(&id).map(|e| e.rec.clone()).unwrap_or_else(|| rec.clone());
