@@ -34,7 +34,19 @@ function parseHlsMaster(text, base) {
     seen.add(k);
     return true;
   });
-  return { variants: unique, separateAudio };
+  const subs = [];
+  for (const l of lines) {
+    if (!/^#EXT-X-MEDIA:/i.test(l) || !/TYPE=SUBTITLES/i.test(l)) continue;
+    const u = /URI="([^"]+)"/i.exec(l);
+    if (!u) continue;
+    let subUrl = "";
+    try { subUrl = new URL(u[1], base).toString(); } catch { continue; }
+    const lm = /LANGUAGE="([^"]+)"/i.exec(l);
+    const nm = /NAME="([^"]+)"/i.exec(l);
+    const lang = (lm && lm[1]) || "und";
+    subs.push({ lang, name: (nm && nm[1]) || subNameFor(lang), url: subUrl, ext: "vtt", auto: false });
+  }
+  return { variants: unique, separateAudio, subs };
 }
 
 function hlsLabel(v) {
@@ -55,12 +67,16 @@ function originOf(u) {
 async function onSubFrameBeforeNavigate(d) {
   if (d.tabId < 0 || !(d.frameId > 0) || !/^https?:/i.test(d.url || "")) return;
   const key = `media_${d.tabId}`;
-  const current = (await chrome.storage.session.get(key))[key] || [];
-  if (!current.length) return;
+  const subKey = `subs_${d.tabId}`;
+  const got = await chrome.storage.session.get([key, subKey]);
+  const current = got[key] || [];
+  const curSubs = got[subKey] || [];
   const nextOrigin = originOf(d.url);
-  const kept = current.filter((m) => m.frameId !== d.frameId || (m.frameUrl && m.frameUrl === d.url && m.frameOrigin === nextOrigin));
-  if (kept.length === current.length) return;
-  await chrome.storage.session.set({ [key]: kept });
+  const keepFn = (m) => m.frameId !== d.frameId || (m.frameUrl && m.frameUrl === d.url && m.frameOrigin === nextOrigin);
+  const kept = current.filter(keepFn);
+  const keptSubs = curSubs.filter(keepFn);
+  if (kept.length === current.length && keptSubs.length === curSubs.length) return;
+  await chrome.storage.session.set({ [key]: kept, [subKey]: keptSubs });
   pushToTab(d.tabId);
 }
 

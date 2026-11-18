@@ -175,6 +175,12 @@
     }
     if (!CS.panelAllowed()) return;
     CS.place();
-    for (const b of CS.bubbles.values()) if (!b.own && !b.loading) CS.renderOne(b);
+    const topSubs = CS.subsOf ? CS.subsOf(null, CS.items) : [];
+    for (const b of CS.bubbles.values()) {
+      if (b.own && topSubs.length && b.own[0] && !b.loading) {
+        b.own[0].subs = [...(b.own[0].subs || []), ...topSubs];
+        CS.renderOne(b);
+      } else if (!b.own && !b.loading) CS.renderOne(b);
+    }
   };
 })();

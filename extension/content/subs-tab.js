@@ -17,7 +17,8 @@
     const seen = new Set();
     const push = (s) => {
       if (!s || !s.lang || !/^https?:/i.test(s.url || "")) return;
-      const k = String(s.lang).toLowerCase();
+      const rawLang = String(s.lang).toLowerCase();
+      const k = rawLang === "und" ? `und|${s.name || s.url}` : rawLang;
       if (seen.has(k)) return;
       seen.add(k);
       out.push(s);

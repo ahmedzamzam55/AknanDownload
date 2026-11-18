@@ -38,6 +38,15 @@ impl Manager {
         if crate::ftp::is_ftp(&rec.url) {
             return self.run_ftp(id, rec, segs, progress, limiter, cancel, &settings).await;
         }
+        if let Some(body) = rec.sub_body.as_deref().filter(|s| !s.is_empty() && rec.sub_convert.is_some()) {
+            let part = rec.part_path();
+            if let Some(parent) = part.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            std::fs::write(&part, body.as_bytes())?;
+            progress.bytes.store(body.len() as u64, std::sync::atomic::Ordering::Relaxed);
+            return self.finish_http(id, &rec, &progress, &cancel, &part).await;
+        }
         self.refresh_source(id, &mut rec, &cancel).await?;
 
         // Fresh look at the server every time: links behind redirects often

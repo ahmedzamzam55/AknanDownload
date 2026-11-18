@@ -20,7 +20,8 @@ mod probe;
 mod tests;
 
 pub use probe::{look, parse_duration, parse_picture};
-use probe::{h264_maker, readable, run_ffmpeg, video_kbps};
+pub(crate) use probe::{h264_maker, video_kbps};
+use probe::{readable, run_ffmpeg};
 
 /// What the part becomes.
 #[derive(Debug, Clone, PartialEq)]

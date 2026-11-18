@@ -99,6 +99,10 @@ pub struct SubtitleTask {
     pub url: Option<String>,
     #[serde(default)]
     pub burn: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body: Option<String>,
+    #[serde(default, with = "crate::secret::opt", skip_serializing_if = "Option::is_none")]
+    pub cookies: Option<String>,
 }
 
 /// Extra request data, usually handed over by the browser extension so that
@@ -193,4 +197,5 @@ pub struct NewDownload {
     pub subtitle: Option<SubtitleTask>,
     /// target format ("srt", "vtt", "txt") when downloading a standalone subtitle file
     pub sub_convert: Option<String>,
+    pub sub_body: Option<String>,
 }

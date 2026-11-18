@@ -113,6 +113,8 @@ pub struct DownloadRecord {
     pub subtitle: Option<super::SubtitleTask>,
     #[serde(default)]
     pub sub_convert: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sub_body: Option<String>,
 }
 
 impl DownloadRecord {

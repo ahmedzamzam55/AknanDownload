@@ -51,6 +51,17 @@ async function addMedia(tabId, item) {
   if (item.type === "HLS stream" && !item.child) readHls(tabId, item.url).catch(() => {});
 }
 
+async function addSubTrack(tabId, track) {
+  const key = `subs_${tabId}`;
+  const list = (await chrome.storage.session.get(key))[key] || [];
+  const norm = streamPathKey(track.url);
+  if (list.some((s) => s.url === track.url || (s.lang === track.lang && streamPathKey(s.url) === norm))) return;
+  const next = [...list, track];
+  if (next.length > 40) next.shift();
+  await chrome.storage.session.set({ [key]: next });
+  pushToTab(tabId);
+}
+
 function onMediaHeadersReceived(d) {
   if (d.tabId < 0 || d.statusCode < 200 || d.statusCode >= 300) return;
   const url = d.url;
@@ -59,6 +70,11 @@ function onMediaHeadersReceived(d) {
   if (isTelegramStream(url) || isAdMediaUrl(url)) return;
   const h = headerMap(d.responseHeaders);
   const type = (h["content-type"] || "").toLowerCase();
+  const subTrack = guessSubTrack(url, type);
+  if (subTrack) {
+    addSubTrack(d.tabId, { ...subTrack, frameId: d.frameId || 0, frameOrigin: originOf(d.documentUrl || d.initiator || ""), seenAt: Date.now() });
+    return;
+  }
   const isHls = HLS_TYPE.test(type) || /\.m3u8(\?|$)/i.test(url) || DISGUISED_HLS.test(url);
   const isDash = DASH_TYPE.test(type) || /\.mpd(\?|$)/i.test(url);
   const isMedia = MEDIA_TYPE.test(type) && !type.includes("mp2t");

@@ -185,6 +185,7 @@ fn handle_api(ui: &Ui, event: api::ApiEvent) {
                     group: req.group,
                     subtitle: req.subtitle,
                     sub_convert: req.sub_convert,
+                    sub_body: req.sub_body,
                     start: true,
                     ..Default::default()
                 });

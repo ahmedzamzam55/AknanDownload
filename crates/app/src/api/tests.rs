@@ -171,3 +171,15 @@ fn only_browser_add_ins() {
     assert!(!origin_allowed(Some("https://evil.example")));
     assert!(!origin_allowed(Some("null")));
 }
+
+#[test]
+fn subtitle_fields_in_add_request() {
+    let req: AddRequest = serde_json::from_str(
+        r#"{"url":"https://x.test/v.mp4","subConvert":"srt","subBody":"WEBVTT\n","subtitle":{"lang":"ar","url":"https://x.test/s.vtt","burn":true,"body":"WEBVTT\n","cookies":"sid=1"}}"#,
+    )
+    .unwrap();
+    assert_eq!(req.sub_convert.as_deref(), Some("srt"));
+    assert_eq!(req.sub_body.as_deref(), Some("WEBVTT\n"));
+    let sub = req.subtitle.unwrap();
+    assert!(sub.burn && sub.lang == "ar" && sub.body.as_deref() == Some("WEBVTT\n") && sub.cookies.as_deref() == Some("sid=1"));
+}

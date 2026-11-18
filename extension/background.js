@@ -28,6 +28,7 @@ if (typeof importScripts === "function" && typeof __aknanBgModulesLoaded === "un
     "bg/selfupdate.js",
     "bg/context.js",
     "bg/requests.js",
+    "bg/sub-fetch.js",
     "bg/rules.js",
     "bg/downloads.js",
     "bg/takeover.js",

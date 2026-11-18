@@ -154,7 +154,9 @@ impl Manager {
         let _ = std::fs::remove_file(rec.audio_part_path());
         let part = rec.part_path();
         self.process_video_subtitle(id, &rec, &progress, &cancel, &part).await?;
-        self.finish_file(id, &rec, &progress, &cancel).await
+        self.finish_file(id, &rec, &progress, &cancel).await?;
+        self.save_video_sidecar_subtitle(id, &rec).await;
+        Ok(())
     }
 
 }

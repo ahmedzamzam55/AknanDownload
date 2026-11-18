@@ -100,7 +100,9 @@ impl Manager {
         }
         let latest = self.inner.lock_ok().entries.get(&id).map(|e| e.rec.clone()).unwrap_or_else(|| rec.clone());
         self.process_video_subtitle(id, &latest, progress, cancel, part).await?;
-        self.finish_file(id, rec, progress, cancel).await
+        self.finish_file(id, &latest, progress, cancel).await?;
+        self.save_video_sidecar_subtitle(id, &latest).await;
+        Ok(())
     }
 }
 

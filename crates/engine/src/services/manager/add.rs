@@ -162,6 +162,7 @@ impl Manager {
                 .map(|e| e.text()),
             subtitle: req.subtitle,
             sub_convert: req.sub_convert,
+            sub_body: req.sub_body,
         };
         let mut rec = rec;
         if early {

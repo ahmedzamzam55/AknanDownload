@@ -71,6 +71,11 @@ fn parse_json3(raw: &str) -> Vec<Cue> {
             out.push(Cue { start_ms, end_ms: start_ms.saturating_add(dur_ms.max(200)), text });
         }
     }
+    for i in 0..out.len().saturating_sub(1) {
+        if out[i + 1].start_ms > out[i].start_ms && out[i].end_ms > out[i + 1].start_ms {
+            out[i].end_ms = out[i + 1].start_ms;
+        }
+    }
     out
 }
 

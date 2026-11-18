@@ -55,7 +55,7 @@ for (const html of ["popup.html", "options.html"]) {
     webRequest: { onHeadersReceived: on(), onBeforeRequest: on(), onBeforeSendHeaders: on(), onSendHeaders: on() },
     tabs: { onUpdated: on(), onRemoved: on(), onCreated: on(), query: async () => [] },
     action: { setBadgeBackgroundColor: () => {}, setBadgeText: async () => {} },
-    runtime: { id: "fx", onInstalled: on(), onStartup: on(), onMessage: on(), getManifest: () => ({ version: "1.0.11" }), getURL: (p) => p },
+    runtime: { id: "fx", onInstalled: on(), onStartup: on(), onMessage: on(), getManifest: () => ({ version: "1.0.12" }), getURL: (p) => p },
     permissions: { contains: async () => false },
     contextMenus: { removeAll: () => {}, create: () => {}, onClicked: on() },
     cookies: { getAll: async () => [] },

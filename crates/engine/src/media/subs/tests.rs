@@ -25,3 +25,11 @@ fn converts_json3_and_xml_to_srt() {
     let ttml = r#"<tt><body><div><p begin="00:00:10.000" end="00:00:12.500">One</p></div></body></tt>"#;
     assert!(convert_subtitles(ttml, "srt").contains("00:00:10,000 --> 00:00:12,500\nOne"));
 }
+
+#[test]
+fn json3_clamps_overlapping_windows() {
+    let json3 = r#"{"events":[{"tStartMs":120,"dDurationMs":9000,"segs":[{"utf8":"First"}]},{"tStartMs":4800,"dDurationMs":5000,"segs":[{"utf8":"\n"}]},{"tStartMs":4820,"dDurationMs":8000,"segs":[{"utf8":"Second"}]}]}"#;
+    let srt = convert_subtitles(json3, "srt");
+    assert!(srt.contains("1\n00:00:00,120 --> 00:00:04,820\nFirst"), "{srt}");
+    assert!(srt.contains("2\n00:00:04,820 --> 00:00:12,820\nSecond"), "{srt}");
+}

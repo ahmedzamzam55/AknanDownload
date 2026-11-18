@@ -32,6 +32,7 @@ const EXTENSION_FILES: &[(&str, &[u8])] = &[
     ("bg/menus.js", include_bytes!("../../../../extension/bg/menus.js")),
     ("bg/messages.js", include_bytes!("../../../../extension/bg/messages.js")),
     ("bg/requests.js", include_bytes!("../../../../extension/bg/requests.js")),
+    ("bg/sub-fetch.js", include_bytes!("../../../../extension/bg/sub-fetch.js")),
     ("bg/resolve.js", include_bytes!("../../../../extension/bg/resolve.js")),
     ("bg/rules.js", include_bytes!("../../../../extension/bg/rules.js")),
     ("bg/selfupdate.js", include_bytes!("../../../../extension/bg/selfupdate.js")),

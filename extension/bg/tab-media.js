@@ -4,9 +4,9 @@
 // res_<tab>:   any other site: { page, resolving, resolved, resolveError }
 
 async function readTab(tabId) {
-  const keys = [`media_${tabId}`, `yt_${tabId}`, `res_${tabId}`];
+  const keys = [`media_${tabId}`, `yt_${tabId}`, `res_${tabId}`, `subs_${tabId}`];
   const r = await chrome.storage.session.get(keys);
-  return { media: r[keys[0]] || [], yt: r[keys[1]] || null, res: r[keys[2]] || null };
+  return { media: r[keys[0]] || [], yt: r[keys[1]] || null, res: r[keys[2]] || null, subs: r[keys[3]] || [] };
 }
 
 function streamPathKey(u) {
@@ -55,7 +55,7 @@ function orderMedia(media, preferFrameId) {
 
 /** Everything the page button and the popup show, in one list. */
 async function itemsForTab(tabId, preferFrameId = 0) {
-  const { media, yt, res } = await readTab(tabId);
+  const { media, yt, res, subs } = await readTab(tabId);
   const items = [];
   if (res && !yt) {
     if (res.resolved && res.resolved.options.length) {
@@ -96,6 +96,12 @@ async function itemsForTab(tabId, preferFrameId = 0) {
   const resolvedFound = items.some((i) => i.yt);
   const visible = orderMedia(media, preferFrameId).filter((m) => !(resolvedFound && /HLS|DASH|video/i.test(m.type)));
   items.push(...mediaItems(visible));
+  const usableFirst = items.find((i) => !i.disabled);
+  if (usableFirst) {
+    const hlsSubs = visible.flatMap((m) => (m.master && m.master.subs) || []);
+    const merged = mergeSubLists(usableFirst.subs, yt && yt.subs, yt && yt.resolved && yt.resolved.subtitles, res && res.resolved && res.resolved.subtitles, hlsSubs, orderMedia(subs, preferFrameId));
+    if (merged.length) usableFirst.subs = merged;
+  }
   return items;
 }
 
@@ -187,7 +193,7 @@ async function pushToTab(tabId) {
 }
 
 async function clearTab(tabId) {
-  await chrome.storage.session.remove([`media_${tabId}`, `yt_${tabId}`, `res_${tabId}`]);
+  await chrome.storage.session.remove([`media_${tabId}`, `yt_${tabId}`, `res_${tabId}`, `subs_${tabId}`]);
   chrome.action.setBadgeText({ tabId, text: "" }).catch(() => {});
   chrome.tabs.sendMessage(tabId, { type: "swiftget-media", items: [] }).catch(() => {});
 }

@@ -77,10 +77,10 @@ Compress-Archive -Path "$StageDir\extension-firefox\*" -DestinationPath (Join-Pa
 # the big public build of earlier versions is not used any more.
 $ours = Join-Path $Root "tools\ffmpeg\win64"
 if (Test-Path "$ours\ffmpeg.exe") {
-    foreach ($f in @("ffmpeg.exe", "ffmpeg-LICENSE.txt", "lame-COPYING.txt", "openh264-LICENSE.txt", "ffmpeg-version.txt")) {
+    foreach ($f in @("ffmpeg.exe", "ffmpeg-LICENSE.txt", "lame-COPYING.txt", "openh264-LICENSE.txt", "dav1d-COPYING.txt", "freetype-LICENSE.txt", "fribidi-COPYING.txt", "harfbuzz-COPYING.txt", "libass-COPYING.txt", "ffmpeg-build.txt", "ffmpeg-version.txt")) {
         if (Test-Path "$ours\$f") { Copy-Item "$ours\$f" $CacheDir -Force }
     }
-} elseif ((Test-Path "$CacheDir\ffmpeg.exe") -and ((Get-Item "$CacheDir\ffmpeg.exe").Length -gt 20MB)) {
+} elseif ((Test-Path "$CacheDir\ffmpeg.exe") -and ((Get-Item "$CacheDir\ffmpeg.exe").Length -gt 45MB)) {
     Remove-Item "$CacheDir\ffmpeg.exe", "$CacheDir\ffmpeg-version.txt" -Force -ErrorAction SilentlyContinue
     Write-Host "The old big ffmpeg was removed. Put our small ffmpeg.exe in tools\ffmpeg\win64 (it comes with the source zip, or from a GitHub build)." -ForegroundColor Yellow
 }

@@ -127,6 +127,11 @@ impl Manager {
                         e.rec.finished_at = Some(Utc::now());
                         e.rec.segments.clear();
                         e.rec.audio_segments.clear();
+                        e.rec.sub_body = None;
+                        if let Some(sub) = &mut e.rec.subtitle {
+                            sub.body = None;
+                            sub.cookies = None;
+                        }
                         if e.rec.total_size.is_none() {
                             e.rec.total_size = Some(e.rec.downloaded);
                         }

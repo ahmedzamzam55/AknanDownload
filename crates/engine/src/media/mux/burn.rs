@@ -54,28 +54,39 @@ pub fn burn_subtitles(
 
     let format = format_for(final_name);
     let expected = len_of(&video_abs).max(1);
+    let maker = crate::clip::h264_maker(&ffmpeg);
+    let mut info_cmd = Command::new(&ffmpeg);
+    info_cmd.args(["-hide_banner", "-i"]).arg(&video_abs);
+    super::hide_window(&mut info_cmd);
+    let raw_err = info_cmd.output().map(|o| String::from_utf8_lossy(&o.stderr).into_owned()).unwrap_or_default();
+    let kbps = crate::clip::parse_picture(&raw_err).as_ref().map(crate::clip::video_kbps).unwrap_or(4000);
+    let probe_err = raw_err.to_ascii_lowercase();
+    let reencode_audio = probe_err.contains("audio: opus") || probe_err.contains("audio: vorbis") || probe_err.contains("audio: flac");
+    let vf = format!("scale=trunc(iw/2)*2:trunc(ih/2)*2,subtitles={ascii_name}");
     let mut cmd = Command::new(&ffmpeg);
     cmd.current_dir(work_dir)
         .args(["-hide_banner", "-loglevel", "error", "-y", "-i"])
         .arg(&video_abs)
-        .args([
-            "-vf",
-            &format!("subtitles={ascii_name}"),
-            "-map",
-            "0:v:0",
-            "-map",
-            "0:a?",
+        .args(["-vf", &vf, "-map", "0:v:0", "-map", "0:a?"]);
+    if maker == "libx264" {
+        cmd.args(["-c:v", "libx264", "-preset", "veryfast", "-crf", "22", "-pix_fmt", "yuv420p"]);
+    } else {
+        cmd.args([
             "-c:v",
-            "libx264",
-            "-preset",
-            "veryfast",
-            "-crf",
-            "22",
+            maker,
+            "-b:v",
+            &format!("{kbps}k"),
+            "-maxrate",
+            &format!("{}k", kbps * 3 / 2),
             "-pix_fmt",
             "yuv420p",
-            "-c:a",
-            "copy",
         ]);
+    }
+    if reencode_audio {
+        cmd.args(["-c:a", "aac", "-b:a", "192k"]);
+    } else {
+        cmd.args(["-c:a", "copy"]);
+    }
     if format == "mp4" && expected < FASTSTART_UP_TO {
         cmd.args(["-movflags", "+faststart"]);
     }

@@ -33,11 +33,11 @@ pub fn parse_duration(ffmpeg_says: &str) -> Option<f64> {
 
 /// Kinds of picture our ffmpeg reads (to make them again for the exact cut).
 pub(super) fn readable(codec: &str) -> bool {
-    matches!(codec, "h264" | "hevc" | "vp8" | "vp9" | "mpeg4")
+    matches!(codec, "h264" | "hevc" | "vp8" | "vp9" | "av1" | "mpeg4")
 }
 
 /// The H.264 maker of this ffmpeg (ours has OpenH264).
-pub(super) fn h264_maker(ffmpeg: &Path) -> &'static str {
+pub(crate) fn h264_maker(ffmpeg: &Path) -> &'static str {
     static FOUND: std::sync::OnceLock<&'static str> = std::sync::OnceLock::new();
     FOUND.get_or_init(|| {
         let mut cmd = std::process::Command::new(ffmpeg);
@@ -49,7 +49,7 @@ pub(super) fn h264_maker(ffmpeg: &Path) -> &'static str {
 }
 
 /// Picture quality of the exact cut (kb/s) for a picture of this size.
-pub(super) fn video_kbps(p: &Picture) -> u64 {
+pub(crate) fn video_kbps(p: &Picture) -> u64 {
     let pixels = (p.width as u64 * p.height as u64).max(640 * 360);
     (pixels * 8000 / (1920 * 1080)).clamp(1200, 40_000)
 }

@@ -26,8 +26,8 @@ pub fn find_tool(name: &str) -> Option<PathBuf> {
     let mut probe = Command::new(&exe_name);
     probe.arg("--version");
     hide_window(&mut probe);
-    match probe.output() {
-        Ok(o) if o.status.success() => Some(PathBuf::from(exe_name)),
+    let found = match probe.output() {
+        Ok(o) if o.status.success() => Some(PathBuf::from(&exe_name)),
         // ffmpeg prints its version with -version and fails on --version
         Ok(_) if name == "ffmpeg" => {
             let mut p = Command::new(&exe_name);
@@ -36,7 +36,18 @@ pub fn find_tool(name: &str) -> Option<PathBuf> {
             p.output().ok().filter(|o| o.status.success()).map(|_| PathBuf::from(&exe_name))
         }
         _ => None,
+    };
+    if found.is_some() {
+        return found;
     }
+    #[cfg(test)]
+    if name == "ffmpeg" {
+        let local = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/ffmpeg/win64").join(&exe_name);
+        if local.exists() {
+            return Some(local);
+        }
+    }
+    None
 }
 
 pub fn find_ffmpeg() -> Option<PathBuf> {

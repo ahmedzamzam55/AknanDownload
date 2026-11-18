@@ -41,6 +41,7 @@ const OWN_FILES = [
   "bg/selfupdate.js",
   "bg/context.js",
   "bg/requests.js",
+  "bg/sub-fetch.js",
   "bg/rules.js",
   "bg/downloads.js",
   "bg/takeover.js",

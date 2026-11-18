@@ -94,6 +94,11 @@ async function resolveYoutube(tabId, pageUrl) {
   if (resolving.get(tabId) === videoId) return;
   resolving.set(tabId, videoId);
   await patchYt(tabId, videoId, { resolving: true, resolveError: null });
+  fetchYoutubeSubs(videoId).then(async (subs) => {
+    if (!subs.length) return;
+    const now = await chrome.tabs.get(tabId).catch(() => null);
+    if (now && videoIdOf(now.url) === videoId) await patchYt(tabId, videoId, { subs });
+  });
   let change;
   try {
     change = await askApp(`https://www.youtube.com/watch?v=${videoId}`);
@@ -130,6 +135,14 @@ async function resolvePage(tabId, page, embedded = false) {
   }
 }
 
+async function withTabSubs(tabId, frameId, items, mine = []) {
+  if (!tabId || !items.length) return items;
+  const { subs } = await readTab(tabId);
+  const fSubs = mergeSubLists(items[0].subs, mine.flatMap((m) => (m.master && m.master.subs) || []), subs.filter((s) => !frameId || s.frameId === frameId || !s.frameId));
+  if (fSubs.length) items[0].subs = fSubs;
+  return items;
+}
+
 async function resolveOneVideo(msg, sender) {
   const tab = sender && sender.tab;
   const frameId = (sender && sender.frameId) || 0;
@@ -145,7 +158,7 @@ async function resolveOneVideo(msg, sender) {
       const ref = (frameId && sender && sender.url) || (tab && tab.url);
       const r = await askApp(msg.resolve, ref, true, rh);
       const src = isManifestUrl(msg.resolve) ? "" : msg.resolve;
-      if (r.resolved && r.resolved.options.length) return { items: optionItems(r.resolved, src, rh) };
+      if (r.resolved && r.resolved.options.length) return { items: await withTabSubs(tab && tab.id, frameId, optionItems(r.resolved, src, rh)) };
       return { error: r.resolveError || aknanI18n.t("Can't get this video") };
     } catch (e) {
       if (await appAlive()) return { error: String((e && e.message) || e) };
@@ -163,7 +176,7 @@ async function resolveOneVideo(msg, sender) {
       const mine = media.filter((m) => m.frameId === frameId);
       if (mine.length) {
         const frameItems = mediaItems(mine).filter((i) => !i.disabled);
-        if (frameItems.length) return { items: frameItems };
+        if (frameItems.length) return { items: await withTabSubs(tab.id, frameId, frameItems, mine) };
       }
     }
     if (!msg.page && !isYoutube(tab.url)) {
@@ -185,7 +198,7 @@ async function resolveOneVideo(msg, sender) {
     if (fUrl && /^https?:/i.test(fUrl) && fUrl !== tab.url && !/geo\.dailymotion\.com\/player/i.test(fUrl)) {
       try {
         const r = await askApp(fUrl, tab.url, true);
-        if (r.resolved && r.resolved.options.length) return { items: optionItems(r.resolved, fUrl) };
+        if (r.resolved && r.resolved.options.length) return { items: await withTabSubs(tab.id, frameId, optionItems(r.resolved, fUrl)) };
       } catch {}
     }
     found = (await itemsForTab(tab.id, frameId)).filter((i) => !i.disabled);

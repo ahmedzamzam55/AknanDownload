@@ -18,11 +18,16 @@ function onRuntimeMessage(msg, sender, sendResponse) {
       const clip = msg.part ? partOf(msg.clip) : null;
       if (msg.part && !clip) return reply(Promise.reject(new Error("the part is not right")), sendResponse);
       return reply(
-        storeOf(sender.tab).then((store) =>
-          item.yt
-            ? downloadVideo(item.yt, msg.title, referrer, clip, store, item.reqHeaders, msg.subtitle, tabPage)
-            : sendToApp({ url: item.url, referrer, reqHeaders: item.reqHeaders, fileName: msg.fileName, sourcePage: tabPage || null, clip, store, direct: true, subtitle: msg.subtitle })
-        ),
+        storeOf(sender.tab).then(async (store) => {
+          let sub = msg.subtitle;
+          if (sub && sub.url && /^https?:/i.test(sub.url)) {
+            const [body, cookies] = await Promise.all([fetchSubBody(sub.url), cookieHeader(sub.url, store)]);
+            sub = { ...sub, ...(body ? { body } : {}), ...(cookies ? { cookies } : {}) };
+          }
+          return item.yt
+            ? downloadVideo(item.yt, msg.title, referrer, clip, store, item.reqHeaders, sub, tabPage)
+            : sendToApp({ url: item.url, referrer, reqHeaders: item.reqHeaders, fileName: msg.fileName, sourcePage: tabPage || null, clip, store, direct: true, subtitle: sub });
+        }),
         sendResponse
       );
     }
@@ -35,14 +40,18 @@ function onRuntimeMessage(msg, sender, sendResponse) {
       const group = Date.now();
       return reply(
         storeOf(sender.tab).then(async (store) => {
-          for (const t of tracks) {
+          for (let i = 0; i < tracks.length; i += 1) {
+            if (i > 0) await new Promise((r) => setTimeout(r, 250));
+            const t = tracks[i];
             const lang = String(t.lang || "sub").replace(/[^a-zA-Z0-9._-]/g, "_") || "sub";
+            const subBody = await fetchSubBody(t.url);
             await sendToApp({
               url: t.url,
               referrer: ref,
               sourcePage: ref,
               fileName: `${base}.${lang}.${fmt}`,
               subConvert: fmt,
+              subBody: subBody || undefined,
               group,
               direct: true,
               store,

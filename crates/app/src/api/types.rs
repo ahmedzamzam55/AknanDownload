@@ -48,6 +48,9 @@ pub struct AddRequest {
     /// optional subtitle track to save next to or burn into this video download
     #[serde(default)]
     pub subtitle: Option<swiftget_engine::SubtitleTask>,
+    /// optional pre-fetched subtitle text (avoids rate-limit fetches from disk/engine)
+    #[serde(default)]
+    pub sub_body: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

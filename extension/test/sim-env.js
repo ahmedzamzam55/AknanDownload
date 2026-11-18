@@ -88,7 +88,7 @@ function createSimEnv(opts = {}) {
       onInstalled: on("inst"),
       onStartup: on("start"),
       onMessage: on("msg"),
-      getManifest: () => ({ version: opts.version || "1.0.11" }),
+      getManifest: () => ({ version: opts.version || "1.0.12" }),
       reload: () => {
         state.reloads++;
       },
