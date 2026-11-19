@@ -90,24 +90,55 @@ pub fn merge(
 }
 
 
-/// A joined stream (HLS, a .ts file) into an ordinary MP4 file: plays in
-/// every player, with seeking. Nothing is re-encoded.
-pub fn ts_to_mp4(input: &Path, output: &Path, on: &dyn Fn(f64), cancel: Option<&tokio_util::sync::CancellationToken>) -> anyhow::Result<()> {
-    let Some(ffmpeg) = find_ffmpeg() else {
-        bail!("{MISSING}");
-    };
-    // an MP4 file is a bit smaller than the stream it comes from
-    let expected = len_of(input) * 95 / 100;
-    let mut cmd = Command::new(&ffmpeg);
-    cmd.args(["-hide_banner", "-loglevel", "error", "-y", "-f", "mpegts", "-i"])
-        .arg(input)
-        .args(["-map", "0:v?", "-map", "0:a?", "-c", "copy"]);
+fn build_hls_cmd(ffmpeg: &Path, input: &Path, audio: Option<&Path>, output: &Path, fmp4: bool, bsf_aac: bool, expected: u64) -> Command {
+    let mut cmd = Command::new(ffmpeg);
+    cmd.args(["-hide_banner", "-loglevel", "error", "-y"]);
+    if !fmp4 {
+        cmd.args(["-fflags", "+genpts+igndts", "-avoid_negative_ts", "make_zero", "-f", "mpegts"]);
+    }
+    cmd.arg("-i").arg(input);
+    if let Some(a) = audio {
+        if !fmp4 {
+            cmd.args(["-fflags", "+genpts+igndts"]);
+        }
+        cmd.arg("-i").arg(a).args(["-map", "0:v:0", "-map", "1:a:0"]);
+    } else {
+        cmd.args(["-map", "0:v?", "-map", "0:a?"]);
+    }
+    cmd.args(["-c", "copy"]);
+    if !fmp4 && bsf_aac {
+        cmd.args(["-bsf:a", "aac_adtstoasc"]);
+    }
     if expected < FASTSTART_UP_TO {
         cmd.args(["-movflags", "+faststart"]);
     }
     cmd.args(["-f", "mp4"]).arg(output);
-    let r = run_watched(&mut cmd, output, expected, on, cancel);
-    let made = std::fs::metadata(output).map(|m| m.len() > 0).unwrap_or(false);
+    cmd
+}
+
+/// Remux an HLS stream (`MpegTs` or `Fmp4`, with optional separate audio) into
+/// a seekable MP4 file without re-encoding. Retries non-AAC TS audio cleanly.
+pub fn remux_hls(
+    input: &Path,
+    audio: Option<&Path>,
+    output: &Path,
+    fmp4: bool,
+    on: &dyn Fn(f64),
+    cancel: Option<&tokio_util::sync::CancellationToken>,
+) -> anyhow::Result<()> {
+    let Some(ffmpeg) = find_ffmpeg() else {
+        bail!("{MISSING}");
+    };
+    let expected = (len_of(input) + audio.map(len_of).unwrap_or(0)) * 95 / 100;
+    let mut cmd = build_hls_cmd(&ffmpeg, input, audio, output, fmp4, !fmp4, expected);
+    let mut r = run_watched(&mut cmd, output, expected, on, cancel);
+    let mut made = std::fs::metadata(output).map(|m| m.len() > 0).unwrap_or(false);
+    if (!fmp4) && (r.is_err() || !made) && !cancel.is_some_and(|c| c.is_cancelled()) {
+        let _ = std::fs::remove_file(output);
+        let mut fallback = build_hls_cmd(&ffmpeg, input, audio, output, false, false, expected);
+        r = run_watched(&mut fallback, output, expected, on, cancel);
+        made = std::fs::metadata(output).map(|m| m.len() > 0).unwrap_or(false);
+    }
     match r {
         Ok(()) if made => Ok(()),
         Ok(()) => {
@@ -122,6 +153,12 @@ pub fn ts_to_mp4(input: &Path, output: &Path, on: &dyn Fn(f64), cancel: Option<&
             bail!("ffmpeg could not make the MP4 file: {e}")
         }
     }
+}
+
+/// A joined stream (HLS, a .ts file) into an ordinary MP4 file: plays in
+/// every player, with seeking. Nothing is re-encoded.
+pub fn ts_to_mp4(input: &Path, output: &Path, on: &dyn Fn(f64), cancel: Option<&tokio_util::sync::CancellationToken>) -> anyhow::Result<()> {
+    remux_hls(input, None, output, false, on, cancel)
 }
 
 pub(crate) fn hide_window(cmd: &mut Command) {

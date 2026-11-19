@@ -84,5 +84,6 @@ pub(super) async fn ftp_probe(url: &str, headers: &RequestHeaders) -> anyhow::Re
         etag: None,
         headers_used: None,
         digest: None,
+        hls_body: None,
     })
 }

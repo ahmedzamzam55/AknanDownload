@@ -159,6 +159,10 @@ pub(super) fn start_timers(ui: &Ui) -> (Timer, Timer, Timer) {
     {
         let ui = ui.clone();
         power_timer.start(TimerMode::Repeated, Duration::from_secs(1), move || {
+            let canary = swiftget_engine::default_data_dir().join("gpu_probe.lock");
+            if canary.exists() {
+                let _ = std::fs::remove_file(&canary);
+            }
             extra::tick_countdown(&ui);
             follow_sizes(&ui);
             // the window may have been shown again from the icon next to the clock

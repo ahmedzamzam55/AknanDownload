@@ -23,6 +23,17 @@ pub(crate) struct VideoExtra {
     /// page + quality key, used to renew expired links
     pub(crate) source_page: Option<String>,
     pub(crate) source_key: Option<String>,
+    /// optional subtitle track or standalone subtitle conversion
+    pub(crate) subtitle: Option<swiftget_engine::SubtitleTask>,
+    pub(crate) sub_convert: Option<String>,
+    pub(crate) sub_body: Option<String>,
+}
+
+/// Resolved video options & subtitles shown inside "Download File Info".
+#[derive(Clone)]
+pub(crate) struct AddMediaState {
+    pub(crate) source_url: String,
+    pub(crate) info: swiftget_engine::ytdlp::YtInfo,
 }
 
 /// State of the "Download File Info" window (shared with background threads).
@@ -30,18 +41,23 @@ pub(crate) struct VideoExtra {
 pub(crate) struct AddState {
     pub(crate) headers: RequestHeaders,
     pub(crate) extra: VideoExtra,
+    pub(crate) media: Option<AddMediaState>,
     /// the URL the window was opened with (video extras only apply to it)
     pub(crate) origin_url: String,
     pub(crate) probe: Option<ProbeResult>,
     pub(crate) probe_url: String,
     pub(crate) probe_seq: u64,
-    /// last "Save As" we filled in ourselves (so we don't overwrite the user's)
-    pub(crate) auto_path: String,
+    /// last automatic file name we filled in (so we don't overwrite user edits)
+    pub(crate) auto_name: String,
+    /// last automatic folder we filled in
+    pub(crate) auto_folder: String,
     /// category names in the window's list (General first)
     pub(crate) categories: Vec<String>,
-    /// download already running in the background for this window; it is
-    /// not in the list (and not "complete") until Start is pressed
+    /// download already running in the background for this window; it stays in
+    /// `.sgpart` until Start is pressed
     pub(crate) early_id: Option<u64>,
+    /// true when inline conflict prompt was opened from "Start Download"
+    pub(crate) conflict_start: bool,
     /// links that came in while the window was busy with another one
     pub(crate) waiting: VecDeque<PendingOpen>,
 }

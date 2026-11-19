@@ -7,6 +7,7 @@ export component GrabberLinksBox inherits Rectangle {
     in property <[LinkRow]> links;
     in property <bool> links-mode;
     in property <bool> exploring;
+    in property <bool> spa-hint;
     callback toggle(int);
 
     vertical-stretch: 1;
@@ -109,11 +110,23 @@ export component GrabberLinksBox inherits Rectangle {
             }
         }
     }
-    if root.links.length == 0: Text {
-        y: 80px;
+    if root.links.length == 0: GridLayout {
+        y: 72px;
         width: parent.width;
-        horizontal-alignment: center;
-        text: root.links-mode ? @tr("No links on this page.") : root.exploring ? @tr("Exploring…") : @tr("Type a start page and click \"Start exploring\".");
-        color: Theme.muted;
+        padding-left: 24px;
+        padding-right: 24px;
+        Text {
+            min-width: 0px;
+            wrap: word-wrap;
+            horizontal-alignment: center;
+            text: root.links-mode
+                ? @tr("No links on this page.")
+                : root.exploring
+                ? @tr("Exploring…")
+                : root.spa-hint
+                ? @tr("No static links were found. Right-click inside the browser page and choose \"Download all links with Aknan Download\".")
+                : @tr("Type a start page and click \"Start exploring\".");
+            color: Theme.muted;
+        }
     }
 }

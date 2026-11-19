@@ -174,10 +174,9 @@ pub(super) fn cli_download(ui: &Ui, ask: cli::CliAsk) {
             open_add_dialog(&ui.ctx, url, RequestHeaders::default(), ask.name.clone(), VideoExtra::default());
             // the folder asked for, with the name the window shows
             if let (Some(f), Some(d)) = (folder, ui.ctx.add.upgrade()) {
-                let shown = d.get_save_as().to_string();
-                let name = ask.name.clone().or_else(|| Path::new(&shown).file_name().map(|n| n.to_string_lossy().into_owned())).unwrap_or_default();
-                if !name.is_empty() {
-                    d.set_save_as(f.join(name).display().to_string().into());
+                d.set_save_folder(f.display().to_string().into());
+                if let Some(n) = ask.name.clone().filter(|n| !n.trim().is_empty()) {
+                    d.set_file_name(n.into());
                 }
             }
         }

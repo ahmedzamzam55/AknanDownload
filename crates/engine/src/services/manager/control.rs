@@ -96,27 +96,43 @@ impl Manager {
 
     /// Start a failed/finished download again from zero.
     pub fn restart(self: &Arc<Self>, id: DownloadId) {
-        {
+        let (rec, in_use) = {
             let mut inner = self.inner.lock_ok();
             let Some(e) = inner.entries.get_mut(&id) else { return };
             if e.task.is_some() {
                 return;
             }
             let rec = e.rec.clone();
-            let in_use = paths_in_use_but(&inner, id);
-            remove_temp_files(&rec, &in_use);
-            let Some(e) = inner.entries.get_mut(&id) else { return };
             e.segs.lock_ok().clear();
             e.audio_segs.lock_ok().clear();
             e.progress.bytes.store(0, Ordering::Relaxed);
             e.progress.parts_done.store(0, Ordering::Relaxed);
             e.rec.downloaded = 0;
             e.rec.parts_done = 0;
-            e.rec.status = Status::Queued;
+            e.rec.status = Status::Connecting;
             e.rec.error = None;
+            let in_use = paths_in_use_but(&inner, id);
             inner.dirty = true;
-        }
-        self.pump();
+            (rec, in_use)
+        };
+        let me = self.clone();
+        self.rt.spawn(async move {
+            tokio::task::spawn_blocking(move || {
+                remove_temp_files(&rec, &in_use);
+            })
+            .await
+            .ok();
+            {
+                let mut inner = me.inner.lock_ok();
+                if let Some(e) = inner.entries.get_mut(&id) {
+                    if e.rec.status == Status::Connecting && e.task.is_none() {
+                        e.rec.status = Status::Queued;
+                        inner.dirty = true;
+                    }
+                }
+            }
+            me.pump();
+        });
     }
 
     /// Stop everything and write the state to disk (call before exiting).

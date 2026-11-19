@@ -14,35 +14,45 @@ use swiftget_engine::{default_data_dir, Manager, Settings};
 pub(crate) fn entry() {
     install_crash_log();
     let data_dir = default_data_dir();
-    let gpu = Settings::load(&data_dir.join("settings.json")).gpu_drawing;
-    // The windows are drawn by the processor unless the user chose the
-    // graphics card: drawing with it needs a working OpenGL driver (without
-    // one the program closed by itself), takes hundreds of MB on some cards,
-    // and the progress window answered the mouse in the wrong place on some
-    // Windows 10 computers.
+    let cfg_path = data_dir.join("settings.json");
+    let mut settings = Settings::load(&cfg_path);
+    let canary = data_dir.join("gpu_probe.lock");
+    #[cfg(windows)]
+    let remote_session = unsafe {
+        windows_sys::Win32::UI::WindowsAndMessaging::GetSystemMetrics(
+            windows_sys::Win32::UI::WindowsAndMessaging::SM_REMOTESESSION,
+        ) != 0
+    };
+    #[cfg(not(windows))]
+    let remote_session = false;
+    if settings.gpu_drawing && canary.exists() {
+        settings.gpu_drawing = false;
+        let _ = settings.save(&cfg_path);
+        let _ = std::fs::remove_file(&canary);
+    }
+    let gpu = settings.gpu_drawing && !remote_session;
     if std::env::var_os("SLINT_BACKEND").is_none() && !gpu {
         std::env::set_var("SLINT_BACKEND", "winit-software");
+    } else if gpu {
+        let _ = std::fs::create_dir_all(&data_dir);
+        let _ = std::fs::write(&canary, b"1");
     }
-    // every window is made away from the screen and comes in once drawn
-    // (no white box on the left before a window opens)
     #[cfg(windows)]
     {
         let mut pick = slint::BackendSelector::new().with_winit_window_attributes_hook(winfx::made_away);
         if std::env::var_os("SLINT_BACKEND").is_none() {
-            // drawn with the graphics card: still the winit windows
             pick = pick.backend_name("winit".into());
         }
         let _ = pick.select();
     }
     if let Err(e) = run() {
+        let _ = std::fs::remove_file(&canary);
         let text = format!("{e:#}");
         note(&format!("could not start: {text}"));
         if gpu {
-            // the graphics card could not draw: the next start uses the processor
-            let path = data_dir.join("settings.json");
-            let mut s = Settings::load(&path);
+            let mut s = Settings::load(&cfg_path);
             s.gpu_drawing = false;
-            let _ = s.save(&path);
+            let _ = s.save(&cfg_path);
         }
         let _ = rfd::MessageDialog::new()
             .set_title("Aknan Download")
@@ -53,6 +63,26 @@ pub(crate) fn entry() {
             .show();
         std::process::exit(1);
     }
+    let _ = std::fs::remove_file(&canary);
+}
+
+#[cfg(windows)]
+struct AppMutexGuard(windows_sys::Win32::Foundation::HANDLE);
+
+#[cfg(windows)]
+impl Drop for AppMutexGuard {
+    fn drop(&mut self) {
+        if !self.0.is_null() {
+            unsafe { windows_sys::Win32::Foundation::CloseHandle(self.0); }
+        }
+    }
+}
+
+#[cfg(windows)]
+fn create_app_mutex() -> AppMutexGuard {
+    let name: Vec<u16> = "AknanDownloadRunning\0".encode_utf16().collect();
+    let h = unsafe { windows_sys::Win32::System::Threading::CreateMutexW(std::ptr::null(), 0, name.as_ptr()) };
+    AppMutexGuard(h)
 }
 
 fn run() -> anyhow::Result<()> {
@@ -80,6 +110,9 @@ fn run() -> anyhow::Result<()> {
     let Some(inst) = acquire_instance(&data_dir, port) else {
         return Ok(());
     };
+    // Named mutex held only by the active primary instance (detected natively by Inno Setup)
+    #[cfg(windows)]
+    let _app_mutex = create_app_mutex();
     let _ = &token;
 
     let rt = tokio::runtime::Builder::new_multi_thread()

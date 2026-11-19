@@ -54,7 +54,7 @@
 
   // Pages that are one video: their own address is the best link for it.
   const VIDEO_PAGE = [
-    /youtube\.com\/(watch|shorts\/|live\/|embed\/)/i,
+    /youtube(kids)?\.com\/(watch|shorts\/|live\/|embed\/)/i,
     /youtube-nocookie\.com\/embed\//i,
     /tiktok\.com\/@[^/]+\/(video|photo)\//i,
     /instagram\.com\/(reels?|p|tv)\//i,

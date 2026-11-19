@@ -7,31 +7,28 @@ use super::rows::refresh;
 use super::state::{Ctx, PendingAdd, PendingOpen, Ui, VideoExtra};
 use crate::i18n::t;
 use crate::{torrent_ui, AddDialog};
-use slint::{ComponentHandle, ModelRc, SharedString, Timer, VecModel};
+use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 use swiftget_engine::sync::LockOk;
 use swiftget_engine::{filename, NewDownload, RequestHeaders, Status};
 
-/// Fill "Download File Info" with a name: category, Save As, icon.
-pub(super) fn show_name_in_dialog(ctx: &Ctx, d: &AddDialog, name: &str, url: &str) -> String {
+/// Fill "Download File Info" with a name: category, file name, save folder, badge.
+pub(super) fn show_name_in_dialog(ctx: &Ctx, d: &AddDialog, name: &str, url: &str) -> (String, String) {
     let s = ctx.mgr.settings();
     let cat = s.category_of(name, url);
-    let path = s.dir_for(&cat).join(name).display().to_string();
-    d.set_save_as(path.clone().into());
+    let folder = s.dir_for(&cat).display().to_string();
+    d.set_file_name(name.into());
+    d.set_save_folder(folder.clone().into());
     let cats = ctx.add_state.lock_ok().categories.clone();
     d.set_category_index(cats.iter().position(|c| *c == cat).unwrap_or(0) as i32);
     d.set_category_name(t(&cat).into());
-    // a category with a remembered folder: the box stays ticked (shows it is
-    // remembered; untick it to forget)
     d.set_remember_path(s.category_dirs.contains_key(&cat));
     d.set_kind(kind_for(name).into());
     d.set_ext(filename::extension(name).to_uppercase().into());
-    path
+    (folder, name.to_string())
 }
 
 pub(crate) fn open_add_dialog(ctx: &Ctx, url: String, headers: RequestHeaders, name_hint: Option<String>, extra: VideoExtra) {
-    // a magnet link: the torrent window
     if swiftget_engine::torrent::is_magnet(&url) {
         torrent_ui::open_source(&url);
         return;
@@ -40,8 +37,6 @@ pub(crate) fn open_add_dialog(ctx: &Ctx, url: String, headers: RequestHeaders, n
     let s = ctx.mgr.settings();
     if d.window().is_visible() {
         let mut st = ctx.add_state.lock_ok();
-        // the same link again (a page can send it twice): nothing new to show;
-        // another link waits until this one is started or cancelled
         if !url.is_empty() && st.origin_url != url && !st.waiting.iter().any(|p| p.url == url) {
             st.waiting.push_back(PendingOpen { url, headers, name_hint, extra });
         }
@@ -50,9 +45,7 @@ pub(crate) fn open_add_dialog(ctx: &Ctx, url: String, headers: RequestHeaders, n
         d.invoke_focus_input();
         return;
     }
-    // nothing may be left over from an earlier window
     cancel_early(ctx);
-    // General first, like the classic list
     let mut cats = vec!["General".to_string()];
     cats.extend(s.categories.iter().map(|c| c.name.clone()));
     let names: Vec<SharedString> = cats.iter().map(|c| t(c).into()).collect();
@@ -64,8 +57,9 @@ pub(crate) fn open_add_dialog(ctx: &Ctx, url: String, headers: RequestHeaders, n
         .map(|n| filename::sanitize(&n))
         .or_else(|| filename::from_url(&url).map(|n| filename::sanitize(&n)))
         .unwrap_or_else(|| "download".into());
-    let path = show_name_in_dialog(ctx, &d, &name, &url);
+    let (auto_folder, auto_name) = show_name_in_dialog(ctx, &d, &name, &url);
     let login = headers.auth.clone().or_else(|| s.login_for(&url));
+    let has_source_key = extra.source_key.is_some();
     {
         let mut st = ctx.add_state.lock_ok();
         st.headers = headers;
@@ -73,8 +67,10 @@ pub(crate) fn open_add_dialog(ctx: &Ctx, url: String, headers: RequestHeaders, n
         st.origin_url = url.clone();
         st.probe = None;
         st.probe_url.clear();
-        // a name from the browser is final; one guessed from the URL is not
-        st.auto_path = if name_hint.is_some() { String::new() } else { path };
+        // a name from the browser is final; one guessed from the URL updates on probe
+        st.auto_name = if name_hint.is_some() { String::new() } else { auto_name };
+        st.auto_folder = if name_hint.is_some() { String::new() } else { auto_folder };
+        st.conflict_start = true;
         st.probe_seq += 1;
     }
     d.set_url(url.clone().into());
@@ -99,20 +95,30 @@ pub(crate) fn open_add_dialog(ctx: &Ctx, url: String, headers: RequestHeaders, n
     d.set_can_use_browser(false);
     d.set_info_error(false);
     d.set_probing(false);
+    d.set_conflict_open(false);
+    d.set_numbered_name(SharedString::new());
+    super::add_video::reset_media_panel(ctx, &d);
     open_window!(d);
-    // it already downloads while the window is open
-    if !url.is_empty() && s.start_while_info && ctx.mgr.find_url(&url).is_none() {
-        let path = PathBuf::from(d.get_save_as().as_str());
+    // Option B Safe Early Hold: start downloading into `.sgpart` right away while dialog is open,
+    // holding `finish_file` inside `.sgpart` so nothing lands in `save_dir` until Start is clicked!
+    let is_video_page = !has_source_key && super::add_video::is_video_page_candidate(&url, false);
+    if !url.is_empty() && s.start_while_info && !is_video_page && ctx.mgr.find_url(&url).is_none() {
+        let folder = PathBuf::from(d.get_save_folder().trim());
+        let fname = d.get_file_name().trim().to_string();
         let st = ctx.add_state.lock_ok();
         let req = NewDownload {
             url: url.clone(),
-            file_name: path.file_name().map(|n| n.to_string_lossy().into_owned()),
-            save_dir: path.parent().map(Path::to_path_buf),
+            file_name: (!fname.is_empty()).then_some(fname),
+            save_dir: (!folder.as_os_str().is_empty()).then_some(folder),
             headers: st.headers.clone(),
             audio_url: st.extra.audio_url.clone(),
             source_page: st.extra.source_page.clone(),
             source_key: st.extra.source_key.clone(),
+            subtitle: st.extra.subtitle.clone(),
+            sub_convert: st.extra.sub_convert.clone(),
+            sub_body: st.extra.sub_body.clone(),
             early: true,
+            hold_before_finish: true,
             start: true,
             ..Default::default()
         };
@@ -125,8 +131,6 @@ pub(crate) fn open_add_dialog(ctx: &Ctx, url: String, headers: RequestHeaders, n
     }
 }
 
-/// A name typed without its extension ("My video") gets the one of the
-/// file (".mp4"), so Windows knows how to open it.
 pub(crate) fn with_extension_of(name: &str, suggested: &str) -> String {
     let name = name.trim();
     let ext = Path::new(suggested).extension().map(|e| e.to_string_lossy().into_owned()).unwrap_or_default();
@@ -153,16 +157,13 @@ pub(crate) fn finish_add(ui: &Ui, req: NewDownload) -> u64 {
 }
 
 /// What to do with a link that is already in the list: 1 add numbered,
-/// 2 replace the old one, 3 show / resume the old one.
-pub(crate) fn apply_duplicate(ui: &Ui, p: PendingAdd, choice: u32) {
+/// 2 safe-replace (keep old file until new atomic swap completes), 3 show / resume old.
+pub(crate) fn apply_duplicate(ui: &Ui, mut p: PendingAdd, choice: u32) {
     match choice {
         2 => {
-            ui.ctx.mgr.remove(p.existing, true);
-            // the old file goes away a moment later; wait for it
-            let ui2 = ui.clone();
-            Timer::single_shot(Duration::from_millis(1500), move || {
-                finish_add(&ui2, p.req);
-            });
+            ui.ctx.mgr.remove(p.existing, false);
+            p.req.replace_existing = true;
+            finish_add(ui, p.req);
         }
         3 => match ui.ctx.mgr.get(p.existing) {
             Some(v) if v.status == Status::Completed => show_complete(ui, v.id),
@@ -180,7 +181,6 @@ pub(crate) fn apply_duplicate(ui: &Ui, p: PendingAdd, choice: u32) {
     }
 }
 
-/// Progress window for a download that was just started (Options > Downloads).
 pub(crate) fn show_progress_for_start(ui: &Ui, id: u64) {
     match ui.ctx.mgr.settings().progress_mode {
         0 => open_progress(ui, id),

@@ -23,7 +23,7 @@ fn answer_name(resp: &reqwest::Response) -> String {
 }
 
 fn is_page_type(ct: &str) -> bool {
-    ct.is_empty() || ct.contains("html") || ct.contains("xml")
+    !ct.contains("svg") && (ct.is_empty() || ct.contains("html") || ct.contains("xml"))
 }
 
 pub(super) async fn fetch_page(client: &Client, url: &str, opts: &GrabOptions) -> Option<Fetched> {

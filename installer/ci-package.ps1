@@ -89,5 +89,10 @@ if ($env:UPDATE_SIGNING_KEY) {
 }
 $json = "{`n  ""version"": ""$version"",`n  ""url"": ""https://github.com/$env:REPO/releases/download/v$version/AknanDownload-Setup.exe"",`n  ""sha256"": ""$hash"",`n  ""sig"": ""$sig""`n}`n"
 [IO.File]::WriteAllText("$PWD/dist/version.json", $json)
+$sums = Get-ChildItem dist -File | Where-Object { $_.Extension -in ".exe", ".zip", ".xpi" } | Sort-Object Name | ForEach-Object {
+    "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+}
+[IO.File]::WriteAllText("$PWD/dist/SHA256SUMS.txt", (($sums -join "`n") + "`n"))
 Get-Content dist/version.json
-Compress-Archive -Path dist/AknanDownload-Setup.exe, dist/version.json, dist/AknanDownload-Extension-Chrome.zip, dist/AknanDownload-Extension-Firefox.zip -DestinationPath AknanDownload-windows.zip -Force
+Get-Content dist/SHA256SUMS.txt
+Compress-Archive -Path dist/AknanDownload-Setup.exe, dist/version.json, dist/SHA256SUMS.txt, dist/AknanDownload-Extension-Chrome.zip, dist/AknanDownload-Extension-Firefox.zip -DestinationPath AknanDownload-windows.zip -Force

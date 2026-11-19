@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Aknan Download",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Aknan Download extension.",
   "permissions": [
     "downloads",
@@ -35,7 +35,9 @@
       "bg/selfupdate.js",
       "bg/context.js",
       "bg/requests.js",
+      "bg/yt-subs.js",
       "bg/sub-fetch.js",
+      "bg/dash-subs.js",
       "bg/rules.js",
       "bg/downloads.js",
       "bg/takeover.js",

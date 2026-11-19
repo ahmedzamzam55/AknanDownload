@@ -31,7 +31,7 @@ pub struct Progress {
     /// streams whose exact size is estimated from completed parts/duration
     pub est_total: AtomicU64,
     /// per-worker (downloaded_bytes, active) for HLS connection display
-    pub hls_workers: [(AtomicU64, AtomicBool); 16],
+    pub hls_workers: [(AtomicU64, AtomicBool); 32],
 }
 
 impl Progress {
@@ -70,15 +70,21 @@ impl std::fmt::Display for NetDrop {
 }
 impl std::error::Error for NetDrop {}
 
-/// The server answered with an error status.
+/// The server answered with an error status (optional `Retry-After`).
 #[derive(Debug)]
 pub struct HttpStatus(pub u16);
 impl std::fmt::Display for HttpStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "server answered HTTP {}", self.0)
-    }
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "server answered HTTP {}", self.0) }
 }
 impl std::error::Error for HttpStatus {}
+
+/// Error status accompanied by an optional server `Retry-After` delay.
+#[derive(Debug)]
+pub struct HttpRetry(pub u16, pub Option<Duration>);
+impl std::fmt::Display for HttpRetry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "server answered HTTP {}", self.0) }
+}
+impl std::error::Error for HttpRetry {}
 
 /// A problem of the connection (no internet, DNS, reset, timeout), not of
 /// the file or the link: worth waiting for and trying again without limit.
@@ -106,7 +112,16 @@ pub fn is_network_error(e: &anyhow::Error) -> bool {
 
 /// The server's status code, if the error is one.
 pub fn http_status_of(e: &anyhow::Error) -> Option<u16> {
-    e.chain().find_map(|c| c.downcast_ref::<HttpStatus>().map(|s| s.0))
+    e.chain().find_map(|c| {
+        c.downcast_ref::<HttpStatus>()
+            .map(|s| s.0)
+            .or_else(|| c.downcast_ref::<HttpRetry>().map(|r| r.0))
+    })
+}
+
+/// Optional `Retry-After` duration attached to an HTTP error.
+pub fn retry_after_of(e: &anyhow::Error) -> Option<Duration> {
+    e.chain().find_map(|c| c.downcast_ref::<HttpRetry>().and_then(|r| r.1))
 }
 
 /// How long to wait before trying again after `n` failures in a row while

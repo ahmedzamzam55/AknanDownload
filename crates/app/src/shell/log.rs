@@ -65,13 +65,30 @@ pub(super) fn elevated() -> bool {
 pub(super) fn end_process(pid: u32) {
     #[cfg(windows)]
     {
-        use std::os::windows::process::CommandExt;
-        let exe = std::env::current_exe().ok().and_then(|e| e.file_name().map(|n| n.to_string_lossy().to_string()));
-        let exe = exe.unwrap_or_else(|| "AknanDownload.exe".into());
-        let _ = std::process::Command::new(swiftget_engine::system::windows_tool("taskkill.exe"))
-            .args(["/F", "/PID", &pid.to_string(), "/FI", &format!("IMAGENAME eq {exe}")])
-            .creation_flags(0x0800_0000) // no console window
-            .status();
+        use std::path::Path;
+        use windows_sys::Win32::Foundation::CloseHandle;
+        use windows_sys::Win32::System::Threading::{
+            OpenProcess, QueryFullProcessImageNameW, TerminateProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+            PROCESS_TERMINATE,
+        };
+        let Some(my_name) = std::env::current_exe().ok().and_then(|e| e.file_name().map(|n| n.to_string_lossy().to_string())) else {
+            return;
+        };
+        unsafe {
+            let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE, 0, pid);
+            if h.is_null() {
+                return;
+            }
+            let mut buf = [0u16; 512];
+            let mut len = buf.len() as u32;
+            if QueryFullProcessImageNameW(h, 0, buf.as_mut_ptr(), &mut len) != 0 {
+                let full = String::from_utf16_lossy(&buf[..len as usize]);
+                if Path::new(&full).file_name().is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case(&my_name)) {
+                    let _ = TerminateProcess(h, 1);
+                }
+            }
+            let _ = CloseHandle(h);
+        }
     }
     #[cfg(not(windows))]
     let _ = pid;

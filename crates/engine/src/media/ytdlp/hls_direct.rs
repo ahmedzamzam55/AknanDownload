@@ -78,7 +78,7 @@ async fn probe_seg_len(client: &reqwest::Client, seg_url: &str, headers: &Reques
 async fn fetch_hls_bundle(url: String, headers: RequestHeaders, ua: String) -> anyhow::Result<HlsFetched> {
     let client = build_client()?;
     let (text, final_url) = fetch_m3u8(&client, &url, &headers, &ua, 20).await?;
-    if !text.trim_start().starts_with("#EXTM3U") {
+    if !text.trim_start_matches('\u{feff}').trim_start().starts_with("#EXTM3U") {
         return Ok(HlsFetched { text, final_url, master_duration: 0, seg_len: 0 });
     }
     let (variants, separate_audio) = parse_master(&final_url, &text)?;
@@ -144,16 +144,16 @@ pub(super) fn try_resolve_hls(
 ) -> anyhow::Result<Option<YtInfo>> {
     let (h, ua, out_headers) = fill_headers(url, cookies, referer, extra_headers);
     let fetched = run_blocking(fetch_hls_bundle(url.to_string(), h, ua))?;
-    if !fetched.text.trim_start().starts_with("#EXTM3U") {
+    if !fetched.text.trim_start_matches('\u{feff}').trim_start().starts_with("#EXTM3U") {
         return Ok(None);
     }
     let subtitles: Vec<YtSubtitle> = parse_subtitles_media(&fetched.final_url, &fetched.text)
         .into_iter()
-        .map(|s| YtSubtitle { lang: s.lang, name: s.name, url: s.url, ext: "vtt".into(), auto: false })
+        .map(|s| YtSubtitle { lang: s.lang, name: s.name, url: s.url, ext: "vtt".into(), auto: false, headers: out_headers.clone() })
         .collect();
     let (variants, separate_audio) = parse_master(&fetched.final_url, &fetched.text)?;
     if !variants.is_empty() {
-        if separate_audio {
+        if separate_audio && variants.iter().all(|v| v.audio_url.is_none()) {
             return Ok(None);
         }
         let dur = fetched.master_duration;
@@ -162,14 +162,15 @@ pub(super) fn try_resolve_hls(
             .map(|v| {
                 let q = if v.height > 0 { format!("{}p", v.height) } else if v.bandwidth > 0 { format!("{}k", v.bandwidth / 1000) } else { "Video".into() };
                 let size = if v.bandwidth > 0 && dur > 0 { dur.saturating_mul(v.bandwidth) / 8 } else { 0 };
+                let has_audio = v.audio_url.is_some();
                 YtOption {
                     key: format!("{q}|TS"),
                     label: format!("{} · MP4", with_tag(&q, v.height)),
                     sub: if size > 0 { fmt_size(size) } else { String::new() },
                     quality: q,
                     video_url: v.url,
-                    audio_url: None,
-                    ext: "ts".into(),
+                    audio_url: v.audio_url,
+                    ext: if has_audio { "mp4".into() } else { "ts".into() },
                     size,
                     headers: out_headers.clone(),
                     tag: quality_tag(v.height).into(),

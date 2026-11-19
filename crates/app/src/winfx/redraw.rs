@@ -1,5 +1,27 @@
 use slint::ComponentHandle;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
+use std::time::Instant;
+
+thread_local! {
+    static PLACED_UNTIL: RefCell<HashMap<usize, Instant>> = RefCell::new(HashMap::new());
+}
+
+#[cfg(windows)]
+pub(super) fn mark_placed(w: &slint::Window) {
+    let key = w as *const slint::Window as usize;
+    let until = Instant::now() + std::time::Duration::from_millis(500);
+    PLACED_UNTIL.with(|m| {
+        let mut m = m.borrow_mut();
+        m.retain(|_, v| *v > Instant::now());
+        m.insert(key, until);
+    });
+}
+
+#[cfg(windows)]
+fn in_place_grace(key: usize) -> bool {
+    PLACED_UNTIL.with(|m| m.borrow().get(&key).is_some_and(|t| *t > Instant::now()))
+}
 
 /// Draw all of `c` again at the next frame (not only what changed).
 pub(crate) fn repaint_all<C>(c: &C)
@@ -117,7 +139,7 @@ where
             // `place`): Windows kept nothing of what was drawn there, and
             // only the parts that changed were drawn again, so it stayed
             // white around its buttons
-            WindowEvent::Moved(_) if last.get().elapsed() > std::time::Duration::from_millis(150) => {
+            WindowEvent::Moved(_) if in_place_grace(key) || last.get().elapsed() > std::time::Duration::from_millis(150) => {
                 last.set(std::time::Instant::now());
                 all(&weak);
                 if let Some(c) = weak.upgrade() {
@@ -133,7 +155,7 @@ where
             }
             // Windows asks for a picture (or we did): the whole window now
             // and then, so nothing stays black for long
-            WindowEvent::RedrawRequested if last.get().elapsed() > std::time::Duration::from_secs(1) => {
+            WindowEvent::RedrawRequested if in_place_grace(key) || last.get().elapsed() > std::time::Duration::from_secs(1) => {
                 last.set(std::time::Instant::now());
                 all(&weak);
             }

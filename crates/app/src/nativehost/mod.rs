@@ -106,9 +106,12 @@ pub(crate) fn report() -> (bool, Vec<(&'static str, bool)>) {
         let chromium = st.dir.join("chromium.json").display().to_string();
         let firefox = st.dir.join("firefox.json").display().to_string();
         let names = ["Chrome", "Chromium", "Edge", "Brave"];
-        let mut out: Vec<(&'static str, bool)> =
-            CHROMIUM_KEYS.iter().zip(names).map(|(k, n)| (n, crate::assoc::query(k, None).as_deref() == Some(chromium.as_str()))).collect();
-        out.push(("Firefox", crate::assoc::query(FIREFOX_KEY, None).as_deref() == Some(firefox.as_str())));
+        let mut out: Vec<(&'static str, bool)> = CHROMIUM_KEYS
+            .iter()
+            .zip(names)
+            .map(|(k, n)| (n, crate::winfx::registry::get_sz(k, None).as_deref() == Some(chromium.as_str())))
+            .collect();
+        out.push(("Firefox", crate::winfx::registry::get_sz(FIREFOX_KEY, None).as_deref() == Some(firefox.as_str())));
         out
     };
     #[cfg(not(windows))]
@@ -119,8 +122,8 @@ pub(crate) fn report() -> (bool, Vec<(&'static str, bool)>) {
 /// The key of a browser points at `file` (written only when it does not).
 #[cfg(windows)]
 fn point(key: &str, file: &str) {
-    if crate::assoc::query(key, None).as_deref() != Some(file) {
-        crate::assoc::reg(&["add", key, "/ve", "/d", file, "/f"]);
+    if crate::winfx::registry::get_sz(key, None).as_deref() != Some(file) {
+        crate::winfx::registry::set_sz(key, None, file);
     }
 }
 

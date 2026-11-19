@@ -128,7 +128,7 @@
 
   // "Download all": the whole playlist (YouTube list), or raw multi-file captures
   CS.downloadAllOf = (b, usable) => {
-    if (CS.TOP && /youtube\.com/i.test(location.hostname) && /[?&]list=/.test(location.search)) {
+    if (CS.TOP && /youtube(kids)?\.com/i.test(location.hostname) && /[?&]list=/.test(location.search)) {
       return { text: aknanI18n.t("Download all videos of this playlist"), run: () => sendPlaylist(b) };
     }
     if (usable.some((m) => m.yt)) return null;

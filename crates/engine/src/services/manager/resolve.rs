@@ -3,11 +3,34 @@ use crate::sync::{LockOk, RwOk};
 use crate::filename;
 use crate::http_download::Cancelled;
 use crate::model::{DownloadId, DownloadKind, DownloadRecord, Status};
-use crate::ytdlp;
+use crate::ytdlp::{self, YtSubtitle};
 use anyhow::anyhow;
 use chrono::Utc;
 use std::path::Path;
 use tokio_util::sync::CancellationToken;
+
+/// Pick the best subtitle matching space/comma-separated language prefixes
+/// (preferring creator-uploaded tracks over auto-captions).
+pub(super) fn pick_subtitle<'a>(subs: &'a [YtSubtitle], langs: &str) -> Option<&'a YtSubtitle> {
+    if subs.is_empty() {
+        return None;
+    }
+    let prefs: Vec<String> = langs
+        .split(|c: char| c.is_whitespace() || c == ',' || c == ';')
+        .map(|s| s.trim().to_ascii_lowercase())
+        .filter(|s| !s.is_empty())
+        .collect();
+    for want in &prefs {
+        let base = want.split(['-', '_']).next().unwrap_or(want);
+        if let Some(s) = subs.iter().find(|s| !s.auto && s.lang.to_ascii_lowercase().starts_with(base)) {
+            return Some(s);
+        }
+        if let Some(s) = subs.iter().find(|s| s.lang.to_ascii_lowercase().starts_with(base)) {
+            return Some(s);
+        }
+    }
+    subs.iter().find(|s| !s.auto).or_else(|| subs.first())
+}
 
 /// The file name of a playlist video: the name the playlist gave it, or,
 /// when it gave none ("video"), its own `title` after the "07 - " number.
@@ -65,24 +88,48 @@ impl Manager {
             r = job => r??,
             _ = cancel.cancelled() => return Err(Cancelled.into()),
         };
-        let opt = ytdlp::pick_option(&info.options, quality)
-            .ok_or_else(|| anyhow!("no downloadable video was found on this page"))?;
-        rec.url = opt.video_url.clone();
-        rec.final_url = None;
-        rec.audio_url = opt.audio_url.clone();
-        rec.kind = if opt.audio_url.is_some() { DownloadKind::Dash } else { DownloadKind::Http };
-        rec.source_page = Some(page.clone());
-        rec.source_key = Some(opt.key.clone());
-        ytdlp::apply_headers(&mut rec.headers, &opt.headers);
-        // The name shown in the playlist window stays (it is in the user's
-        // language); only a list that gave no name takes the video's own
-        // title, keeping the "07 - " number of the playlist. The real
-        // container decides the extension.
-        let (stem, ext) = filename::split_ext(&rec.file_name);
-        let stem = playlist_stem(stem, &info.title);
-        if !ext.eq_ignore_ascii_case(&opt.ext) || stem != filename::split_ext(&rec.file_name).0 {
-            let wanted = filename::sanitize(&format!("{stem}.{}", opt.ext));
+        if quality == "subs" {
+            let langs = rec.subtitle.as_ref().map(|s| s.lang.as_str()).unwrap_or("");
+            let sub = pick_subtitle(&info.subtitles, langs)
+                .ok_or_else(|| anyhow!("no subtitles were found for this video"))?;
+            rec.url = sub.url.clone();
+            rec.final_url = None;
+            rec.audio_url = None;
+            rec.kind = DownloadKind::Http;
+            rec.source_page = Some(page.clone());
+            rec.source_key = None;
+            rec.subtitle = None;
+            ytdlp::apply_headers(&mut rec.headers, &sub.headers);
+            let target_ext = rec.sub_convert.as_deref().unwrap_or("srt");
+            let (stem, _) = filename::split_ext(&rec.file_name);
+            let stem = playlist_stem(stem, &info.title);
+            let wanted = filename::sanitize(&format!("{stem}.{target_ext}"));
             rec.file_name = free_name(&self.inner.lock_ok(), &rec.save_dir, &wanted);
+        } else {
+            let opt = ytdlp::pick_option(&info.options, quality)
+                .ok_or_else(|| anyhow!("no downloadable video was found on this page"))?;
+            rec.url = opt.video_url.clone();
+            rec.final_url = None;
+            rec.audio_url = opt.audio_url.clone();
+            rec.kind = if opt.audio_url.is_some() { DownloadKind::Dash } else { DownloadKind::Http };
+            rec.source_page = Some(page.clone());
+            rec.source_key = Some(opt.key.clone());
+            ytdlp::apply_headers(&mut rec.headers, &opt.headers);
+            if let Some(sub_task) = rec.subtitle.as_mut() {
+                if sub_task.url.is_none() {
+                    if let Some(found) = pick_subtitle(&info.subtitles, &sub_task.lang) {
+                        sub_task.lang = found.lang.clone();
+                        sub_task.url = Some(found.url.clone());
+                        sub_task.extra_headers = found.headers.clone();
+                    }
+                }
+            }
+            let (stem, ext) = filename::split_ext(&rec.file_name);
+            let stem = playlist_stem(stem, &info.title);
+            if !ext.eq_ignore_ascii_case(&opt.ext) || stem != filename::split_ext(&rec.file_name).0 {
+                let wanted = filename::sanitize(&format!("{stem}.{}", opt.ext));
+                rec.file_name = free_name(&self.inner.lock_ok(), &rec.save_dir, &wanted);
+            }
         }
         rec.pick_quality = None;
         rec.category = self.settings.read_ok().category_of(&rec.file_name, &page);
@@ -94,6 +141,7 @@ impl Manager {
             x.kind = r.kind;
             x.source_page = r.source_page;
             x.source_key = r.source_key;
+            x.subtitle = r.subtitle;
             x.headers = r.headers;
             x.file_name = r.file_name;
             x.category = r.category;

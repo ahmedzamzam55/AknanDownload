@@ -1,5 +1,5 @@
 use super::build::build_options;
-use super::cookies::{with_cookies, BrowserCookie};
+use super::cookies::{is_youtube_site, remembered_cookies, run_with_cookie_list, with_cookies, BrowserCookie};
 use super::hls_direct::try_resolve_hls;
 use super::options::{YtInfo, YtOption};
 use super::subtitles::{run_ytdlp, ytdlp_command};
@@ -81,6 +81,7 @@ fn resolve_now(
     let tool = find_tool("yt-dlp")
         .ok_or_else(|| anyhow!("yt-dlp.exe is missing. Aknan Download gets it by itself in a minute (internet needed), then try again"));
     let cookies = cookies.filter(|c| !c.is_empty());
+    let tool_path = tool.as_ref().ok().cloned();
     let found = tool.and_then(|tool| {
         with_cookies(page_url, cookies, |file| run_ytdlp(&tool, page_url, file, referer, extra_headers))
     });
@@ -94,6 +95,17 @@ fn resolve_now(
             return Err(e);
         }
     };
+    if is_youtube_site(page_url) && max_height(&info.options) <= 360 {
+        let cookie_list = cookies.map(<[BrowserCookie]>::to_vec).or_else(|| remembered_cookies(page_url));
+        if let (Some(tool), Some(list)) = (tool_path, cookie_list.filter(|c| !c.is_empty())) {
+            if let Ok(json2) = run_with_cookie_list(&list, |f| run_ytdlp(&tool, page_url, f, referer, extra_headers)) {
+                let info2 = build_options(&json2);
+                if max_height(&info2.options) > max_height(&info.options) {
+                    info = info2;
+                }
+            }
+        }
+    }
     if let Some(id) = drive {
         info.site = "Google Drive".into();
         info.options.insert(0, drive_original(&id, &info));
@@ -102,6 +114,13 @@ fn resolve_now(
         bail!("no downloadable video was found on this page");
     }
     Ok(info)
+}
+
+fn max_height(opts: &[YtOption]) -> u64 {
+    opts.iter()
+        .filter_map(|o| o.quality.trim_end_matches(|c: char| c != 'p').strip_suffix('p').or_else(|| o.quality.split('p').next()).and_then(|s| s.parse::<u64>().ok()))
+        .max()
+        .unwrap_or(0)
 }
 
 /// The id of a Google Drive file from its page ("/file/d/ID/view",

@@ -76,7 +76,7 @@ mod runner;
 mod tests;
 
 pub use burn::burn_subtitles;
-pub use runner::{merge, run_watched, ts_to_mp4};
+pub use runner::{merge, remux_hls, run_watched, ts_to_mp4};
 pub(crate) use runner::hide_window;
 use runner::len_of;
 /// What to say when our ffmpeg.exe is not there (it comes with the setup).

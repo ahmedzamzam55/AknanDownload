@@ -31,6 +31,7 @@ export component GrabberDialog inherits ThemedWindow {
     in-out property <bool> no-parent: true;
     in-out property <int> parallel: 4;
     in property <bool> exploring;
+    in property <bool> spa-hint;
     in property <string> progress-text;
     in property <[LinkRow]> links;
     in-out property <string> filter;
@@ -116,10 +117,28 @@ export component GrabberDialog inherits ThemedWindow {
                     }
                 }
             }
+            if root.spa-hint && !root.links-mode && !root.exploring: Rectangle {
+                background: Theme.panel;
+                border-width: 1px;
+                border-color: Theme.line;
+                border-radius: 4px;
+                GridLayout {
+                    padding: 8px;
+                    Text {
+                        min-width: 0px;
+                        wrap: word-wrap;
+                        color: Theme.muted;
+                        font-size: 11px * Theme.font-scale;
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        text: @tr("This site builds its links inside the browser. Open the page there, right-click and choose \"Download all links with Aknan Download\".");
+                    }
+                }
+            }
             GrabberLinksBox {
                 links: root.links;
                 links-mode: root.links-mode;
                 exploring: root.exploring;
+                spa-hint: root.spa-hint;
                 toggle(i) => {
                     root.toggle(i);
                 }

@@ -71,6 +71,12 @@ impl Manager {
         let mut entries = BTreeMap::new();
         let mut next_id = 1;
         for mut rec in store::load_downloads(&data_dir.join("downloads.json")) {
+            next_id = next_id.max(rec.id + 1);
+            if rec.hold_before_finish {
+                // Unconfirmed "Download File Info" pre-download from a crashed session: clean up silently
+                super::cleanup::remove_temp_files(&rec, &HashSet::new());
+                continue;
+            }
             if !matches!(rec.status, Status::Completed | Status::Failed | Status::Paused) {
                 rec.status = Status::Paused;
             }
@@ -91,7 +97,6 @@ impl Manager {
             progress.bytes.store(bytes, Ordering::Relaxed);
             progress.parts_total.store(rec.parts_total, Ordering::Relaxed);
             progress.parts_done.store(rec.parts_done, Ordering::Relaxed);
-            next_id = next_id.max(rec.id + 1);
             entries.insert(
                 rec.id,
                 Entry {
@@ -101,6 +106,7 @@ impl Manager {
                     rec,
                     progress,
                     task: None,
+                    release: Arc::new(tokio::sync::Notify::new()),
                     speed: SpeedMeter::default(),
                     quota_prev: 0,
                 },

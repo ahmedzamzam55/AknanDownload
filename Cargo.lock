@@ -167,7 +167,7 @@ dependencies = [
 
 [[package]]
 name = "aknan-host"
-version = "1.0.12"
+version = "1.0.13"
 dependencies = [
  "ring",
  "serde_json",
@@ -6618,7 +6618,7 @@ dependencies = [
 
 [[package]]
 name = "swiftget"
-version = "1.0.12"
+version = "1.0.13"
 dependencies = [
  "anyhow",
  "arboard",
@@ -6644,7 +6644,7 @@ dependencies = [
 
 [[package]]
 name = "swiftget-engine"
-version = "1.0.12"
+version = "1.0.13"
 dependencies = [
  "aes",
  "anyhow",

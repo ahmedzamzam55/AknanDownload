@@ -38,16 +38,34 @@ impl Manager {
         if crate::ftp::is_ftp(&rec.url) {
             return self.run_ftp(id, rec, segs, progress, limiter, cancel, &settings).await;
         }
-        if let Some(body) = rec.sub_body.as_deref().filter(|s| !s.is_empty() && rec.sub_convert.is_some()) {
+        let inline_sub = rec
+            .sub_convert
+            .as_ref()
+            .and(rec.sub_body.clone().or_else(|| super::sub_retry::decode_data_url(&rec.url)));
+        if let Some(body) = inline_sub.filter(|s| !s.is_empty()) {
             let part = rec.part_path();
             if let Some(parent) = part.parent() {
                 let _ = std::fs::create_dir_all(parent);
             }
             std::fs::write(&part, body.as_bytes())?;
             progress.bytes.store(body.len() as u64, std::sync::atomic::Ordering::Relaxed);
-            return self.finish_http(id, &rec, &progress, &cancel, &part).await;
+            return self.finish_http(id, &rec, &progress, &cancel, &part, None).await;
         }
         self.refresh_source(id, &mut rec, &cancel).await?;
+
+        let part = rec.part_path();
+        if rec.kind == DownloadKind::Http
+            && part.is_file()
+            && rec.total_size.is_some_and(|t| {
+                t > 0
+                    && std::fs::metadata(&part).map(|m| m.len() == t).unwrap_or(false)
+                    && ((!segs.lock_ok().is_empty() && segments::all_finished(&segs.lock_ok()))
+                        || (!rec.resumable && rec.downloaded == t))
+            })
+        {
+            progress.bytes.store(rec.total_size.unwrap_or(0), std::sync::atomic::Ordering::Relaxed);
+            return self.finish_http(id, &rec, &progress, &cancel, &part, None).await;
+        }
 
         // Fresh look at the server every time: links behind redirects often
         // expire, and the file may have changed since we paused.
@@ -167,7 +185,7 @@ impl Manager {
         }
 
         let part = rec.part_path();
-        match rec.kind {
+        let hls_outcome = match rec.kind {
             DownloadKind::Http => {
                 let job = HttpJob {
                     url: rec.request_url().to_string(),
@@ -186,6 +204,7 @@ impl Manager {
                 };
                 http_download::run(self.shared.clone(), job.clone(), segs.clone(), progress.clone(), cancel.clone()).await?;
                 self.retry_packed_holes(&rec, job, &segs, &progress, &cancel, &part).await?;
+                None
             }
             DownloadKind::Hls => {
                 let job = HlsJob {
@@ -198,12 +217,13 @@ impl Manager {
                     retries: settings.retries,
                     limiter: limiter.clone(),
                     clip: None,
+                    initial_playlist: p.hls_body.clone(),
                 };
-                hls::run(self.shared.clone(), job, progress.clone(), cancel.clone()).await?;
+                Some(hls::run(self.shared.clone(), job, progress.clone(), cancel.clone()).await?)
             }
             DownloadKind::Dash => unreachable!("handled by run_dash"),
             DownloadKind::Torrent => unreachable!("handled by run_torrent"),
-        }
-        self.finish_http(id, &rec, &progress, &cancel, &part).await
+        };
+        self.finish_http(id, &rec, &progress, &cancel, &part, hls_outcome).await
     }
 }

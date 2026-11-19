@@ -20,8 +20,11 @@ function onRuntimeMessage(msg, sender, sendResponse) {
       return reply(
         storeOf(sender.tab).then(async (store) => {
           let sub = msg.subtitle;
-          if (sub && sub.url && /^https?:/i.test(sub.url)) {
-            const [body, cookies] = await Promise.all([fetchSubBody(sub.url), cookieHeader(sub.url, store)]);
+          if (sub && !sub.body && sub.url && /^(https?:|data:)/i.test(sub.url)) {
+            const [body, cookies] = await Promise.all([
+              fetchSubBody(sub.url, sub.reqHeaders || item.reqHeaders),
+              /^https?:/i.test(sub.url) ? cookieHeader(sub.url, store) : "",
+            ]);
             sub = { ...sub, ...(body ? { body } : {}), ...(cookies ? { cookies } : {}) };
           }
           return item.yt
@@ -32,7 +35,7 @@ function onRuntimeMessage(msg, sender, sendResponse) {
       );
     }
     case "swiftget-download-subs": {
-      const tracks = Array.isArray(msg.tracks) ? msg.tracks.filter((t) => t && /^https?:/i.test(t.url || "")) : [];
+      const tracks = Array.isArray(msg.tracks) ? msg.tracks.filter((t) => t && ((/^https?:/i.test(t.url || "")) || /^data:/i.test(t.url || "") || (t.body && t.body.trim()))) : [];
       if (!tracks.length) return reply(Promise.reject(new Error("no subtitles selected")), sendResponse);
       const fmt = /^(srt|vtt|txt)$/i.test(msg.format || "") ? msg.format.toLowerCase() : "srt";
       const base = cleanYoutubeTitle(msg.title || "video");
@@ -44,10 +47,12 @@ function onRuntimeMessage(msg, sender, sendResponse) {
             if (i > 0) await new Promise((r) => setTimeout(r, 250));
             const t = tracks[i];
             const lang = String(t.lang || "sub").replace(/[^a-zA-Z0-9._-]/g, "_") || "sub";
-            const subBody = await fetchSubBody(t.url);
+            const subBody = (t.body && t.body.trim()) ? t.body : await fetchSubBody(t.url, t.reqHeaders);
+            const postUrl = /^https?:/i.test(t.url || "") ? t.url : /^https?:/i.test(ref) ? ref : "https://subtitles.local/track.vtt";
             await sendToApp({
-              url: t.url,
+              url: postUrl,
               referrer: ref,
+              reqHeaders: t.reqHeaders,
               sourcePage: ref,
               fileName: `${base}.${lang}.${fmt}`,
               subConvert: fmt,

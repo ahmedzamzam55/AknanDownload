@@ -22,14 +22,7 @@ pub(crate) fn open_with(path: &Path) {
             oaifInFlags: OAIF_ALLOW_REGISTRATION | OAIF_EXEC,
         };
         // SAFETY: `wide` is a NUL-terminated path that outlives the call
-        let hr = unsafe { SHOpenWithDialog(std::ptr::null_mut(), &info) };
-        if hr < 0 {
-            // an older Windows: the classic way
-            let _ = std::process::Command::new(swiftget_engine::system::windows_tool("rundll32.exe"))
-                .arg("shell32.dll,OpenAs_RunDLL")
-                .arg(&path)
-                .spawn();
-        }
+        let _ = unsafe { SHOpenWithDialog(std::ptr::null_mut(), &info) };
     });
     #[cfg(not(windows))]
     {
@@ -110,12 +103,28 @@ pub(crate) fn reveal_in_folder(v: &DownloadView) {
     let dir = v.save_path.parent().map(|p| p.to_path_buf()).unwrap_or_default();
     #[cfg(windows)]
     {
-        use std::os::windows::process::CommandExt;
+        use std::os::windows::ffi::OsStrExt;
+        use windows_sys::Win32::System::Com::{CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED};
+        use windows_sys::Win32::UI::Shell::{ILCreateFromPathW, ILFree, SHOpenFolderAndSelectItems};
         if v.status == Status::Completed && v.save_path.exists() {
-            let _ = std::process::Command::new(swiftget_engine::system::windows_tool("explorer.exe"))
-                .raw_arg(format!("/select,\"{}\"", v.save_path.display()))
-                .spawn();
-            return;
+            let wide: Vec<u16> = v.save_path.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+            unsafe {
+                let co = CoInitializeEx(std::ptr::null(), COINIT_APARTMENTTHREADED as u32);
+                let pidl = ILCreateFromPathW(wide.as_ptr());
+                let ok = if !pidl.is_null() {
+                    let hr = SHOpenFolderAndSelectItems(pidl, 0, std::ptr::null(), 0);
+                    ILFree(pidl);
+                    hr >= 0
+                } else {
+                    false
+                };
+                if co >= 0 {
+                    CoUninitialize();
+                }
+                if ok {
+                    return;
+                }
+            }
         }
     }
     let _ = std::fs::create_dir_all(&dir);

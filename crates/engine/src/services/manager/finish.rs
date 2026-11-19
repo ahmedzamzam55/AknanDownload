@@ -1,3 +1,4 @@
+use super::atomic_swap;
 use super::Manager;
 use crate::sync::LockOk;
 use crate::filename;
@@ -134,25 +135,54 @@ impl Manager {
         // still hold some in memory: a shutdown right after would lose them)
         let p2 = part.clone();
         tokio::task::spawn_blocking(move || std::fs::OpenOptions::new().write(true).open(&p2).and_then(|f| f.sync_all())).await?.ok();
+
+        // Option B safe hold: keep finished bytes inside `.sgpart` until "Start Download" is pressed
+        let release = self.inner.lock_ok().entries.get(&id).map(|e| e.release.clone());
+        let (mut save_dir, mut file_name, mut replace_existing) = (save_dir, file_name, rec.replace_existing);
+        loop {
+            let (hold, sd, fnm, rep) = {
+                let inner = self.inner.lock_ok();
+                inner
+                    .entries
+                    .get(&id)
+                    .map(|e| (e.rec.hold_before_finish, e.rec.save_dir.clone(), e.rec.file_name.clone(), e.rec.replace_existing))
+                    .unwrap_or((false, save_dir.clone(), file_name.clone(), replace_existing))
+            };
+            save_dir = sd;
+            file_name = fnm;
+            replace_existing = rep;
+            if !hold {
+                break;
+            }
+            let Some(notify) = &release else { break };
+            progress.set_step(None);
+            tokio::select! {
+                _ = notify.notified() => {}
+                _ = cancel.cancelled() => return Err(Cancelled.into()),
+            }
+        }
+        let _ = std::fs::create_dir_all(&save_dir);
         let (p2, d2, n2) = (part.clone(), save_dir.clone(), file_name.clone());
-        let (target, moved) = tokio::task::spawn_blocking(move || move_into_place(&p2, &d2, &n2)).await?;
+        let (target, moved) = tokio::task::spawn_blocking(move || {
+            if replace_existing {
+                atomic_swap::replace_into_place(&p2, &d2, &n2)
+            } else {
+                move_into_place(&p2, &d2, &n2)
+            }
+        })
+        .await?;
         if let Some(name) = target.file_name().and_then(|n| n.to_str()).filter(|n| *n != file_name) {
             let name = name.to_string();
             self.update(id, move |x| x.file_name = name);
         }
         if !moved {
-            // temporary folder on another disk: copied (its own bar), then removed
+            // temporary folder on another disk: copied safely via sibling temp file, then swapped
             progress.set_step(Some(Step::Move));
             let (from, to, p2, c2) = (part.clone(), target.clone(), progress.clone(), cancel.clone());
-            let copied = tokio::task::spawn_blocking(move || copy_watched(&from, &to, &|f| p2.step_at(f), &c2)).await?;
-            if let Err(e) = copied {
-                let _ = std::fs::remove_file(&target);
-                progress.set_step(None);
-                return Err(e);
-            }
-            let t2 = target.clone();
-            tokio::task::spawn_blocking(move || std::fs::OpenOptions::new().write(true).open(&t2).and_then(|f| f.sync_all())).await?.ok();
-            let _ = std::fs::remove_file(&part);
+            tokio::task::spawn_blocking(move || {
+                atomic_swap::cross_drive_swap(&from, &to, id, &|f| p2.step_at(f), &c2)
+            })
+            .await??;
         }
         progress.set_step(None);
         let settings = self.settings();

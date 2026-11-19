@@ -75,6 +75,7 @@ async fn hls_byte_ranges_after_a_redirect() {
         retries: 2,
         limiter: Arc::new(SpeedLimiter::new(0)),
         clip: None,
+        initial_playlist: None,
     };
     let shared = Arc::new(Shared::new(build_client().unwrap(), SpeedLimiter::new(0)));
     swiftget_engine::hls::run(shared, job, Arc::new(Progress::default()), CancellationToken::new()).await.unwrap();
@@ -159,6 +160,7 @@ async fn hls_throttles_on_503_and_resumes_cleanly() {
         retries: 1,
         limiter: Arc::new(SpeedLimiter::new(0)),
         clip: None,
+        initial_playlist: None,
     };
     let shared = Arc::new(Shared::new(build_client().unwrap(), SpeedLimiter::new(0)));
 

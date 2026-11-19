@@ -6,7 +6,6 @@ use crate::filename;
 use crate::http::{self};
 use crate::http_download::Cancelled;
 use crate::model::{DownloadId, DownloadKind, Status};
-use crate::ytdlp;
 use crate::system;
 use chrono::Utc;
 use std::path::PathBuf;
@@ -179,18 +178,14 @@ impl Manager {
                         let (stem, _) = filename::split_ext(&e.rec.file_name);
                         let stem = stem.to_string();
                         if !matches!(filename::extension(&e.rec.file_name).as_str(), "mp3" | "m4a" | "opus" | "ogg") {
-                            self.rt.spawn_blocking(move || {
-                                let _ = ytdlp::fetch_subtitles(&page, &dir, &stem, &langs);
+                            self.rt.spawn(async move {
+                                let _ = super::sub_retry::fetch_ytdlp_sub_retry(page, &dir, stem, langs, None).await;
                             });
                         }
                     }
                 }
             }
             if finished {
-                // before anything can open it: the file comes from the internet
-                if let Some((path, host, referrer)) = &mark {
-                    system::mark_from_internet(path, host, referrer.as_deref());
-                }
                 inner.completed.push(id);
                 inner.events.push(Event::Completed(id));
                 if open_file {
@@ -202,6 +197,11 @@ impl Manager {
             }
             inner.dirty = true;
             drop(inner);
+            if let Some((path, host, referrer)) = mark {
+                self.rt.spawn_blocking(move || {
+                    system::mark_from_internet(&path, &host, referrer.as_deref());
+                });
+            }
             if action != AfterDone::Nothing {
                 self.after_done(action);
             }

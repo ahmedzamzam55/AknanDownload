@@ -78,13 +78,31 @@ fn place_winit(win: &slint::winit_030::winit::window::Window, maximizable: bool)
         // it fills its screen already
         return;
     }
-    // the screen of the mouse (where the user is working), else the main one
+    // the screen of the mouse (where the user is working), else primary, else current,
+    // else the OS work area so a window can NEVER remain stranded off-screen
     let monitor = cursor_monitor(win).or_else(|| win.primary_monitor()).or_else(|| win.current_monitor());
-    if let Some(m) = monitor {
-        let (p, s, o) = (m.position(), m.size(), win.outer_size());
-        let (x, y) = centered((p.x, p.y), (s.width, s.height), (o.width, o.height));
-        win.set_outer_position(winit::dpi::PhysicalPosition::new(x, y));
+    let o = win.outer_size();
+    let (x, y) = if let Some(m) = monitor {
+        let (p, s) = (m.position(), m.size());
+        centered((p.x, p.y), (s.width, s.height), (o.width, o.height))
+    } else {
+        let (pos, sz) = fallback_work_area();
+        centered(pos, sz, (o.width, o.height))
+    };
+    win.set_outer_position(winit::dpi::PhysicalPosition::new(x, y));
+}
+
+#[cfg(windows)]
+fn fallback_work_area() -> ((i32, i32), (u32, u32)) {
+    use windows_sys::Win32::Foundation::RECT;
+    use windows_sys::Win32::UI::WindowsAndMessaging::{SystemParametersInfoW, SPI_GETWORKAREA};
+    let mut rc = RECT { left: 0, top: 0, right: 1280, bottom: 720 };
+    unsafe {
+        SystemParametersInfoW(SPI_GETWORKAREA, 0, &mut rc as *mut RECT as *mut _, 0);
     }
+    let w = (rc.right - rc.left).max(400) as u32;
+    let h = (rc.bottom - rc.top).max(300) as u32;
+    ((rc.left, rc.top), (w, h))
 }
 
 /// The screen the mouse pointer is on.
@@ -143,10 +161,8 @@ where
         }
         let there = has_system_window(c.window());
         if there && (seen || tries == 0) {
+            super::redraw::mark_placed(c.window());
             place_now(c.window(), maximizable);
-            // on the screen now: drawn whole (Windows kept nothing of what
-            // was drawn away from the screen; only changed parts were drawn
-            // again and the rest stayed white)
             repaint_all(&c);
             c.window().request_redraw();
             then();

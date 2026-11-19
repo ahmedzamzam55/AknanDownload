@@ -7,11 +7,15 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 impl Manager {
-    /// Files of a queue in their download order.
+    /// Unfinished files of a queue in their download order.
     pub fn queue_files(&self, queue: u64) -> Vec<DownloadView> {
         let inner = self.inner.lock_ok();
-        let mut v: Vec<DownloadView> =
-            inner.entries.values().filter(|e| e.rec.queue == Some(queue)).map(make_view).collect();
+        let mut v: Vec<DownloadView> = inner
+            .entries
+            .values()
+            .filter(|e| e.rec.queue == Some(queue) && e.rec.status != Status::Completed)
+            .map(make_view)
+            .collect();
         v.sort_by_key(|x| (x.queue_pos, x.id));
         v
     }
@@ -23,7 +27,7 @@ impl Manager {
         let mut order: Vec<(u64, DownloadId)> = inner
             .entries
             .values()
-            .filter(|e| e.rec.queue == Some(q))
+            .filter(|e| e.rec.queue == Some(q) && e.rec.status != Status::Completed)
             .map(|e| (e.rec.queue_pos, e.rec.id))
             .collect();
         order.sort();
@@ -148,5 +152,32 @@ impl Manager {
         let mut s = self.settings();
         s.queues.retain(|q| q.id != id);
         self.set_settings(s)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::{NewDownload, Status};
+
+    #[test]
+    fn queue_files_and_move_skip_completed() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let root = std::env::temp_dir().join(format!("aknan-qview-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let mgr = Manager::new(rt.handle().clone(), root.clone()).unwrap();
+        let q = mgr.add_queue("Course", 1, None).unwrap();
+        let a = mgr.add(NewDownload { url: "https://ex/1.mp4".into(), queue: Some(q), start: false, ..Default::default() });
+        let b = mgr.add(NewDownload { url: "https://ex/2.mp4".into(), queue: Some(q), start: false, ..Default::default() });
+        let c = mgr.add(NewDownload { url: "https://ex/3.mp4".into(), queue: Some(q), start: false, ..Default::default() });
+        mgr.update(a, |r| r.status = Status::Completed);
+
+        let files = mgr.queue_files(q);
+        assert_eq!(files.iter().map(|v| v.id).collect::<Vec<_>>(), vec![b, c]);
+
+        mgr.move_in_queue(c, -1);
+        let reordered = mgr.queue_files(q);
+        assert_eq!(reordered.iter().map(|v| v.id).collect::<Vec<_>>(), vec![c, b]);
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

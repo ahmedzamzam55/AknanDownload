@@ -1,0 +1,63 @@
+// Inline file-name conflict panel shown inside AddDialog when target exists.
+
+import { Button } from "std-widgets.slint";
+import { Theme, Glyph, HRow } from "../common.slint";
+
+export component AddConflictPanel inherits Rectangle {
+    in property <string> file-name;
+    in property <string> numbered-name;
+    callback replace-safely();
+    callback keep-numbered();
+    callback change-name();
+
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.warn;
+    border-radius: 4px;
+
+    VerticalLayout {
+        padding: 10px;
+        spacing: 8px;
+        GridLayout {
+            spacing: 8px;
+            Glyph {
+                col: Theme.rtl ? 1 : 0;
+                row: 0;
+                kind: "warn";
+            }
+            Text {
+                col: Theme.rtl ? 0 : 1;
+                row: 0;
+                horizontal-stretch: 1;
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                text: @tr("A file named “{}” already exists in this folder. Replace keeps the old file safe until the new download completes.", root.file-name);
+                color: Theme.text;
+                font-size: 12px * Theme.font-scale;
+                wrap: word-wrap;
+            }
+        }
+        HRow {
+            spacing: 8px;
+            Rectangle { horizontal-stretch: 1; }
+            Button {
+                text: @tr("Replace safely");
+                primary: true;
+                clicked => {
+                    root.replace-safely();
+                }
+            }
+            Button {
+                text: @tr("Save as “{}”", root.numbered-name);
+                clicked => {
+                    root.keep-numbered();
+                }
+            }
+            Button {
+                text: @tr("Change name");
+                clicked => {
+                    root.change-name();
+                }
+            }
+        }
+    }
+}

@@ -71,6 +71,8 @@ fn load_source(d: &TorrentDialog, mgr: &Arc<Manager>, rows: &Rc<VecModel<LinkRow
                 rtl: crate::i18n::rtl_text(&f.path),
                 kind: kind_for(&f.path).into(),
                 ext: fmt_size(f.size).into(),
+                size: SharedString::new(),
+                done: false,
                 text: f.index.to_string().into(),
                 url: SharedString::new(),
             })

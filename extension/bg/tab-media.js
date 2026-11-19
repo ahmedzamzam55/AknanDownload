@@ -57,28 +57,16 @@ function orderMedia(media, preferFrameId) {
 async function itemsForTab(tabId, preferFrameId = 0) {
   const { media, yt, res, subs } = await readTab(tabId);
   const items = [];
-  if (res && !yt) {
-    if (res.resolved && res.resolved.options.length) {
-      items.push(...optionItems(res.resolved, res.page));
-    } else if (res.resolving) {
-      items.push({ label: aknanI18n.t("Getting video qualities…"), sub: aknanI18n.t("This takes a few seconds"), disabled: true, busy: true });
-    } else if (res.resolveError && !media.length) {
-      const unknown = /unsupported url|no video formats|unable to extract/i.test(res.resolveError);
-      items.push(
-        isDrm(res.resolveError)
-          ? { label: drmText(), sub: "", disabled: true, drm: true }
-          : unknown
-            ? { label: aknanI18n.t("Play the video for a moment"), sub: aknanI18n.t("Its qualities appear here as soon as it plays"), disabled: true }
-            : { label: aknanI18n.t("Can't get this video"), sub: res.resolveError, disabled: true }
-      );
-    }
-  }
   if (yt) {
+    const ytSource = `https://${yt.host || "www.youtube.com"}/watch?v=${yt.videoId}`;
     if (yt.resolved && yt.resolved.options.length) {
-      items.push(...optionItems(yt.resolved, `https://www.youtube.com/watch?v=${yt.videoId}`));
+      items.push(...optionItems(yt.resolved, ytSource));
     } else {
       for (const o of buildOptions(yt.streams, appConfig && appConfig.mp3Kbps)) items.push({ label: o.label, sub: o.sub, yt: o });
-      if (!items.length) {
+      if (!items.length && yt.quickOptions && yt.quickOptions.length) {
+        items.push(...optionItems({ title: yt.title || "", site: "YouTube", options: yt.quickOptions, subtitles: yt.subs || [] }, ytSource));
+      }
+      if (!items.length && !(res && res.resolved && res.resolved.options.length)) {
         if (yt.resolving) {
           items.push({ label: aknanI18n.t("Getting video qualities…"), sub: aknanI18n.t("This takes a few seconds"), disabled: true, busy: true });
         } else if (yt.resolveError) {
@@ -91,6 +79,24 @@ async function itemsForTab(tabId, preferFrameId = 0) {
           });
         }
       }
+    }
+  }
+  const ytHasQualities = items.some((i) => !i.disabled && i.yt);
+  if (res && (!yt || !ytHasQualities)) {
+    if (res.resolved && res.resolved.options.length) {
+      if (!ytHasQualities) items.length = 0;
+      items.push(...optionItems(res.resolved, res.page));
+    } else if (!yt && res.resolving) {
+      items.push({ label: aknanI18n.t("Getting video qualities…"), sub: aknanI18n.t("This takes a few seconds"), disabled: true, busy: true });
+    } else if (!yt && res.resolveError && !media.length) {
+      const unknown = /unsupported url|no video formats|unable to extract/i.test(res.resolveError);
+      items.push(
+        isDrm(res.resolveError)
+          ? { label: drmText(), sub: "", disabled: true, drm: true }
+          : unknown
+            ? { label: aknanI18n.t("Play the video for a moment"), sub: aknanI18n.t("Its qualities appear here as soon as it plays"), disabled: true }
+            : { label: aknanI18n.t("Can't get this video"), sub: res.resolveError, disabled: true }
+      );
     }
   }
   const resolvedFound = items.some((i) => i.yt);
@@ -193,6 +199,7 @@ async function pushToTab(tabId) {
 }
 
 async function clearTab(tabId) {
+  if (typeof activeHlsHosts !== "undefined") activeHlsHosts.delete(tabId);
   await chrome.storage.session.remove([`media_${tabId}`, `yt_${tabId}`, `res_${tabId}`, `subs_${tabId}`]);
   chrome.action.setBadgeText({ tabId, text: "" }).catch(() => {});
   chrome.tabs.sendMessage(tabId, { type: "swiftget-media", items: [] }).catch(() => {});

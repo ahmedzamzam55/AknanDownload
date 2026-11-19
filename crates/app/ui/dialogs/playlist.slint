@@ -15,7 +15,7 @@ export component PlaylistDialog inherits ThemedWindow {
     always-on-top: root.front;
     title: @tr("Download a playlist");
     preferred-width: 780px;
-    preferred-height: 600px;
+    preferred-height: 620px;
     in-out property <string> url;
     in property <bool> busy;
     in property <string> status;
@@ -25,14 +25,17 @@ export component PlaylistDialog inherits ThemedWindow {
     in-out property <string> folder;
     in-out property <int> parallel: 2;
     in-out property <bool> numbered: true;
+    in-out property <bool> oldest-first: false;
     in-out property <bool> start-now: true;
-    // the videos' subtitles too (Options > Downloads, the same switch)
-    in-out property <bool> subtitles;
+    in-out property <int> sub-mode: 0;
+    in-out property <string> sub-lang: "ar en";
     in property <string> checked-text;
     in property <string> message;
     callback fetch();
     callback toggle(int);
     callback check-all(bool);
+    callback quality-changed();
+    callback order-changed();
     callback browse();
     callback download();
     callback close-window();
@@ -133,6 +136,9 @@ export component PlaylistDialog inherits ThemedWindow {
                         width: 240px;
                         model: [@tr("Best quality (MP4)"), @tr("2160p 4K"), @tr("1440p 2K"), @tr("1080p Full HD"), @tr("720p HD"), @tr("480p SD"), @tr("360p SD"), "240p", "144p", @tr("Audio only (M4A)"), @tr("Audio MP3")];
                         current-index <=> root.quality;
+                        selected => {
+                            root.quality-changed();
+                        }
                     }
                     Label {
                         text: @tr("Files at the same time");
@@ -151,59 +157,51 @@ export component PlaylistDialog inherits ThemedWindow {
                 Label {
                     col: Theme.rtl ? 1 : 0;
                     row: 1;
-                    text: @tr("Save to");
+                    text: @tr("Subtitles");
                 }
                 HRow {
                     col: Theme.rtl ? 0 : 1;
                     row: 1;
-                    spacing: 6px;
+                    spacing: 8px;
+                    ComboBox {
+                        width: 240px;
+                        model: [@tr("No subtitles"), @tr("Separate file (.srt)"), @tr("Separate file (.vtt)"), @tr("Burned into picture"), @tr("Subtitles only (.srt)"), @tr("Subtitles only (.vtt)")];
+                        current-index <=> root.sub-mode;
+                        selected => { root.quality-changed(); }
+                    }
+                    Label { text: @tr("Languages"); }
                     LineEdit {
-                        text <=> root.folder;
-                        horizontal-stretch: 1;
+                        width: 140px;
+                        text <=> root.sub-lang;
+                        placeholder-text: "ar en";
+                        enabled: root.sub-mode > 0;
                     }
-                    Button {
-                        text: "…";
-                        clicked => {
-                            root.browse();
-                        }
-                    }
+                    Rectangle { horizontal-stretch: 1; }
+                }
+                Label { col: Theme.rtl ? 1 : 0; row: 2; text: @tr("Save to"); }
+                HRow {
+                    col: Theme.rtl ? 0 : 1;
+                    row: 2;
+                    spacing: 6px;
+                    LineEdit { text <=> root.folder; horizontal-stretch: 1; }
+                    Button { text: "…"; clicked => { root.browse(); } }
                 }
             }
             HRow {
-                spacing: 10px;
-                CheckBox {
-                    text: @tr("Number the files");
-                    checked <=> root.numbered;
-                }
-                CheckBox {
-                    text: @tr("Start now");
-                    checked <=> root.start-now;
-                }
-                CheckBox {
-                    text: @tr("Subtitles too");
-                    checked <=> root.subtitles;
-                }
+                spacing: 8px;
+                CheckBox { text: @tr("Number the files"); checked <=> root.numbered; }
+                CheckBox { text: @tr("Oldest first"); checked <=> root.oldest-first; toggled => { root.order-changed(); } }
+                CheckBox { text: @tr("Start now"); checked <=> root.start-now; }
                 Text {
                     text: root.message != "" ? root.message : root.checked-text;
                     color: root.message != "" ? Theme.err : Theme.muted;
                     vertical-alignment: center;
                     horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.left : TextHorizontalAlignment.right;
                     horizontal-stretch: 1;
+                    overflow: elide;
                 }
-                Button {
-                    text: @tr("Download");
-                    primary: true;
-                    enabled: root.entries.length > 0;
-                    clicked => {
-                        root.download();
-                    }
-                }
-                Button {
-                    text: @tr("Close");
-                    clicked => {
-                        root.close-window();
-                    }
-                }
+                Button { text: @tr("Download"); primary: true; enabled: root.entries.length > 0; clicked => { root.download(); } }
+                Button { text: @tr("Close"); clicked => { root.close-window(); } }
             }
         }
     }

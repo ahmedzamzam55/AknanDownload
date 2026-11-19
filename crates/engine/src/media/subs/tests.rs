@@ -33,3 +33,14 @@ fn json3_clamps_overlapping_windows() {
     assert!(srt.contains("1\n00:00:00,120 --> 00:00:04,820\nFirst"), "{srt}");
     assert!(srt.contains("2\n00:00:04,820 --> 00:00:12,820\nSecond"), "{srt}");
 }
+
+#[test]
+fn converts_ass_and_bcc_to_srt() {
+    let ass = "[Script Info]\nTitle: Demo\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:01.20,0:00:03.50,Default,,0,0,0,,{\\an8}Hello\\NWorld\n";
+    let srt = convert_subtitles(ass, "srt");
+    assert_eq!(srt, "1\n00:00:01,200 --> 00:00:03,500\nHello\nWorld\n\n");
+
+    let bcc = r#"{"body":[{"from":1.5,"to":4.25,"content":"Bilibili line"}]}"#;
+    let vtt = convert_subtitles(bcc, "vtt");
+    assert!(vtt.starts_with("WEBVTT\n\n00:00:01.500 --> 00:00:04.250\nBilibili line"), "{vtt}");
+}

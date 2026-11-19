@@ -82,13 +82,27 @@ fn members_site(url: &str) -> bool {
 /// "m.youtube.com" and "youtu.be" are all "youtube.com").
 pub(super) fn site_of(url: &str) -> String {
     let host = url::Url::parse(url).ok().and_then(|u| u.host_str().map(str::to_ascii_lowercase)).unwrap_or_default();
-    if host == "youtu.be" || host.ends_with(".youtu.be") {
+    if host == "youtu.be" || host.ends_with(".youtu.be") || host == "youtubekids.com" || host.ends_with(".youtubekids.com") {
         return "youtube.com".into();
     }
     let parts: Vec<&str> = host.trim_end_matches('.').split('.').collect();
     // co.uk, com.eg, ...: keep three labels
     let keep = if parts.len() >= 3 && parts[parts.len() - 2].len() <= 3 && parts[parts.len() - 1].len() == 2 { 3 } else { 2 };
     parts[parts.len().saturating_sub(keep)..].join(".")
+}
+
+pub(super) fn is_youtube_site(url: &str) -> bool {
+    site_of(url) == "youtube.com"
+}
+
+pub(super) fn run_with_cookie_list<T>(cookies: &[BrowserCookie], run: impl FnOnce(Option<&Path>) -> anyhow::Result<T>) -> anyhow::Result<T> {
+    if cookies.is_empty() {
+        return run(None);
+    }
+    let file = cookie_file(cookies)?;
+    let r = run(Some(&file));
+    let _ = std::fs::remove_file(&file);
+    r
 }
 
 /// The browser's cookies of each site, kept in memory only (never written

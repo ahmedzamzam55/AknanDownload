@@ -1,10 +1,11 @@
 // HLS playlist parsing, protected fallback resolution via desktop app, and iframe navigation cleanup.
 
 function parseHlsMaster(text, base) {
+  text = String(text || "").replace(/^\uFEFF/, "");
   if (!/#EXT-X-STREAM-INF/i.test(text)) return null;
   const lines = text.split(/\r?\n/).map((l) => l.trim());
   const variants = [];
-  const separateAudio = lines.some((l) => /^#EXT-X-MEDIA:.*TYPE=AUDIO.*URI=/i.test(l));
+  const separateAudio = lines.some((l) => /^#EXT-X-MEDIA:/i.test(l) && /\bTYPE=AUDIO\b/i.test(l) && /\bURI=/i.test(l));
   for (let i = 0; i < lines.length; i++) {
     if (!/^#EXT-X-STREAM-INF:/i.test(lines[i])) continue;
     let uri = "";
@@ -112,7 +113,7 @@ async function readHls(tabId, url) {
   } finally {
     clearTimeout(timer);
   }
-  if (!ok || !/^\s*#EXTM3U/.test(text)) {
+  if (!ok || !/^\s*#EXTM3U/.test(text.replace(/^\uFEFF/, ""))) {
     await resolveHlsThroughApp(tabId, url);
     return;
   }

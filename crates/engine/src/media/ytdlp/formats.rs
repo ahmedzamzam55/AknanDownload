@@ -86,8 +86,9 @@ fn headers_of(f: &Value) -> Vec<(String, String)> {
 fn parse_one(f: &Value) -> Option<Fmt> {
     let protocol = f["protocol"].as_str().unwrap_or("https");
     let hls = protocol.starts_with("m3u8");
-    if !(protocol == "https" || protocol == "http" || hls) {
-        return None; // dash manifests, storyboards, rtmp, live fragments
+    let single_dash = protocol == "http_dash_segments" && f["fragments"].as_array().is_none_or(|a| a.len() <= 1);
+    if !(protocol == "https" || protocol == "http" || hls || single_dash) {
+        return None; // multi-fragment dash, storyboards, rtmp, live fragments
     }
     if f["has_drm"].as_bool() == Some(true) {
         return None;

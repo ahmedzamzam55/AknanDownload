@@ -162,13 +162,23 @@ pub(super) fn wire_main_rows(main: &MainWindow, ui: &Ui) {
             if !winfx::left_button_down() {
                 return;
             }
-            // a finished file pulled out of the list: Windows takes it from here
-            let Some(v) = ui.ctx.mgr.get(id as u64) else { return };
-            if v.status != Status::Completed || !v.save_path.is_file() {
+            let clicked = id as u64;
+            let sel_ids = ui.sel.borrow().ids.clone();
+            let ids = if sel_ids.len() > 1 && sel_ids.contains(&clicked) { sel_ids } else { vec![clicked] };
+            let paths: Vec<std::path::PathBuf> = ids
+                .into_iter()
+                .filter_map(|i| ui.ctx.mgr.get(i))
+                .filter(|v| v.status == Status::Completed && v.save_path.exists())
+                .map(|v| v.save_path)
+                .collect();
+            if paths.is_empty() {
                 return;
             }
             let Some(m) = ui.ctx.main.upgrade() else { return };
-            winfx::drag_file_out(m.window(), &v.save_path);
+            let outcome = winfx::drag_paths_out(m.window(), &paths);
+            if outcome.moved {
+                refresh(&ui);
+            }
             // the mouse was let go outside the list: the row must know too
             m.window().dispatch_event(slint::platform::WindowEvent::PointerReleased {
                 position: slint::LogicalPosition::new(0.0, 0.0),

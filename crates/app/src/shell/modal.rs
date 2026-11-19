@@ -1,6 +1,5 @@
 use super::look::{set_theme_of, Look};
 use super::state::{Ctx, APP};
-use crate::i18n::{t, tf};
 use crate::{api, winfx, ConfirmDialog, Theme};
 use slint::{ComponentHandle, Timer};
 use std::cell::{Cell, RefCell};
@@ -18,6 +17,10 @@ thread_local! {
 
 pub(crate) fn modal_open() -> bool {
     MODAL.with(|m| m.get())
+}
+
+pub(crate) fn suspend_modals() -> ModalGuard {
+    ModalGuard::new()
 }
 
 /// Marks a message box as open for as long as it lives.
@@ -64,31 +67,6 @@ pub(crate) fn breakable(text: &str) -> String {
         out.push(c);
     }
     out
-}
-
-pub(super) enum FileThere {
-    Replace,
-    Number,
-    Cancel,
-}
-
-/// "The file is already in this folder": replace it, a new numbered name, or not now.
-pub(super) fn ask_file_there(name: &str) -> FileThere {
-    use rfd::{MessageButtons, MessageDialogResult};
-    let _g = ModalGuard::new();
-    let (replace, number, cancel) = (t("Replace it"), t("New name (numbered)"), t("Cancel"));
-    let answer = winfx::msg_box()
-        .set_title(APP)
-        .set_description(tf("The file \"{}\" is already in this folder.\nReplace it, or save the new one with a numbered name?", &[&name]))
-        .set_buttons(MessageButtons::YesNoCancelCustom(replace.clone(), number.clone(), cancel))
-        .show();
-    match answer {
-        MessageDialogResult::Custom(c) if c == replace => FileThere::Replace,
-        MessageDialogResult::Yes => FileThere::Replace,
-        MessageDialogResult::Custom(c) if c == number => FileThere::Number,
-        MessageDialogResult::No => FileThere::Number,
-        _ => FileThere::Cancel,
-    }
 }
 
 pub(crate) fn ask(text: &str) -> bool {

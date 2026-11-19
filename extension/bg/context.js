@@ -35,9 +35,10 @@ async function storeOf(item) {
 }
 
 /** The site's cookies for the app, only used if the site asks for a login. */
-async function cookieList(url) {
+async function cookieList(url, store) {
   try {
-    const list = await chrome.cookies.getAll({ url });
+    const q = store ? { url, storeId: store } : { url };
+    const list = await chrome.cookies.getAll(q);
     return list.map((c) => ({
       domain: c.domain,
       name: c.name,
@@ -53,7 +54,7 @@ async function cookieList(url) {
 
 function isYoutube(url) {
   try {
-    return /(^|\.)youtube\.com$|^youtu\.be$/i.test(new URL(url).hostname);
+    return /(^|\.)youtube(kids)?\.com$|^youtu\.be$/i.test(new URL(url).hostname);
   } catch {
     return false;
   }

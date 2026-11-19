@@ -75,7 +75,7 @@ pub(super) fn in_view(v: &DownloadView, view: &str) -> bool {
             } else if let Some(c) = other.strip_prefix("fin:") {
                 v.category == c && v.status == Status::Completed
             } else if let Some(q) = other.strip_prefix("queue:") {
-                v.queue.map(|x| x.to_string()).as_deref() == Some(q)
+                v.queue.map(|x| x.to_string()).as_deref() == Some(q) && v.status != Status::Completed
             } else {
                 true
             }

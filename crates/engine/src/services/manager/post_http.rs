@@ -1,13 +1,14 @@
-use super::{Manager};
 use super::clip_job::song_title;
-use crate::sync::LockOk;
+use super::Manager;
 use crate::filename;
+use crate::hls::{HlsContainer, HlsOutcome};
 use crate::http::Progress;
 use crate::http_download::{self, Cancelled, HttpJob, SegTable};
 use crate::model::{DownloadId, DownloadKind, DownloadRecord, Step};
 use crate::mux;
-use crate::ytdlp;
 use crate::segments;
+use crate::sync::LockOk;
+use crate::ytdlp;
 use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -49,6 +50,7 @@ impl Manager {
         progress: &Arc<Progress>,
         cancel: &CancellationToken,
         part: &Path,
+        hls_outcome: Option<HlsOutcome>,
     ) -> anyhow::Result<()> {
         if let Some(fmt) = rec.sub_convert.as_deref() {
             self.apply_sub_convert(id, part, fmt, progress)?;
@@ -69,30 +71,36 @@ impl Manager {
                 progress.set_step(None);
             }
             made?;
-            std::fs::rename(&tmp, &part)?;
+            std::fs::rename(&tmp, part)?;
         }
-        if rec.kind == DownloadKind::Hls && filename::extension(&rec.file_name) == "ts" {
+        if rec.kind == DownloadKind::Hls {
             if mux::find_ffmpeg().is_none() {
                 crate::tools::restore_ffmpeg(&self.client()).await;
             }
             if mux::find_ffmpeg().is_some() {
-                // a joined stream: an ordinary MP4 plays everywhere and can be
-                // wound forward; if that fails the .ts file stays as it is
+                // Remux EVERY HLS stream (even when already named .mp4) so raw TS/fMP4 becomes seekable MP4.
                 progress.assembling.store(true, Ordering::Relaxed);
                 let (input, tmp) = (part.to_path_buf(), part.with_extension("mp4tmp"));
                 let t2 = tmp.clone();
+                let audio = hls_outcome.as_ref().and_then(|o| o.audio_output.clone());
+                let fmp4 = hls_outcome.as_ref().is_some_and(|o| o.container == HlsContainer::Fmp4);
                 progress.set_step(Some(Step::ToMp4));
                 let (p2, c2) = (progress.clone(), cancel.clone());
-                let r = tokio::task::spawn_blocking(move || mux::ts_to_mp4(&input, &t2, &|f| p2.step_at(f), Some(&c2))).await;
+                let r = tokio::task::spawn_blocking(move || {
+                    mux::remux_hls(&input, audio.as_deref(), &t2, fmp4, &|f| p2.step_at(f), Some(&c2))
+                })
+                .await;
                 if cancel.is_cancelled() {
                     progress.set_step(None);
                     return Err(Cancelled.into());
                 }
                 let made = r.map(|r| r.is_ok()).unwrap_or(false);
-                if made && std::fs::rename(&tmp, &part).is_ok() {
-                    let (stem, _) = filename::split_ext(&rec.file_name);
-                    let name = filename::unique_name(&rec.save_dir, &format!("{stem}.mp4"));
-                    self.update(id, move |x| x.file_name = name);
+                if made && std::fs::rename(&tmp, part).is_ok() {
+                    if !filename::extension(&rec.file_name).eq_ignore_ascii_case("mp4") {
+                        let (stem, _) = filename::split_ext(&rec.file_name);
+                        let name = filename::unique_name(&rec.save_dir, &format!("{stem}.mp4"));
+                        self.update(id, move |x| x.file_name = name);
+                    }
                 } else {
                     let _ = std::fs::remove_file(&tmp);
                 }
@@ -101,6 +109,10 @@ impl Manager {
         let latest = self.inner.lock_ok().entries.get(&id).map(|e| e.rec.clone()).unwrap_or_else(|| rec.clone());
         self.process_video_subtitle(id, &latest, progress, cancel, part).await?;
         self.finish_file(id, &latest, progress, cancel).await?;
+        if let Some(out) = hls_outcome {
+            let _ = std::fs::remove_dir_all(&out.temp_dir);
+        }
+        let latest = self.inner.lock_ok().entries.get(&id).map(|e| e.rec.clone()).unwrap_or(latest);
         self.save_video_sidecar_subtitle(id, &latest).await;
         Ok(())
     }

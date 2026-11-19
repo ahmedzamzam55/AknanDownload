@@ -4,7 +4,7 @@
 const SENT_HEADERS = new Map();
 const SENT_BY_ID = new Map();
 const SENT_TTL = 1800000;
-const KEEP_HEADERS = /^(accept-language|origin|referer|user-agent|cookie|x-requested-with|sec-fetch-(site|mode|dest|user)|sec-ch-ua(-mobile|-platform)?)$/i;
+const KEEP_HEADERS = /^(accept-language|authorization|origin|referer|user-agent|cookie|x-requested-with|sec-fetch-(site|mode|dest|user)|sec-ch-ua(-mobile|-platform)?)$/i;
 
 function trimSent(map, limit) {
   if (map.size <= limit) return;

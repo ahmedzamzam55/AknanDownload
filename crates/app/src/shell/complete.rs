@@ -1,5 +1,6 @@
 use super::actions::{open_download, open_with, reveal_in_folder};
 use super::format::kind_for;
+use super::rows::refresh;
 use super::state::Ui;
 use crate::i18n::tf;
 use crate::winfx;
@@ -47,19 +48,25 @@ pub(super) fn wire_complete(ui: &Ui) {
     {
         let ui = ui.clone();
         complete.on_drag_out(move || {
-            // the finished file pulled out of the window: Windows takes it from here
-            let Some(v) = ui.complete_id.get().and_then(|i| ui.ctx.mgr.get(i)) else { return };
+            // the finished file or group folder pulled out of the window: Windows takes it from here
+            let path = if let Some(id) = ui.complete_id.get() {
+                ui.ctx.mgr.get(id).map(|v| v.save_path)
+            } else {
+                ui.complete_folder.borrow().clone()
+            };
+            let Some(path) = path.filter(|p| p.exists()) else { return };
             let Some(d) = ui.complete.upgrade() else { return };
-            if !v.save_path.is_file() {
-                return;
-            }
-            winfx::drag_file_out(d.window(), &v.save_path);
+            let outcome = winfx::drag_file_out(d.window(), &path);
             // the mouse was let go outside the window: the icon must know too
             d.window().dispatch_event(slint::platform::WindowEvent::PointerReleased {
                 position: slint::LogicalPosition::new(0.0, 0.0),
                 button: slint::platform::PointerEventButton::Left,
             });
             d.window().dispatch_event(slint::platform::WindowEvent::PointerExited);
+            if outcome.moved {
+                let _ = d.hide();
+                refresh(&ui);
+            }
         });
     }
 }

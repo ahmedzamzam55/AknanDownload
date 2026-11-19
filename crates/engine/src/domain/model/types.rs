@@ -103,6 +103,10 @@ pub struct SubtitleTask {
     pub body: Option<String>,
     #[serde(default, with = "crate::secret::opt", skip_serializing_if = "Option::is_none")]
     pub cookies: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub extra_headers: Vec<(String, String)>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub format: Option<String>,
 }
 
 /// Extra request data, usually handed over by the browser extension so that
@@ -147,6 +151,8 @@ pub struct ProbeResult {
     pub headers_used: Option<RequestHeaders>,
     /// the checksum the server sent with the file ("sha256:..."), if any
     pub digest: Option<String>,
+    /// cached HLS playlist text if already fetched during probe
+    pub hls_body: Option<String>,
 }
 
 impl ProbeResult {
@@ -198,4 +204,8 @@ pub struct NewDownload {
     /// target format ("srt", "vtt", "txt") when downloading a standalone subtitle file
     pub sub_convert: Option<String>,
     pub sub_body: Option<String>,
+    /// overwrite existing file atomically upon completion
+    pub replace_existing: bool,
+    /// keep finished data in `.sgpart` until explicitly confirmed
+    pub hold_before_finish: bool,
 }

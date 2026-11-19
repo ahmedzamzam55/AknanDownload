@@ -115,6 +115,10 @@ pub struct DownloadRecord {
     pub sub_convert: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sub_body: Option<String>,
+    #[serde(default)]
+    pub replace_existing: bool,
+    #[serde(default)]
+    pub hold_before_finish: bool,
 }
 
 impl DownloadRecord {

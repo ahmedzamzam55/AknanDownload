@@ -14,6 +14,10 @@ pub struct Part {
     pub url: String,
     pub sequence: u64,
     pub key: Option<Key>,
+    pub init_url: Option<String>,
+    pub init_range: Option<(u64, u64)>,
+    pub init_key: Option<Key>,
+    pub discontinuity: bool,
     /// only these bytes of the address (#EXT-X-BYTERANGE): (offset, length)
     pub range: Option<(u64, u64)>,
     /// how long it plays, in seconds (#EXTINF)
@@ -61,19 +65,27 @@ pub fn parse_attrs(s: &str) -> HashMap<String, String> {
 }
 
 pub(super) fn resolve(base: &str, rel: &str) -> anyhow::Result<String> {
+    let rel = rel.trim();
+    if rel.starts_with("data:") {
+        return Ok(rel.to_string());
+    }
     let base = url::Url::parse(base)?;
-    Ok(base.join(rel.trim())?.to_string())
+    Ok(base.join(rel)?.to_string())
 }
 
 mod master;
 pub use master::{parse_master, parse_subtitles_media, HlsSub, Variant};
 
-/// For a master playlist, return the URL of the highest bandwidth variant.
-pub fn best_variant(base: &str, text: &str) -> anyhow::Result<Option<String>> {
-    Ok(parse_master(base, text)?.0.into_iter().max_by_key(|v| v.bandwidth).map(|v| v.url))
+/// For a master playlist, return the full info of the highest bandwidth variant.
+pub fn best_variant_info(base: &str, text: &str) -> anyhow::Result<Option<Variant>> {
+    Ok(parse_master(base, text)?.0.into_iter().max_by_key(|v| v.bandwidth))
 }
 
-/// "1000@200" -> (1000, Some(200)); "1000" -> (1000, None)
+/// For a master playlist, return the URL of the highest bandwidth variant.
+pub fn best_variant(base: &str, text: &str) -> anyhow::Result<Option<String>> {
+    Ok(best_variant_info(base, text)?.map(|v| v.url))
+}
+
 fn parse_byterange(s: &str) -> Option<(u64, Option<u64>)> {
     let s = s.trim().trim_matches('"');
     match s.split_once('@') {
@@ -94,19 +106,14 @@ fn parse_iv(s: &str) -> Option<[u8; 16]> {
     Some(out)
 }
 
-/// A real stream has a few thousand parts; a list far beyond this is an
-/// attack on memory and disk, not a video.
 pub const MAX_PARTS: usize = 200_000;
 pub const MAX_PLAYLIST_BYTES: usize = 32 << 20;
 
 impl MediaPlaylist {
-    /// How long the whole stream plays (seconds).
     pub fn duration(&self) -> f64 {
         self.parts.iter().map(|p| p.duration).sum()
     }
 
-    /// The parts that play between `start` and `end` (seconds): their
-    /// numbers, and when the first of them starts.
     pub fn parts_between(&self, start: f64, end: f64) -> (Vec<usize>, f64) {
         let mut at = 0.0;
         let mut chosen = Vec::new();
@@ -127,15 +134,20 @@ pub fn parse_media(base: &str, text: &str) -> anyhow::Result<MediaPlaylist> {
     if text.len() > MAX_PLAYLIST_BYTES {
         bail!("the stream's list is too big");
     }
+    let text = text.trim_start_matches('\u{feff}');
     let mut pl = MediaPlaylist::default();
     let mut seq: u64 = 0;
     let mut key: Option<Key> = None;
-    // #EXT-X-BYTERANGE for the next part, and where the last range of each
-    // address ended (a range without "@offset" goes on from there)
+    let mut pending_drm: Option<String> = None;
+    let mut cur_init_url: Option<String> = None;
+    let mut cur_init_range: Option<(u64, u64)> = None;
+    let mut cur_init_key: Option<Key> = None;
+    let mut next_discontinuity = false;
     let mut next_range: Option<(u64, Option<u64>)> = None;
     let mut range_end: HashMap<String, u64> = HashMap::new();
     let mut next_duration = 0.0f64;
-    for line in text.lines().map(str::trim) {
+
+    for line in text.lines().map(|l| l.trim().trim_start_matches('\u{feff}')) {
         if line.is_empty() {
             continue;
         }
@@ -144,23 +156,37 @@ pub fn parse_media(base: &str, text: &str) -> anyhow::Result<MediaPlaylist> {
         } else if let Some(attrs) = line.strip_prefix("#EXT-X-KEY:") {
             let a = parse_attrs(attrs);
             let method = a.get("METHOD").map(|s| s.to_ascii_uppercase()).unwrap_or_default();
-            key = match method.as_str() {
-                "NONE" | "" => None,
+            match method.as_str() {
+                "NONE" | "" => {
+                    key = None;
+                    pending_drm = None;
+                }
                 "AES-128" => {
                     let uri = a.get("URI").ok_or_else(|| anyhow!("AES-128 key without URI"))?;
-                    Some(Key {
-                        uri: resolve(base, uri)?,
-                        iv: a.get("IV").and_then(|v| parse_iv(v)),
-                    })
+                    key = Some(Key { uri: resolve(base, uri)?, iv: a.get("IV").and_then(|v| parse_iv(v)) });
+                    pending_drm = None;
                 }
-                other => bail!("this stream is DRM protected ({other}) and cannot be downloaded"),
-            };
+                other => {
+                    if key.is_none() {
+                        pending_drm = Some(other.to_string());
+                    }
+                }
+            }
         } else if let Some(attrs) = line.strip_prefix("#EXT-X-MAP:") {
             let a = parse_attrs(attrs);
             if let Some(uri) = a.get("URI") {
-                pl.init_url = Some(resolve(base, uri)?);
-                pl.init_range = a.get("BYTERANGE").and_then(|r| parse_byterange(r)).map(|(len, off)| (off.unwrap_or(0), len));
+                let resolved = resolve(base, uri)?;
+                let range = a.get("BYTERANGE").and_then(|r| parse_byterange(r)).map(|(len, off)| (off.unwrap_or(0), len));
+                if pl.init_url.is_none() {
+                    pl.init_url = Some(resolved.clone());
+                    pl.init_range = range;
+                }
+                cur_init_url = Some(resolved);
+                cur_init_range = range;
+                cur_init_key = key.clone();
             }
+        } else if line.starts_with("#EXT-X-DISCONTINUITY") {
+            next_discontinuity = true;
         } else if let Some(v) = line.strip_prefix("#EXTINF:") {
             let n = v.split(',').next().unwrap_or("").trim();
             next_duration = n.parse::<f64>().ok().filter(|d| d.is_finite() && *d >= 0.0 && *d < 86_400.0).unwrap_or(0.0);
@@ -169,6 +195,9 @@ pub fn parse_media(base: &str, text: &str) -> anyhow::Result<MediaPlaylist> {
         } else if line.starts_with("#EXT-X-ENDLIST") {
             pl.ended = true;
         } else if !line.starts_with('#') {
+            if let Some(drm) = &pending_drm {
+                bail!("this stream is DRM protected ({drm}) and cannot be downloaded");
+            }
             if pl.parts.len() >= MAX_PARTS {
                 bail!("the stream has too many parts");
             }
@@ -182,10 +211,19 @@ pub fn parse_media(base: &str, text: &str) -> anyhow::Result<MediaPlaylist> {
                 url,
                 sequence: seq,
                 key: key.clone(),
+                init_url: cur_init_url.clone(),
+                init_range: cur_init_range,
+                init_key: cur_init_key.clone(),
+                discontinuity: std::mem::take(&mut next_discontinuity),
                 range,
                 duration: std::mem::take(&mut next_duration),
             });
             seq = seq.wrapping_add(1);
+        }
+    }
+    if pl.parts.is_empty() {
+        if let Some(drm) = pending_drm {
+            bail!("this stream is DRM protected ({drm}) and cannot be downloaded");
         }
     }
     Ok(pl)

@@ -104,7 +104,7 @@ pub(super) async fn probe_at(
         .or_else(|| filename::from_url(&final_url))
         .or_else(|| filename::from_url(url))
         .unwrap_or_else(|| "download".into());
-    let kind = if looks_like_hls(&final_url, content_type.as_deref()) {
+    let mut kind = if looks_like_hls(&final_url, content_type.as_deref()) {
         DownloadKind::Hls
     } else {
         DownloadKind::Http
@@ -119,9 +119,35 @@ pub(super) async fn probe_at(
     } else {
         file_name = filename::ensure_extension(file_name, content_type.as_deref());
     }
+    let small_ct = content_type.as_deref().unwrap_or("").to_ascii_lowercase();
+    let may_be_disguised = kind == DownloadKind::Hls
+        || (from_zero
+            && total_size.is_none_or(|n| n <= 512 * 1024)
+            && (small_ct.contains("mpegurl")
+                || small_ct.starts_with("text/plain")
+                || matches!(filename::extension(&file_name).to_ascii_lowercase().as_str(), "m3u8" | "m3u" | "txt")));
+    let mut hls_body: Option<String> = None;
+    if may_be_disguised && !(follow_pages && small_ct.starts_with("text/html") && !named) {
+        let mut peek = Vec::new();
+        while peek.len() < 512 * 1024 {
+            match tokio::time::timeout(Duration::from_secs(10), resp.chunk()).await {
+                Ok(Ok(Some(c))) => peek.extend_from_slice(&c),
+                _ => break,
+            }
+        }
+        let text = String::from_utf8_lossy(&peek);
+        if text.trim_start_matches('\u{feff}').trim_start().starts_with("#EXTM3U") {
+            kind = DownloadKind::Hls;
+            let (stem, ext) = filename::split_ext(&file_name);
+            if matches!(ext.to_ascii_lowercase().as_str(), "m3u8" | "txt" | "html" | "") {
+                file_name = format!("{stem}.ts");
+            }
+            hls_body = Some(text.into_owned());
+        }
+    }
     // a server that refused a byte range gets one plain connection
     let resumable = resumable && with_range;
-    let look = ProbeResult {
+    let mut look = ProbeResult {
         headers_used,
         final_url,
         file_name,
@@ -132,35 +158,48 @@ pub(super) async fn probe_at(
         last_modified,
         etag,
         digest: crate::checksum::Expected::from_headers(&h, status == StatusCode::OK).map(|e| e.text()),
+        hls_body,
     };
     // a small web page where a file was expected: a page that leads on to
     // the file by itself ("your download starts in a moment")?
     let small = resp.content_length().is_none_or(|n| n <= PAGE_PEEK as u64);
-    {
-        if follow_pages && look.is_web_page() && !named && small {
-            let base = resp.url().clone();
-            let refresh = h.get(reqwest::header::REFRESH).and_then(|v| v.to_str().ok()).and_then(|v| refresh_target(v, &base));
-            let next = match refresh {
-                Some(n) => Some(n),
-                None => {
-                    let mut page = Vec::new();
-                    while page.len() < PAGE_PEEK {
-                        match tokio::time::timeout(Duration::from_secs(10), resp.chunk()).await {
-                            Ok(Ok(Some(c))) => page.extend_from_slice(&c),
-                            _ => break,
-                        }
+    if look.hls_body.is_none() && follow_pages && look.is_web_page() && !named && small {
+        let base = resp.url().clone();
+        let refresh = h.get(reqwest::header::REFRESH).and_then(|v| v.to_str().ok()).and_then(|v| refresh_target(v, &base));
+        let next = match refresh {
+            Some(n) => Some(n),
+            None => {
+                let mut page = Vec::new();
+                while page.len() < PAGE_PEEK {
+                    match tokio::time::timeout(Duration::from_secs(10), resp.chunk()).await {
+                        Ok(Ok(Some(c))) => page.extend_from_slice(&c),
+                        _ => break,
                     }
-                    meta_refresh(&String::from_utf8_lossy(&page), &base)
                 }
-            };
-            if let Some((wait, next)) = next {
-                return Ok((look, None, Some((wait, next, set_cookies(&h)))));
+                let txt = String::from_utf8_lossy(&page);
+                if txt.trim_start_matches('\u{feff}').trim_start().starts_with("#EXTM3U") {
+                    look.kind = DownloadKind::Hls;
+                    look.resumable = true;
+                    look.total_size = None;
+                    let (stem, _) = filename::split_ext(&look.file_name);
+                    look.file_name = format!("{stem}.ts");
+                    look.hls_body = Some(txt.into_owned());
+                    None
+                } else {
+                    meta_refresh(&txt, &base)
+                }
             }
+        };
+        if look.hls_body.is_some() {
             return Ok((look, None, None));
         }
+        if let Some((wait, next)) = next {
+            return Ok((look, None, Some((wait, next, set_cookies(&h)))));
+        }
+        return Ok((look, None, None));
     }
     // kept for the download: a file (not a page, not a stream list) whose
-    // answer starts at its first byte
-    let keepable = kind == DownloadKind::Http && from_zero && !look.is_web_page();
+    // answer starts at its first byte (only if we didn't already consume `resp` peeking)
+    let keepable = kind == DownloadKind::Http && from_zero && !look.is_web_page() && !may_be_disguised;
     Ok((look, keepable.then_some(resp), None))
 }

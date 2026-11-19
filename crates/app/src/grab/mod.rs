@@ -140,6 +140,7 @@ pub(crate) fn poll(ui: &Ui) {
         drop(g);
         list::show(ui);
     }
+    let spa = progress.as_ref().is_some_and(|p| p.dynamic_spa.load(Ordering::Relaxed));
     if let Some(p) = progress {
         let current = p.current.lock().map(|c| c.clone()).unwrap_or_default();
         let text = tf(
@@ -149,7 +150,9 @@ pub(crate) fn poll(ui: &Ui) {
         d.set_progress_text(text.into());
     }
     if finished {
+        let empty = ui.grab_state.borrow().all.is_empty();
         ui.grab_state.borrow_mut().exploring = false;
         d.set_exploring(false);
+        d.set_spa_hint(spa || empty);
     }
 }

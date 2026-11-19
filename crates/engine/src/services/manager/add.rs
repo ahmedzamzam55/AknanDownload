@@ -65,6 +65,10 @@ impl Manager {
             .or(queue_folder)
             .unwrap_or_else(|| settings.dir_for(&category));
         let _ = std::fs::create_dir_all(&dir);
+        let temp_dir = settings
+            .temp_dir
+            .clone()
+            .filter(|t| !t.as_os_str().is_empty() && std::fs::create_dir_all(t).is_ok());
 
         let audio_url = req.audio_url.clone().filter(|u| !u.trim().is_empty());
         let kind = if is_torrent {
@@ -87,12 +91,18 @@ impl Manager {
             Some(c) => DownloadRecord::clip_name(&wanted, c),
             None => wanted,
         };
-        let mut inner = self.inner.lock_ok();
-        // a torrent keeps its own name: that is the folder / file it makes
-        let file_name = if is_torrent { wanted.clone() } else { free_name(&inner, &dir, &wanted) };
-        let id = inner.next_id;
-        inner.next_id += 1;
-        // our own copy of the .torrent file (the one given may be deleted)
+        let (id, file_name) = {
+            let mut inner = self.inner.lock_ok();
+            let id = inner.next_id;
+            inner.next_id += 1;
+            let file_name = if is_torrent || req.replace_existing {
+                wanted.clone()
+            } else {
+                free_name(&inner, &dir, &wanted)
+            };
+            (id, file_name)
+        };
+        // our own copy of the .torrent file (outside the mutex: zero UI lock stall)
         let mut url = req.url.clone();
         if is_torrent && !torrent::is_magnet(&url) {
             let keep = self.data_dir.join("torrents").join(format!("{id}.torrent"));
@@ -101,6 +111,7 @@ impl Manager {
             }
         }
         let early = req.early;
+        let hold_before_finish = req.hold_before_finish;
         let rec = DownloadRecord {
             id,
             url,
@@ -137,10 +148,7 @@ impl Manager {
             category,
             added_at: Utc::now(),
             finished_at: None,
-            temp_dir: settings
-                .temp_dir
-                .clone()
-                .filter(|t| !t.as_os_str().is_empty() && std::fs::create_dir_all(t).is_ok()),
+            temp_dir,
             queue_pos: id,
             last_try: None,
             server_time: probe.as_ref().and_then(|p| p.last_modified),
@@ -163,6 +171,8 @@ impl Manager {
             subtitle: req.subtitle,
             sub_convert: req.sub_convert,
             sub_body: req.sub_body,
+            replace_existing: req.replace_existing,
+            hold_before_finish,
         };
         let mut rec = rec;
         if early {
@@ -173,21 +183,24 @@ impl Manager {
             }
             rec.auto_name = false;
         }
-        inner.entries.insert(
-            id,
-            Entry {
-                rec,
-                segs: Arc::new(Mutex::new(Vec::new())),
-                audio_segs: Arc::new(Mutex::new(Vec::new())),
-                limiter: Arc::new(SpeedLimiter::new(0)),
-                progress: Arc::new(Progress::default()),
-                task: None,
-                speed: SpeedMeter::default(),
-                quota_prev: 0,
-            },
-        );
-        inner.dirty = true;
-        drop(inner);
+        {
+            let mut inner = self.inner.lock_ok();
+            inner.entries.insert(
+                id,
+                Entry {
+                    rec,
+                    segs: Arc::new(Mutex::new(Vec::new())),
+                    audio_segs: Arc::new(Mutex::new(Vec::new())),
+                    limiter: Arc::new(SpeedLimiter::new(0)),
+                    progress: Arc::new(Progress::default()),
+                    task: None,
+                    release: Arc::new(tokio::sync::Notify::new()),
+                    speed: SpeedMeter::default(),
+                    quota_prev: 0,
+                },
+            );
+            inner.dirty = true;
+        }
         self.pump();
         id
     }

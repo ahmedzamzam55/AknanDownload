@@ -15,6 +15,14 @@ pub(super) fn wire(ui: &Ui, d: &ClipDialog) {
             }
         });
     });
+    d.window().on_close_requested(move || {
+        STATE.with(|s| {
+            if let Some(c) = s.borrow_mut().preview.take() {
+                c.cancel();
+            }
+        });
+        slint::CloseRequestResponse::HideWindow
+    });
     let w = d.as_weak();
     d.on_fetch(move || {
         if let Some(d) = w.upgrade() {

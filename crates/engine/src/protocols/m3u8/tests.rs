@@ -63,3 +63,19 @@ fn drm_is_refused() {
     let m = "#EXTM3U\n#EXT-X-KEY:METHOD=SAMPLE-AES,URI=\"skd://x\"\na.ts\n#EXT-X-ENDLIST\n";
     assert!(parse_media("https://cdn.x/index.m3u8", m).is_err());
 }
+
+#[test]
+fn bom_audio_group_discontinuity_and_multi_key_work() {
+    let master = "\u{feff}#EXTM3U\n#EXT-X-MEDIA:LANGUAGE=\"ar\",TYPE=AUDIO,GROUP-ID=\"aud\",URI=\"a.m3u8\",DEFAULT=YES\n#EXT-X-STREAM-INF:BANDWIDTH=1200000,RESOLUTION=1280x720,AUDIO=\"aud\"\nv.m3u8\n";
+    let (vars, sep) = parse_master("https://cdn.x/m.m3u8", master).unwrap();
+    assert!(sep);
+    assert_eq!(vars[0].audio_url.as_deref(), Some("https://cdn.x/a.m3u8"));
+
+    let media = "\u{feff}#EXTM3U\n#EXT-X-KEY:METHOD=SAMPLE-AES,URI=\"skd://x\"\n#EXT-X-KEY:METHOD=AES-128,URI=\"data:text/plain;base64,AQ==\"\n#EXT-X-MAP:URI=\"init1.mp4\"\n#EXTINF:4,\n1.m4s\n#EXT-X-DISCONTINUITY\n#EXT-X-MAP:URI=\"init2.mp4\"\n#EXTINF:4,\n2.m4s\n#EXT-X-ENDLIST\n";
+    let pl = parse_media("https://cdn.x/v/list.m3u8", media).unwrap();
+    assert_eq!(pl.parts.len(), 2);
+    assert_eq!(pl.parts[0].init_url.as_deref(), Some("https://cdn.x/v/init1.mp4"));
+    assert!(!pl.parts[0].discontinuity);
+    assert!(pl.parts[1].discontinuity);
+    assert_eq!(pl.parts[1].init_url.as_deref(), Some("https://cdn.x/v/init2.mp4"));
+}

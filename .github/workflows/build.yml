@@ -136,9 +136,11 @@ jobs:
       - name: Run extension tests
         run: |
           node extension/test/bundle.test.js
+          node extension/test/wave2-ext.test.js
           node extension/test/yt-core.test.js
           node extension/test/background.sim.js
           node extension/test/helper.sim.js
+          node extension/test/servers.sim.js
           node extension/test/subtitles.sim.js
       - name: Run engine tests
         shell: pwsh
@@ -197,7 +199,7 @@ jobs:
           gh release view "v$env:VERSION" --repo "${{ github.repository }}" *> $null
           if ($LASTEXITCODE -eq 0) { Write-Host "v$env:VERSION is already released"; exit 0 }
           Copy-Item ffmpeg-out/ffmpeg.exe dist/ffmpeg.exe
-          $files = @("dist/AknanDownload-Setup.exe", "dist/version.json", "dist/ffmpeg.exe", "dist/AknanDownload-Extension-Chrome.zip", "dist/AknanDownload-Extension-Firefox.zip")
+          $files = @("dist/AknanDownload-Setup.exe", "dist/version.json", "dist/SHA256SUMS.txt", "dist/ffmpeg.exe", "dist/AknanDownload-Extension-Chrome.zip", "dist/AknanDownload-Extension-Firefox.zip")
           if (Test-Path dist/aknan-download-firefox.xpi) { $files += "dist/aknan-download-firefox.xpi", "dist/firefox-updates.json" }
           gh release create "v$env:VERSION" @files --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "Aknan Download $env:VERSION" --notes "Aknan Download $env:VERSION" --latest
           if ($LASTEXITCODE -ne 0) { throw "could not create the release" }

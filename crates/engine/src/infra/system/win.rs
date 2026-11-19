@@ -40,23 +40,46 @@ pub fn file_system(dir: &Path) -> Option<String> {
     Some(String::from_utf16_lossy(&name[..len]))
 }
 
-pub fn power(action: AfterDone, force: bool) {
-    use std::os::windows::process::CommandExt;
-    let run = |args: &[&str]| {
-        let _ = std::process::Command::new(super::windows_tool("shutdown.exe"))
-            .args(args)
-            .creation_flags(0x0800_0000)
-            .spawn();
+fn enable_shutdown_privilege() {
+    use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
+    use windows_sys::Win32::Security::{
+        AdjustTokenPrivileges, LookupPrivilegeValueW, LUID_AND_ATTRIBUTES, SE_PRIVILEGE_ENABLED,
+        SE_SHUTDOWN_NAME, TOKEN_ADJUST_PRIVILEGES, TOKEN_PRIVILEGES, TOKEN_QUERY,
     };
+    use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+    unsafe {
+        let mut token: HANDLE = std::ptr::null_mut();
+        if OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &mut token) == 0 {
+            return;
+        }
+        let mut luid = std::mem::zeroed();
+        if LookupPrivilegeValueW(std::ptr::null(), SE_SHUTDOWN_NAME, &mut luid) != 0 {
+            let tp = TOKEN_PRIVILEGES {
+                PrivilegeCount: 1,
+                Privileges: [LUID_AND_ATTRIBUTES { Luid: luid, Attributes: SE_PRIVILEGE_ENABLED }],
+            };
+            let _ = AdjustTokenPrivileges(token, 0, &tp, 0, std::ptr::null_mut(), std::ptr::null_mut());
+        }
+        let _ = CloseHandle(token);
+    }
+}
+
+pub fn power(action: AfterDone, force: bool) {
     match action {
         AfterDone::Shutdown => {
-            if force {
-                run(&["/s", "/f", "/t", "0"]);
-            } else {
-                run(&["/s", "/t", "0"]);
+            use windows_sys::Win32::System::Shutdown::{
+                ExitWindowsEx, EWX_FORCE, EWX_POWEROFF, EWX_SHUTDOWN, SHTDN_REASON_FLAG_PLANNED,
+                SHTDN_REASON_MAJOR_APPLICATION,
+            };
+            enable_shutdown_privilege();
+            let flags = EWX_SHUTDOWN | EWX_POWEROFF | if force { EWX_FORCE } else { 0 };
+            unsafe {
+                ExitWindowsEx(flags, SHTDN_REASON_MAJOR_APPLICATION | SHTDN_REASON_FLAG_PLANNED);
             }
         }
-        AfterDone::Hibernate => run(&["/h"]),
+        AfterDone::Hibernate => unsafe {
+            windows_sys::Win32::System::Power::SetSuspendState(1, u8::from(force), 0);
+        },
         AfterDone::Sleep => unsafe {
             windows_sys::Win32::System::Power::SetSuspendState(0, u8::from(force), 0);
         },

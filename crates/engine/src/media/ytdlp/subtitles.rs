@@ -1,9 +1,15 @@
-use super::cookies::with_cookies;
+use super::cookies::{is_youtube_site, with_cookies};
 use crate::mux::{find_tool, hide_window};
 use anyhow::{anyhow, bail, Context};
 use serde_json::Value;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+
+fn ytdlp_cache_dir() -> PathBuf {
+    let dir = crate::tools::work_dir().unwrap_or_else(std::env::temp_dir).join("ytdlp-cache");
+    let _ = std::fs::create_dir_all(&dir);
+    dir
+}
 
 /// The arguments for looking at one page. `--ignore-config`: settings files
 /// of yt-dlp on the computer (which could add `--exec` and the like) are not
@@ -19,10 +25,17 @@ pub(super) fn resolve_args_with(
     referer: Option<&str>,
     extra: &[(String, String)],
 ) -> Vec<std::ffi::OsString> {
-    let mut a: Vec<std::ffi::OsString> = ["--ignore-config", "-J", "--no-playlist", "--no-warnings", "--no-progress", "--no-cache-dir", "--socket-timeout", "20"]
+    let yt = is_youtube_site(page_url);
+    let mut a: Vec<std::ffi::OsString> = ["--ignore-config", "-J", "--no-playlist", "--no-warnings", "--no-progress", "--socket-timeout", "20"]
         .iter()
         .map(Into::into)
         .collect();
+    a.push("--cache-dir".into());
+    a.push(ytdlp_cache_dir().into());
+    if yt {
+        a.push("--extractor-args".into());
+        a.push("youtube:player_client=default,ios,web_safari".into());
+    }
     if let Some(c) = cookie_file {
         a.push("--cookies".into());
         a.push(c.into());
@@ -36,10 +49,14 @@ pub(super) fn resolve_args_with(
         if k.is_empty() || v.is_empty() || k.contains(['\r', '\n', ':']) || v.contains(['\r', '\n']) {
             continue;
         }
-        if k.eq_ignore_ascii_case("user-agent") {
+        let low = k.to_ascii_lowercase();
+        if yt && (low == "user-agent" || low.starts_with("sec-fetch-")) {
+            continue;
+        }
+        if low == "user-agent" {
             a.push("--user-agent".into());
             a.push(v.into());
-        } else if !matches!(k.to_ascii_lowercase().as_str(), "cookie" | "referer" | "range" | "host" | "accept" | "accept-encoding") {
+        } else if !matches!(low.as_str(), "cookie" | "referer" | "range" | "host" | "accept" | "accept-encoding") {
             a.push("--add-header".into());
             a.push(format!("{k}:{v}").into());
         }
@@ -50,10 +67,12 @@ pub(super) fn resolve_args_with(
 }
 
 pub(super) fn playlist_args(url: &str, cookie_file: Option<&Path>, lang: &str) -> Vec<std::ffi::OsString> {
-    let mut a: Vec<std::ffi::OsString> = ["--ignore-config", "-J", "--flat-playlist", "--yes-playlist", "--no-warnings", "--no-cache-dir", "--socket-timeout", "20"]
+    let mut a: Vec<std::ffi::OsString> = ["--ignore-config", "-J", "--flat-playlist", "--yes-playlist", "--no-warnings", "--socket-timeout", "20"]
         .iter()
         .map(Into::into)
         .collect();
+    a.push("--cache-dir".into());
+    a.push(ytdlp_cache_dir().into());
     // the names in the user's language, when the site has them in it
     if !lang.is_empty() && lang.len() <= 5 && lang.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
         a.push("--extractor-args".into());
@@ -127,13 +146,18 @@ pub fn fetch_subtitles(page_url: &str, dir: &Path, stem: &str, langs: &str) -> a
     let out = format!("{}.%(ext)s", stem.replace('%', "%%"));
     with_cookies(page_url, None, |file| {
         let mut cmd = ytdlp_command(&tool);
-        cmd.args(["--ignore-config", "--skip-download", "--write-subs", "--write-auto-subs", "--no-playlist", "--no-warnings", "--no-cache-dir"])
+        cmd.args(["--ignore-config", "--skip-download", "--write-subs", "--write-auto-subs", "--no-playlist", "--no-warnings"])
+            .arg("--cache-dir")
+            .arg(ytdlp_cache_dir())
             .args(["--socket-timeout", "20", "--sub-format", "srt/vtt/best", "--sub-langs"])
             .arg(&wanted)
             .arg("-P")
             .arg(dir)
             .arg("-o")
             .arg(&out);
+        if is_youtube_site(page_url) {
+            cmd.args(["--extractor-args", "youtube:player_client=default,ios,web_safari"]);
+        }
         if let Some(c) = file {
             cmd.arg("--cookies").arg(c);
         }

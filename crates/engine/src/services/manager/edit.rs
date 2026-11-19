@@ -146,27 +146,45 @@ impl Manager {
     /// Unfinished download: save to another folder / name (nothing written yet,
     /// or the temporary file moves along).
     pub fn change_target(&self, id: DownloadId, dir: &Path, name: &str) -> anyhow::Result<()> {
-        let mut inner = self.inner.lock_ok();
-        let e = inner.entries.get_mut(&id).ok_or_else(|| anyhow!("download not found"))?;
-        if e.task.is_some() {
-            anyhow::bail!("stop the download first");
-        }
-        if e.rec.status == Status::Completed {
-            anyhow::bail!("use Move / Rename for finished files");
-        }
-        let old = e.rec.clone();
+        let clean = filename::sanitize(name);
+        let (old, new_temps) = {
+            let inner = self.inner.lock_ok();
+            let e = inner.entries.get(&id).ok_or_else(|| anyhow!("download not found"))?;
+            if e.task.is_some() {
+                anyhow::bail!("stop the download first");
+            }
+            if e.rec.status == Status::Completed {
+                anyhow::bail!("use Move / Rename for finished files");
+            }
+            let mut preview = e.rec.clone();
+            preview.save_dir = dir.to_path_buf();
+            preview.file_name = clean.clone();
+            (e.rec.clone(), preview.temp_paths())
+        };
         std::fs::create_dir_all(dir)?;
-        e.rec.save_dir = dir.to_path_buf();
-        e.rec.file_name = filename::sanitize(name);
-        e.rec.auto_name = false;
-        for (from, to) in old.temp_paths().into_iter().zip(e.rec.temp_paths()) {
-            if from.exists() && from != to && std::fs::rename(&from, &to).is_err() {
-                e.rec.save_dir = old.save_dir.clone();
-                e.rec.file_name = old.file_name.clone();
+        let pairs: Vec<_> = old
+            .temp_paths()
+            .into_iter()
+            .zip(new_temps)
+            .filter(|(from, to)| from.exists() && from != to)
+            .collect();
+        let mut moved = Vec::new();
+        for (from, to) in pairs {
+            if std::fs::rename(&from, &to).is_err() {
+                for (a, b) in moved.into_iter().rev() {
+                    let _ = std::fs::rename(b, a);
+                }
                 anyhow::bail!("could not move the partly downloaded data");
             }
+            moved.push((from, to));
         }
-        inner.dirty = true;
+        let mut inner = self.inner.lock_ok();
+        if let Some(e) = inner.entries.get_mut(&id) {
+            e.rec.save_dir = dir.to_path_buf();
+            e.rec.file_name = clean;
+            e.rec.auto_name = false;
+            inner.dirty = true;
+        }
         Ok(())
     }
 }

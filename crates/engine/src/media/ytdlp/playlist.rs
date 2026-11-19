@@ -13,6 +13,8 @@ pub struct PlaylistEntry {
     pub url: String,
     /// seconds (0 = unknown)
     pub duration: u64,
+    /// exact or approximate size if provided by the flat playlist JSON
+    pub size_bytes: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
@@ -121,6 +123,7 @@ pub fn parse_playlist(json: &Value) -> PlaylistInfo {
                 title: title.clone(),
                 url: u.to_string(),
                 duration: as_u64(&json["duration"]).unwrap_or(0),
+                size_bytes: as_u64(&json["filesize"]).or_else(|| as_u64(&json["filesize_approx"])),
             });
         }
     }
@@ -145,7 +148,12 @@ pub fn parse_playlist(json: &Value) -> PlaylistInfo {
         if t == "[Deleted video]" || t == "[Private video]" {
             continue;
         }
-        entries.push(PlaylistEntry { title: t.to_string(), url, duration: as_u64(&e["duration"]).unwrap_or(0) });
+        entries.push(PlaylistEntry {
+            title: t.to_string(),
+            url,
+            duration: as_u64(&e["duration"]).unwrap_or(0),
+            size_bytes: as_u64(&e["filesize"]).or_else(|| as_u64(&e["filesize_approx"])),
+        });
     }
     PlaylistInfo { title, entries, tabs }
 }

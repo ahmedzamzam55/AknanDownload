@@ -3,7 +3,7 @@ use crate::i18n::{t, tf};
 use crate::*;
 use std::sync::Arc;
 use swiftget_engine::ytdlp::{self, YtOption};
-use swiftget_engine::{clock, Clip, ClipSource};
+use swiftget_engine::{clock, Clip, ClipSource, SubtitleTask};
 
 pub(super) fn fetch_video(d: &ClipDialog) {
     let url = d.get_url().trim().to_string();
@@ -36,6 +36,20 @@ pub(super) fn fetch_video(d: &ClipDialog) {
                     let dur = options.iter().map(|o| o.duration).max().unwrap_or(0) as f32;
                     d.set_qualities(ModelRc::new(VecModel::from(labels)));
                     d.set_quality(0);
+                    let sub_labels: Vec<SharedString> = info
+                        .subtitles
+                        .iter()
+                        .map(|s| {
+                            if s.auto {
+                                format!("{} ({}) · {}", s.name, s.lang, t("auto")).into()
+                            } else {
+                                format!("{} ({})", s.name, s.lang).into()
+                            }
+                        })
+                        .collect();
+                    d.set_sub_langs(ModelRc::new(VecModel::from(sub_labels)));
+                    d.set_sub_lang(0);
+                    d.set_sub_mode(0);
                     d.set_duration(dur);
                     d.set_from(0.0);
                     let to = if dur > 0.0 { dur.min(30.0) } else { 0.0 };
@@ -55,6 +69,7 @@ pub(super) fn fetch_video(d: &ClipDialog) {
                         s.page = url.clone();
                         s.title = info.title;
                         s.options = options;
+                        s.subtitles = info.subtitles;
                     });
                 }
                 Err(e) => d.set_status(tf("Could not get the video: {}", &[&crate::err_text(&format!("{e:#}"))]).into()),
@@ -125,12 +140,24 @@ pub(super) fn queue_part(d: &ClipDialog, ui: &Ui) {
         Err(m) => return d.set_message(m.into()),
     };
     let picked = d.get_quality().max(0) as usize;
-    let Some((opt, page, title)) = STATE.with(|s| {
+    let sub_mode = d.get_sub_mode();
+    let sub_idx = d.get_sub_lang().max(0) as usize;
+    let Some((opt, page, title, sub)) = STATE.with(|s| {
         let s = s.borrow();
-        Some((s.options.get(picked)?.clone(), s.page.clone(), s.title.clone()))
+        let opt = s.options.get(picked)?.clone();
+        let sub = (sub_mode > 0).then(|| s.subtitles.get(sub_idx).cloned()).flatten();
+        Some((opt, s.page.clone(), s.title.clone(), sub))
     }) else {
         return;
     };
+    let subtitle = sub.map(|s| SubtitleTask {
+        lang: s.lang,
+        url: Some(s.url),
+        burn: sub_mode == 3,
+        extra_headers: s.headers,
+        format: Some(if sub_mode == 2 { "vtt" } else { "srt" }.into()),
+        ..Default::default()
+    });
     let mut headers = RequestHeaders::default();
     ytdlp::apply_headers(&mut headers, &opt.headers);
     let req = NewDownload {
@@ -141,6 +168,7 @@ pub(super) fn queue_part(d: &ClipDialog, ui: &Ui) {
         source_page: Some(page),
         source_key: Some(opt.key.clone()),
         clip: Some(c),
+        subtitle,
         start: true,
         ..Default::default()
     };

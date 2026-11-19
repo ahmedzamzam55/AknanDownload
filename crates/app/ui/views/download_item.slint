@@ -92,8 +92,10 @@ export component DownloadItem inherits Rectangle {
             if (!root.left-down) {
                 return;
             }
-            if (self.pressed && root.done && !root.dragged-out && root.drag-last == 0 && self.mouse-y >= 0 && self.mouse-y < root.height
-                && abs(self.mouse-x - self.pressed-x) > 24px && abs(self.mouse-x - self.pressed-x) > 2 * abs(self.mouse-y - self.pressed-y)) {
+            if (self.pressed && root.done && !root.dragged-out && root.drag-last == 0
+                && (abs(self.mouse-x - self.pressed-x) > 12px
+                    || (abs(self.mouse-y - self.pressed-y) > 12px
+                        && (self.mouse-y < -8px || abs(self.mouse-x - self.pressed-x) >= abs(self.mouse-y - self.pressed-y))))) {
                 root.dragged-out = true;
                 root.drag-out();
                 return;

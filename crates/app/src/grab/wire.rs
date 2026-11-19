@@ -83,4 +83,14 @@ pub(crate) fn wire(ui: &Ui) {
             }
         });
     }
+    {
+        let ui = ui.clone();
+        d.window().on_close_requested(move || {
+            if let Some(c) = ui.grab_state.borrow_mut().cancel.take() {
+                c.cancel();
+            }
+            ui.grab_state.borrow_mut().exploring = false;
+            slint::CloseRequestResponse::HideWindow
+        });
+    }
 }

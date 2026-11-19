@@ -1,5 +1,6 @@
 //! Subtitle format parser and converter (WebVTT, SRT, YouTube json3, YouTube srv/TTML XML -> SRT / VTT / TXT).
 
+mod ass_bcc;
 mod xml;
 #[cfg(test)]
 mod tests;
@@ -13,15 +14,18 @@ pub(super) struct Cue {
     pub(super) text: String,
 }
 
-/// Convert raw subtitle content from VTT, SRT, YouTube `json3`, or XML (`srv1`..`srv3`/`ttml`)
-/// into `"srt"`, `"vtt"`, or plain `"txt"`.
+/// Convert raw subtitle content from VTT, SRT, ASS/SSA, Bilibili `.bcc`,
+/// YouTube `json3`, or XML (`srv1`..`srv3`/`ttml`) into `"srt"`, `"vtt"`, or `"txt"`.
 pub fn convert_subtitles(raw: &str, target_fmt: &str) -> String {
     let raw = raw.trim_start_matches('\u{feff}').replace("\r\n", "\n").replace('\r', "\n");
     let trimmed = raw.trim();
     let cues = if trimmed.starts_with('{') {
-        parse_json3(trimmed)
+        let j3 = parse_json3(trimmed);
+        if j3.is_empty() { ass_bcc::parse_bcc(trimmed) } else { j3 }
     } else if trimmed.starts_with('<') {
         parse_xml(trimmed)
+    } else if trimmed.contains("[Events]") || trimmed.contains("Dialogue:") {
+        ass_bcc::parse_ass(trimmed)
     } else {
         parse_vtt_or_srt(trimmed)
     };

@@ -1,4 +1,5 @@
 use super::add_open::show_name_in_dialog;
+use super::add_video::trigger_resolve_if_needed;
 use super::state::Ctx;
 use crate::i18n::{t, tf};
 use swiftget_engine::sync::LockOk;
@@ -39,11 +40,15 @@ pub(super) fn start_probe(ctx: &Ctx, url: String) {
             d.set_probing(false);
             match result {
                 Ok(p) => {
-                    if d.get_save_as().as_str() == st.auto_path && !st.auto_path.is_empty() {
+                    if d.get_file_name().as_str() == st.auto_name
+                        && d.get_save_folder().as_str() == st.auto_folder
+                        && !st.auto_name.is_empty()
+                    {
                         drop(st);
-                        let path = show_name_in_dialog(&ctx2, &d, &p.file_name, &url);
+                        let (folder, name) = show_name_in_dialog(&ctx2, &d, &p.file_name, &url);
                         st = ctx2.add_state.lock_ok();
-                        st.auto_path = path;
+                        st.auto_folder = folder;
+                        st.auto_name = name;
                     }
                     let has_audio = st.extra.audio_url.is_some() && st.origin_url == url;
                     let size = p.total_size.map(fmt_size).unwrap_or_else(|| t("Unknown size"));
@@ -70,8 +75,11 @@ pub(super) fn start_probe(ctx: &Ctx, url: String) {
                                 .into(),
                         );
                     }
-                    st.probe_url = url;
+                    let web_page = p.is_web_page();
+                    st.probe_url = url.clone();
                     st.probe = Some(p);
+                    drop(st);
+                    trigger_resolve_if_needed(&ctx2, seq, &url, web_page);
                 }
                 Err(e) => {
                     let text = format!("{e:#}");
@@ -80,6 +88,8 @@ pub(super) fn start_probe(ctx: &Ctx, url: String) {
                     d.set_can_use_browser(["HTTP 403", "HTTP 406", "HTTP 429"].iter().any(|c| text.contains(c)));
                     d.set_info(text.into());
                     d.set_info_error(true);
+                    drop(st);
+                    trigger_resolve_if_needed(&ctx2, seq, &url, false);
                 }
             }
         });

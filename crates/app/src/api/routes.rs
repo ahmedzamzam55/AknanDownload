@@ -8,7 +8,20 @@ use tiny_http::{Method, Request};
 
 /// Video look-ups running now (each one is a yt-dlp process).
 static RESOLVING: AtomicUsize = AtomicUsize::new(0);
-const MAX_RESOLVING: usize = 3;
+const MAX_RESOLVING: usize = 6;
+
+fn acquire_resolve_slot() -> bool {
+    for _ in 0..40 {
+        if RESOLVING
+            .try_update(Ordering::SeqCst, Ordering::SeqCst, |v| (v < MAX_RESOLVING).then_some(v + 1))
+            .is_ok()
+        {
+            return true;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+    false
+}
 
 fn read_body(req: &mut Request, max: u64) -> Option<String> {
     let mut body = String::new();
@@ -154,11 +167,10 @@ fn handle_resolve(mut req: Request) {
     if !is_http(&r.url) {
         return reply(req, 400, r#"{"error":"not a web address"}"#);
     }
-    if RESOLVING.fetch_add(1, Ordering::SeqCst) >= MAX_RESOLVING {
-        RESOLVING.fetch_sub(1, Ordering::SeqCst);
-        return reply(req, 429, r#"{"ok":false,"error":"busy, try again in a moment"}"#);
-    }
     std::thread::spawn(move || {
+        if !acquire_resolve_slot() {
+            return reply(req, 429, r#"{"ok":false,"error":"busy, try again in a moment"}"#);
+        }
         struct Done;
         impl Drop for Done {
             fn drop(&mut self) {

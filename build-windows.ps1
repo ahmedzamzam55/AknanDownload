@@ -157,6 +157,10 @@ if ($iscc) {
         }
         $json = "{`n  ""version"": ""$version"",`n  ""url"": ""AknanDownload-Setup.exe"",`n  ""sha256"": ""$hash"",`n  ""sig"": ""$sig""`n}`n"
         [IO.File]::WriteAllText((Join-Path $dist "version.json"), $json)
+        $sums = Get-ChildItem $dist -File | Where-Object { $_.Extension -in ".exe", ".zip", ".xpi" } | Sort-Object Name | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+        }
+        [IO.File]::WriteAllText((Join-Path $dist "SHA256SUMS.txt"), (($sums -join "`n") + "`n"))
     } else {
         Fail "Could not create the setup. Tip: move this folder out of Desktop/OneDrive (e.g. to C:\Aknan) and run BUILD.bat again."
     }

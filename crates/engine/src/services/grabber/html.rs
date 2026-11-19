@@ -1,3 +1,4 @@
+use super::extract_extra::{base_href, decode_html_entities, decode_json_url, push_extra_links};
 use super::GrabOptions;
 use crate::config::wildcard_match;
 use crate::filename;
@@ -32,18 +33,13 @@ fn tag_re() -> &'static Regex {
 }
 
 fn decode_entities(s: &str) -> String {
-    s.replace("&amp;", "&")
-        .replace("&#38;", "&")
-        .replace("&quot;", "\"")
-        .replace("&#39;", "'")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&nbsp;", " ")
+    decode_html_entities(s)
 }
 
 /// Every link of an HTML page as (absolute address, link text).
 pub fn extract_links(html: &str, base: &str) -> Vec<(String, String)> {
-    let Ok(base) = url::Url::parse(base) else { return Vec::new() };
+    let Ok(page_url) = url::Url::parse(base) else { return Vec::new() };
+    let base = base_href(html, &page_url);
     let mut seen = HashSet::new();
     let mut out = Vec::new();
     let mut push = |raw: &str, text: String| {
@@ -80,9 +76,9 @@ pub fn extract_links(html: &str, base: &str) -> Vec<(String, String)> {
     // a script): many pages have their file links only like that
     for m in text_url_re().find_iter(html) {
         let u = m.as_str().trim_end_matches(['.', ',', ';', ':', '!', '?', '\\']);
-        // written inside JSON: "\/" is "/", "\u0026" is "&"
-        push(&u.replace("\\/", "/").replace("\\u0026", "&"), String::new());
+        push(&decode_json_url(u), String::new());
     }
+    push_extra_links(html, &mut push);
     out
 }
 

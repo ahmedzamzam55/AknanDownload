@@ -14,6 +14,7 @@ pub(super) fn explore(ui: &Ui) {
         return;
     }
     d.set_message(SharedString::new());
+    d.set_spa_hint(false);
     let exts: Vec<String> = if d.get_template() == 6 {
         d.get_exts().split_whitespace().map(|e| e.trim_start_matches('.').to_lowercase()).collect()
     } else {
@@ -35,10 +36,37 @@ pub(super) fn explore(ui: &Ui) {
             // behind a sign-in show their files
             let from_browser = ui.grab_state.borrow().headers.clone();
             let host = |u: &str| url::Url::parse(u).ok().and_then(|u| u.host_str().map(str::to_ascii_lowercase));
-            let same = from_browser.referer.as_deref().and_then(host).is_some_and(|h| Some(h) == host(&start));
+            let same = match (from_browser.referer.as_deref().and_then(host), host(&start)) {
+                (Some(a), Some(b)) => a == b || a.ends_with(&format!(".{b}")) || b.ends_with(&format!(".{a}")),
+                _ => false,
+            };
+            let remembered = || -> Option<String> {
+                let list = swiftget_engine::ytdlp::remembered_cookies(&start)?;
+                let u = url::Url::parse(&start).ok()?;
+                let h = u.host_str()?.to_ascii_lowercase();
+                let https = u.scheme() == "https";
+                let path = u.path();
+                let pairs: Vec<String> = list
+                    .into_iter()
+                    .filter(|c| {
+                        let d = c.domain.trim_start_matches('.').to_ascii_lowercase();
+                        (h == d || h.ends_with(&format!(".{d}")))
+                            && (c.path.is_empty() || path.starts_with(&c.path))
+                            && (!c.secure || https)
+                            && !c.name.is_empty()
+                    })
+                    .map(|c| format!("{}={}", c.name, c.value))
+                    .collect();
+                (!pairs.is_empty()).then(|| pairs.join("; "))
+            };
+            let cookies = if same {
+                from_browser.cookies.clone().or_else(remembered)
+            } else {
+                remembered()
+            };
             RequestHeaders {
                 auth: s.login_for(&start),
-                cookies: if same { from_browser.cookies.clone() } else { None },
+                cookies,
                 user_agent: if same { from_browser.user_agent.clone() } else { None },
                 ..Default::default()
             }
@@ -115,6 +143,7 @@ pub(super) fn download_checked(ui: &Ui) {
         m.set_view(format!("queue:{queue}").into());
     }
     d.set_message(SharedString::new());
+    d.set_spa_hint(false);
     d.set_checked_text(tf("{} file(s) added to the queue", &[&added]).into());
     refresh(ui);
 }

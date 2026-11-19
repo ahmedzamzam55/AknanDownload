@@ -170,9 +170,26 @@ fn subtitle_tracks_sorted_and_curated() {
     let info = build_options(&j);
     assert!(info.options[0].size > 300_000_000, "HLS bitrate * duration estimates MB size: {}", info.options[0].size);
     let langs: Vec<&str> = info.subtitles.iter().map(|s| s.lang.as_str()).collect();
-    assert_eq!(langs, ["ar", "en", "fr"]);
+    assert_eq!(langs, ["ar", "en", "fr", "xx-ignored"]);
     assert_eq!(info.subtitles[0].ext, "srt");
     assert!(!info.subtitles[0].auto);
     assert!(info.subtitles[2].auto);
+}
+
+#[test]
+fn hls_split_pairs_video_only_m3u8_with_audio() {
+    let j = json!({
+        "title": "Kids Song",
+        "duration": 120,
+        "formats": [
+            {"format_id": "232", "protocol": "m3u8_native", "ext": "mp4", "vcodec": "avc1", "acodec": "none", "height": 720, "tbr": 1500.0, "url": "https://cdn/v720.m3u8"},
+            {"format_id": "234", "protocol": "m3u8_native", "ext": "mp4", "vcodec": "none", "acodec": "mp4a.40.2", "abr": 128.0, "url": "https://cdn/a128.m3u8"}
+        ]
+    });
+    let info = build_options(&j);
+    let v = info.options.iter().find(|o| o.quality == "720p").expect("720p split HLS paired");
+    assert_eq!(v.video_url, "https://cdn/v720.m3u8");
+    assert_eq!(v.audio_url.as_deref(), Some("https://cdn/a128.m3u8"));
+    assert!(v.size > 0);
 }
 

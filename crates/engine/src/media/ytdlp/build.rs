@@ -1,4 +1,5 @@
 use super::formats::{as_u64, fmt_size, main_entry, parse_formats, quality_of, Fmt};
+use super::hls_split::{pick_split_audio, split_size};
 use super::options::{mp3_kbps, post_title, quality_tag, with_tag, YtInfo, YtOption, MP3_KEY};
 use crate::model::RequestHeaders;
 use serde_json::Value;
@@ -18,12 +19,13 @@ pub fn build_options(full: &Value) -> YtInfo {
 
     let mut audios: Vec<&Fmt> = formats
         .iter()
-        .filter(|f| f.has_audio() && !f.has_video() && !f.hls)
+        .filter(|f| f.has_audio() && !f.has_video())
         .collect();
-    // the original language first, then the best quality
+    // Direct HTTP audio first, then original language, then highest bitrate
     audios.sort_by(|a, b| {
-        b.audio_rank
-            .cmp(&a.audio_rank)
+        a.hls
+            .cmp(&b.hls)
+            .then(b.audio_rank.cmp(&a.audio_rank))
             .then(b.abr.partial_cmp(&a.abr).unwrap_or(std::cmp::Ordering::Equal))
     });
     let best_audio = |container: &str| -> Option<&Fmt> {
@@ -79,9 +81,6 @@ pub fn build_options(full: &Value) -> YtInfo {
             });
             continue;
         }
-        if v.hls {
-            continue; // video-only stream: we can't add sound to it
-        }
         // AV1 is its own choice next to H.264: the same picture in a much
         // smaller file (newer players and computers)
         let av1 = v.codec_name() == "AV1" && container == "mp4";
@@ -89,14 +88,17 @@ pub fn build_options(full: &Value) -> YtInfo {
         if !seen.insert(key.clone()) {
             continue; // already have this resolution in this container (better codec)
         }
-        let (audio, ext) = match best_audio(container) {
-            Some(a) => (a, container.to_string()),
-            None => match audios.first() {
-                Some(a) => (*a, "mkv".to_string()),
-                None => continue,
-            },
+        let Some((audio, ext)) = (if v.hls {
+            pick_split_audio(v, container, &audios)
+        } else {
+            match best_audio(container) {
+                Some(a) => Some((a, container.to_string())),
+                None => audios.first().map(|a| (*a, "mkv".to_string())),
+            }
+        }) else {
+            continue;
         };
-        let size = if v.size > 0 && audio.size > 0 { v.size + audio.size } else { 0 };
+        let size = split_size(v, audio, duration);
         options.push(YtOption {
             label: format!("{} · {}{}", with_tag(&q, v.height), ext.to_uppercase(), v.codec_tag()),
             sub: fmt_size(size),

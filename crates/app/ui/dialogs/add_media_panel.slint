@@ -1,0 +1,79 @@
+// Resolved video quality and subtitle picker shown inside AddDialog for video pages.
+
+import { ComboBox } from "std-widgets.slint";
+import { Theme, HRow } from "../common.slint";
+
+export component AddMediaPanel inherits Rectangle {
+    in property <bool> resolving;
+    in property <[string]> qualities: [];
+    in-out property <int> quality-index: 0;
+    in property <[string]> sub-modes: [];
+    in-out property <int> sub-mode-index: 0;
+    in property <[string]> sub-langs: [];
+    in-out property <int> sub-lang-index: 0;
+
+    callback quality-changed();
+    callback sub-changed();
+
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.line;
+    border-radius: 4px;
+
+    VerticalLayout {
+        padding: 10px;
+        spacing: 8px;
+        if root.resolving && root.qualities.length == 0: Text {
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+            text: @tr("Looking up video qualities and subtitles…");
+            color: Theme.muted;
+            font-size: 12px * Theme.font-scale;
+        }
+        if root.qualities.length > 0: GridLayout {
+            spacing: 8px;
+            Text {
+                col: Theme.rtl ? 1 : 0;
+                row: 0;
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                text: @tr("Quality:");
+                vertical-alignment: center;
+                color: Theme.text;
+            }
+            ComboBox {
+                col: Theme.rtl ? 0 : 1;
+                row: 0;
+                horizontal-stretch: 1;
+                enabled: root.sub-mode-index < 4;
+                model: root.qualities;
+                current-index <=> root.quality-index;
+                selected => { root.quality-changed(); }
+            }
+            if root.sub-langs.length > 0: Text {
+                col: Theme.rtl ? 1 : 0;
+                row: 1;
+                horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                text: @tr("Subtitles:");
+                vertical-alignment: center;
+                color: Theme.text;
+            }
+            if root.sub-langs.length > 0: HRow {
+                col: Theme.rtl ? 0 : 1;
+                row: 1;
+                spacing: 6px;
+                ComboBox {
+                    width: 195px;
+                    model: root.sub-modes;
+                    current-index <=> root.sub-mode-index;
+                    selected => { root.sub-changed(); }
+                }
+                ComboBox {
+                    horizontal-stretch: 1;
+                    enabled: root.sub-mode-index > 0;
+                    model: root.sub-langs;
+                    current-index <=> root.sub-lang-index;
+                    selected => { root.sub-changed(); }
+                }
+            }
+        }
+    }
+}

@@ -1,6 +1,6 @@
 use super::fetch::{fetch_part_stream, part_file};
 use super::HlsJob;
-use crate::http::{http_status_of, is_network_error, ConnGuard, Progress, Shared};
+use crate::http::{http_status_of, is_network_error, retry_after_of, ConnGuard, Progress, Shared};
 use crate::http_download::{learn, raise_learned, Cancelled};
 use crate::m3u8::Part;
 use crate::sync::LockOk;
@@ -33,6 +33,7 @@ pub(super) struct HlsPool {
     pub max_workers: usize,
     pub ok_active: AtomicUsize,
     pub peak_ok: AtomicUsize,
+    pub consec_403: AtomicU32,
     pub last_throttled: AtomicU64,
     pub finished: AtomicBool,
     pub wake: Notify,
@@ -83,8 +84,6 @@ impl HlsPool {
     }
 }
 
-/// Gradually scales HLS concurrency up when open connections are accepted cleanly,
-/// so burst-limited CDNs discover their true ceiling without tripping `503`.
 pub(super) async fn ramp_task(pool: Arc<HlsPool>, cancel: CancellationToken) {
     loop {
         tokio::select! {
@@ -93,6 +92,9 @@ pub(super) async fn ramp_task(pool: Arc<HlsPool>, cancel: CancellationToken) {
         }
         if pool.finished.load(Ordering::Acquire) || pool.queue.lock_ok().is_empty() {
             return;
+        }
+        if now_secs().saturating_sub(pool.last_throttled.load(Ordering::Relaxed)) < 10 {
+            continue;
         }
         let cur_want = pool.want.load(Ordering::Relaxed);
         let ok = pool.ok_active.load(Ordering::Relaxed);
@@ -123,6 +125,7 @@ pub(super) async fn ramp_task(pool: Arc<HlsPool>, cancel: CancellationToken) {
 }
 
 pub(super) async fn run_worker(pool: Arc<HlsPool>, slot: usize, cancel: CancellationToken) -> anyhow::Result<()> {
+    let slot_idx = slot % 32;
     if slot > 0 && slot < pool.want.load(Ordering::Relaxed) {
         tokio::select! {
             _ = tokio::time::sleep(Duration::from_millis(120 * slot.min(4) as u64)) => {}
@@ -148,15 +151,15 @@ pub(super) async fn run_worker(pool: Arc<HlsPool>, slot: usize, cancel: Cancella
             return Ok(());
         };
         let path = part_file(&pool.job.temp_dir, i);
-        if path.exists() {
+        if path.exists() && std::fs::metadata(&path).map(|m| m.len() > 0).unwrap_or(false) {
             pool.push_back(i, true);
             continue;
         }
         let mut attempt = 0u32;
         loop {
             let r = {
-                pool.progress.hls_workers[slot].1.store(true, Ordering::Relaxed);
-                let _ag = ActiveGuard(&pool.progress.hls_workers[slot].1);
+                pool.progress.hls_workers[slot_idx].1.store(true, Ordering::Relaxed);
+                let _ag = ActiveGuard(&pool.progress.hls_workers[slot_idx].1);
                 let _cg = ConnGuard::new(&pool.progress);
                 let key = match &pool.parts[i].key {
                     Some(k) => Some(pool.keys.get(&k.uri).ok_or_else(|| anyhow!("missing key"))?.as_slice()),
@@ -168,7 +171,7 @@ pub(super) async fn run_worker(pool: Arc<HlsPool>, slot: usize, cancel: Cancella
                     &pool.progress,
                     &pool.ok_active,
                     &pool.peak_ok,
-                    slot,
+                    slot_idx,
                     &pool.parts[i],
                     key,
                     &path,
@@ -180,6 +183,7 @@ pub(super) async fn run_worker(pool: Arc<HlsPool>, slot: usize, cancel: Cancella
             };
             match r {
                 Ok(n) => {
+                    pool.consec_403.store(0, Ordering::Relaxed);
                     pool.done_bytes.fetch_add(n, Ordering::Relaxed);
                     let ms = (pool.parts[i].duration.max(0.0) * 1000.0) as u64;
                     pool.done_dur_ms.fetch_add(ms, Ordering::Relaxed);
@@ -194,22 +198,23 @@ pub(super) async fn run_worker(pool: Arc<HlsPool>, slot: usize, cancel: Cancella
                     return Err(Cancelled.into());
                 }
                 Err(e) => {
-                    let overloaded = matches!(http_status_of(&e), Some(429 | 503))
+                    let status = http_status_of(&e);
+                    if status == Some(403) && pool.consec_403.fetch_add(1, Ordering::Relaxed) + 1 >= 3 {
+                        pool.push_back(i, false);
+                        return Err(e);
+                    }
+                    let overloaded = matches!(status, Some(429 | 503))
                         || (is_network_error(&e) && pool.ok_active.load(Ordering::Relaxed) >= 1);
                     let cur_want = pool.want.load(Ordering::Relaxed);
                     if overloaded && cur_want > 1 {
                         pool.last_throttled.store(now_secs(), Ordering::Relaxed);
                         let ok_now = pool.ok_active.load(Ordering::Relaxed);
                         let live = ok_now.max(pool.peak_ok.load(Ordering::Relaxed));
-                        let cap = if live >= 1 {
-                            live.min(cur_want - 1)
-                        } else {
-                            (cur_want / 2).max(1)
-                        };
+                        let cap = if live >= 1 { live.min(cur_want - 1) } else { (cur_want / 2).max(1) };
                         pool.ceiling.fetch_min(cap, Ordering::Relaxed);
                         pool.want.fetch_min(cap, Ordering::Relaxed);
                         if cap >= 2 || ok_now >= 1 {
-                            learn(&pool.parts[i].url, cap as u32);
+                            learn(&pool.sample_url, cap as u32);
                         }
                         if slot >= pool.want.load(Ordering::Relaxed) {
                             pool.push_back(i, false);
@@ -221,7 +226,7 @@ pub(super) async fn run_worker(pool: Arc<HlsPool>, slot: usize, cancel: Cancella
                         pool.push_back(i, false);
                         return Err(e);
                     }
-                    let wait = Duration::from_secs((attempt as u64 * 2).min(12));
+                    let wait = retry_after_of(&e).unwrap_or_else(|| Duration::from_secs((attempt as u64 * 2).min(12)));
                     tokio::select! {
                         _ = tokio::time::sleep(wait) => {}
                         _ = cancel.cancelled() => {

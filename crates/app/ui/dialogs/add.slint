@@ -3,22 +3,23 @@
 import { Button, LineEdit, ComboBox } from "std-widgets.slint";
 import { Theme, ThemedWindow, HRow, CheckBox } from "../common.slint";
 import { AddFileBadge, AddDialogBottom } from "add_bottom.slint";
+import { AddConflictPanel } from "add_conflict.slint";
+import { AddMediaPanel } from "add_media_panel.slint";
 
 export component AddDialog inherits ThemedWindow {
     forward-focus: url-input;
-    public function focus-input() {
-        url-input.focus();
-    }
+    public function focus-input() { url-input.focus(); }
+    public function focus-name() { name-input.focus(); }
     // set for a moment so the window comes in front of the browser
     in property <bool> front;
     always-on-top: root.front;
     title: @tr("Download File Info");
-    preferred-width: 640px;
-    min-width: 540px;
+    preferred-width: 650px;
+    min-width: 550px;
 
     in-out property <string> url;
-    // full path: folder + file name
-    in-out property <string> save-as;
+    in-out property <string> file-name;
+    in-out property <string> save-folder;
     in-out property <string> description;
     in-out property <string> checksum;
     in-out property <int> connections: 32;
@@ -37,29 +38,43 @@ export component AddDialog inherits ThemedWindow {
     in-out property <bool> use-login;
     in-out property <string> user;
     in-out property <string> password;
-    // a warning about the address (web page, duplicate...)
     in property <string> warning;
-    // the server refused Aknan Download: offer the browser instead
     in property <bool> can-use-browser;
-    callback use-browser();
+    in property <bool> conflict-open;
+    in property <string> numbered-name;
+    in property <bool> media-open;
+    in property <bool> media-resolving;
+    in property <[string]> media-qualities: [];
+    in-out property <int> media-quality-index: 0;
+    in property <[string]> media-sub-langs: [];
+    in-out property <int> media-sub-lang-index: 0;
+    in property <[string]> media-sub-modes: [
+        @tr("No subtitles"),
+        @tr("Separate file (.srt)"),
+        @tr("Separate file (.vtt)"),
+        @tr("Burned into the video"),
+        @tr("Subtitles only (.srt)"),
+        @tr("Subtitles only (.vtt)"),
+    ];
+    in-out property <int> media-sub-mode-index: 0;
 
+    callback use-browser();
     callback check-url();
     callback category-changed(int);
     callback browse();
+    callback name-edited();
+    callback media-changed();
+    callback conflict-replace();
+    callback conflict-numbered();
+    callback conflict-rename();
     callback start-now();
     callback later();
     callback cancel();
 
     dlg-keys := FocusScope {
         key-pressed(event) => {
-            if (event.text == Key.Escape) {
-                root.cancel();
-                return accept;
-            }
-            if (event.text == Key.Return && event.modifiers.control && root.url != "") {
-                root.start-now();
-                return accept;
-            }
+            if (event.text == Key.Escape) { root.cancel(); return accept; }
+            if (event.text == Key.Return && event.modifiers.control && root.url != "") { root.start-now(); return accept; }
             reject
         }
         VerticalLayout {
@@ -70,141 +85,59 @@ export component AddDialog inherits ThemedWindow {
                 GridLayout {
                     spacing: 8px;
                     horizontal-stretch: 1;
-                    Text {
-                        col: Theme.rtl ? 1 : 0;
-                        row: 0;
-                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
-                        text: @tr("URL");
-                        vertical-alignment: center;
-                        color: Theme.text;
-                    }
+                    Text { col: Theme.rtl ? 1 : 0; row: 0; horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left; text: @tr("URL"); vertical-alignment: center; color: Theme.text; }
                     HRow {
-                        col: Theme.rtl ? 0 : 1;
-                        row: 0;
-                        spacing: 6px;
-                        url-input := LineEdit {
-                            text <=> root.url;
-                            placeholder-text: @tr("https://example.com/file");
-                            horizontal-stretch: 1;
-                            accepted(t) => {
-                                root.check-url();
-                            }
-                        }
-                        Button {
-                            text: @tr("Check");
-                            clicked => {
-                                root.check-url();
-                            }
-                        }
+                        col: Theme.rtl ? 0 : 1; row: 0; spacing: 6px;
+                        url-input := LineEdit { text <=> root.url; placeholder-text: @tr("https://example.com/file"); horizontal-stretch: 1; accepted(t) => { root.check-url(); } }
+                        Button { text: @tr("Check"); clicked => { root.check-url(); } }
                     }
-                    Text {
-                        col: Theme.rtl ? 1 : 0;
-                        row: 1;
-                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
-                        text: @tr("Category");
-                        vertical-alignment: center;
-                        color: Theme.text;
-                    }
+                    Text { col: Theme.rtl ? 1 : 0; row: 1; horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left; text: @tr("Category"); vertical-alignment: center; color: Theme.text; }
                     HRow {
-                        col: Theme.rtl ? 0 : 1;
-                        row: 1;
-                        ComboBox {
-                            width: 200px;
-                            model: root.category-names;
-                            current-index <=> root.category-index;
-                            selected(v) => {
-                                root.category-changed(root.category-index);
-                            }
-                        }
-                        Rectangle {
-                            horizontal-stretch: 1;
-                        }
+                        col: Theme.rtl ? 0 : 1; row: 1;
+                        ComboBox { width: 200px; model: root.category-names; current-index <=> root.category-index; selected(v) => { root.category-changed(root.category-index); } }
+                        Rectangle { horizontal-stretch: 1; }
                     }
-                    Text {
-                        col: Theme.rtl ? 1 : 0;
-                        row: 2;
-                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
-                        text: @tr("Save As");
-                        vertical-alignment: center;
-                        color: Theme.text;
-                    }
+                    Text { col: Theme.rtl ? 1 : 0; row: 2; horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left; text: @tr("File name"); vertical-alignment: center; color: Theme.text; }
+                    name-input := LineEdit { col: Theme.rtl ? 0 : 1; row: 2; text <=> root.file-name; edited => { root.name-edited(); } }
+                    Text { col: Theme.rtl ? 1 : 0; row: 3; horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left; text: @tr("Save to"); vertical-alignment: center; color: Theme.text; }
                     HRow {
-                        col: Theme.rtl ? 0 : 1;
-                        row: 2;
-                        spacing: 6px;
-                        LineEdit {
-                            text <=> root.save-as;
-                            horizontal-stretch: 1;
-                        }
-                        Button {
-                            text: "…";
-                            clicked => {
-                                root.browse();
-                            }
-                        }
+                        col: Theme.rtl ? 0 : 1; row: 3; spacing: 6px;
+                        LineEdit { text <=> root.save-folder; horizontal-stretch: 1; edited => { root.name-edited(); } }
+                        Button { text: "…"; clicked => { root.browse(); } }
                     }
-                    Rectangle {
-                        col: Theme.rtl ? 1 : 0;
-                        row: 3;
-                    }
-                    CheckBox {
-                        col: Theme.rtl ? 0 : 1;
-                        row: 3;
-                        text: @tr("Remember this path for \"{}\" category", root.category-name);
-                        checked <=> root.remember-path;
-                    }
-                    Text {
-                        col: Theme.rtl ? 1 : 0;
-                        row: 4;
-                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
-                        text: @tr("Description");
-                        vertical-alignment: center;
-                        color: Theme.text;
-                    }
-                    LineEdit {
-                        col: Theme.rtl ? 0 : 1;
-                        row: 4;
-                        text <=> root.description;
-                        placeholder-text: @tr("optional note");
-                    }
-                    Text {
-                        col: Theme.rtl ? 1 : 0;
-                        row: 5;
-                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
-                        text: @tr("Checksum");
-                        vertical-alignment: center;
-                        color: Theme.text;
-                    }
-                    LineEdit {
-                        col: Theme.rtl ? 0 : 1;
-                        row: 5;
-                        text <=> root.checksum;
-                        placeholder-text: @tr("MD5 / SHA-1 / SHA-256 (optional)");
-                    }
+                    Rectangle { col: Theme.rtl ? 1 : 0; row: 4; }
+                    CheckBox { col: Theme.rtl ? 0 : 1; row: 4; text: @tr("Remember this path for \"{}\" category", root.category-name); checked <=> root.remember-path; }
+                    Text { col: Theme.rtl ? 1 : 0; row: 5; horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left; text: @tr("Description"); vertical-alignment: center; color: Theme.text; }
+                    LineEdit { col: Theme.rtl ? 0 : 1; row: 5; text <=> root.description; placeholder-text: @tr("optional note"); }
+                    Text { col: Theme.rtl ? 1 : 0; row: 6; horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left; text: @tr("Checksum"); vertical-alignment: center; color: Theme.text; }
+                    LineEdit { col: Theme.rtl ? 0 : 1; row: 6; text <=> root.checksum; placeholder-text: @tr("MD5 / SHA-1 / SHA-256 (optional)"); }
                 }
-                AddFileBadge {
-                    kind: root.kind;
-                    ext: root.ext;
-                    size-text: root.size-text;
-                }
+                AddFileBadge { kind: root.kind; ext: root.ext; size-text: root.size-text; }
+            }
+            if root.media-open || root.media-resolving: AddMediaPanel {
+                resolving: root.media-resolving;
+                qualities: root.media-qualities;
+                quality-index <=> root.media-quality-index;
+                sub-modes: root.media-sub-modes;
+                sub-mode-index <=> root.media-sub-mode-index;
+                sub-langs: root.media-sub-langs;
+                sub-lang-index <=> root.media-sub-lang-index;
+                quality-changed => { root.media-changed(); }
+                sub-changed => { root.media-changed(); }
+            }
+            if root.conflict-open: AddConflictPanel {
+                file-name: root.file-name;
+                numbered-name: root.numbered-name;
+                replace-safely => { root.conflict-replace(); }
+                keep-numbered => { root.conflict-numbered(); }
+                change-name => { root.conflict-rename(); }
             }
             AddDialogBottom {
-                use-login <=> root.use-login;
-                user <=> root.user;
-                password <=> root.password;
-                warning: root.warning;
-                probing: root.probing;
-                info: root.info;
-                info-error: root.info-error;
-                connections <=> root.connections;
-                queue-names: root.queue-names;
-                queue-index <=> root.queue-index;
-                url: root.url;
-                can-use-browser: root.can-use-browser;
-                use-browser => { root.use-browser(); }
-                later => { root.later(); }
-                start-now => { root.start-now(); }
-                cancel => { root.cancel(); }
+                use-login <=> root.use-login; user <=> root.user; password <=> root.password;
+                warning: root.warning; probing: root.probing; info: root.info; info-error: root.info-error;
+                connections <=> root.connections; queue-names: root.queue-names; queue-index <=> root.queue-index;
+                url: root.url; can-use-browser: root.can-use-browser;
+                use-browser => { root.use-browser(); } later => { root.later(); } start-now => { root.start-now(); } cancel => { root.cancel(); }
             }
         }
     }

@@ -11,12 +11,11 @@ pub struct YtSubtitle {
     pub url: String,
     pub ext: String,
     pub auto: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub headers: Vec<(String, String)>,
 }
 
-const PREF_EXTS: &[&str] = &["srt", "vtt", "srv3", "ttml", "srv1", "json3"];
-const AUTO_KEEP: &[&str] = &[
-    "ar", "en", "fr", "de", "es", "pt", "tr", "ru", "it", "ja", "ko", "zh-Hans", "zh", "hi", "id", "fa", "ur",
-];
+const PREF_EXTS: &[&str] = &["srt", "vtt", "srv3", "ttml", "ass", "ssa", "bcc", "srv1", "json3", "m3u8"];
 
 fn clean_name(lang: &str, raw_name: Option<&str>) -> String {
     let base = lang.split(['-', '_']).next().unwrap_or(lang);
@@ -51,18 +50,26 @@ fn clean_name(lang: &str, raw_name: Option<&str>) -> String {
         .unwrap_or_else(|| lang.to_string())
 }
 
-fn pick_format<'a>(arr: &'a [Value]) -> Option<(&'a str, &'a str, Option<&'a str>)> {
-    let valid = |item: &'a Value| -> Option<(&'a str, &'a str, Option<&'a str>)> {
+fn headers_of(item: &Value) -> Vec<(String, String)> {
+    item["http_headers"]
+        .as_object()
+        .map(|m| m.iter().filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string()))).collect())
+        .unwrap_or_default()
+}
+
+type PickedSub<'a> = (&'a str, &'a str, Option<&'a str>, Vec<(String, String)>);
+
+fn pick_format<'a>(arr: &'a [Value]) -> Option<PickedSub<'a>> {
+    let valid = |item: &'a Value| -> Option<PickedSub<'a>> {
         let url = item["url"].as_str()?;
         let ext = item["ext"].as_str().unwrap_or("vtt");
-        let protocol = item["protocol"].as_str().unwrap_or("");
-        if !(url.starts_with("http://") || url.starts_with("https://")) || protocol.starts_with("m3u8") || ext == "m3u8" {
+        if !(url.starts_with("http://") || url.starts_with("https://") || url.starts_with("data:")) {
             return None;
         }
-        Some((url, ext, item["name"].as_str()))
+        Some((url, ext, item["name"].as_str(), headers_of(item)))
     };
     for &wanted in PREF_EXTS {
-        if let Some(found) = arr.iter().filter_map(valid).find(|(_, ext, _)| ext.eq_ignore_ascii_case(wanted)) {
+        if let Some(found) = arr.iter().filter_map(valid).find(|(_, ext, _, _)| ext.eq_ignore_ascii_case(wanted)) {
             return Some(found);
         }
     }
@@ -75,18 +82,8 @@ fn collect_map(map: &serde_json::Map<String, Value>, auto: bool, seen: &mut Hash
             continue;
         }
         let Some(arr) = list.as_array() else { continue };
-        let Some((url, ext, raw_name)) = pick_format(arr) else { continue };
+        let Some((url, ext, raw_name, headers)) = pick_format(arr) else { continue };
         let norm_lang = lang.strip_suffix("-orig").unwrap_or(lang);
-        let base = norm_lang.split(['-', '_']).next().unwrap_or(norm_lang);
-        if auto {
-            let is_orig = lang.ends_with("-orig") || !url.contains("tlang=");
-            if !(is_orig || AUTO_KEEP.contains(&norm_lang) || AUTO_KEEP.contains(&base)) {
-                continue;
-            }
-            if seen.contains(norm_lang) || seen.contains(base) {
-                continue;
-            }
-        }
         if !seen.insert(norm_lang.to_string()) {
             continue;
         }
@@ -96,6 +93,7 @@ fn collect_map(map: &serde_json::Map<String, Value>, auto: bool, seen: &mut Hash
             url: url.to_string(),
             ext: ext.to_ascii_lowercase(),
             auto,
+            headers,
         });
     }
 }

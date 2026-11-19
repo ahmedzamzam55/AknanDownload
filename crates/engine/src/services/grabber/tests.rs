@@ -28,3 +28,25 @@ fn links_from_html() {
     assert!(!urls.iter().any(|u| u.contains("mailto") || u.ends_with("#top")));
     assert_eq!(l.iter().find(|(u, _)| u.ends_with("a.pdf")).unwrap().1, "Document A");
 }
+
+#[test]
+fn extracts_srcset_data_attrs_css_json_base_entities_and_spa() {
+    let html = r#"<html><head><base href="https://cdn.example.com/assets/"></head><body>
+        <img srcset="img-1x.webp 1x, img-2x.webp 2x" data-lazy-src="hero.png">
+        <a data-download="files/pack&#x2e;zip&#38;v=1" data-bg="url('../bg/tile.jpg')">dl</a>
+        <object data="manual.pdf"></object><embed src=clip.mp4>
+        <script>var p="\u002fmedia\u002faudio.mp3\u003fdl\u003d1";</script>
+    </body></html>"#;
+    let urls: Vec<String> = extract_links(html, "https://site.example/page").into_iter().map(|(u, _)| u).collect();
+    assert!(urls.contains(&"https://cdn.example.com/assets/img-2x.webp".into()), "{urls:?}");
+    assert!(urls.contains(&"https://cdn.example.com/assets/hero.png".into()), "{urls:?}");
+    assert!(urls.contains(&"https://cdn.example.com/assets/files/pack.zip&v=1".into()), "{urls:?}");
+    assert!(urls.contains(&"https://cdn.example.com/bg/tile.jpg".into()), "{urls:?}");
+    assert!(urls.contains(&"https://cdn.example.com/assets/manual.pdf".into()), "{urls:?}");
+    assert!(urls.contains(&"https://cdn.example.com/assets/clip.mp4".into()), "{urls:?}");
+    assert!(urls.contains(&"https://cdn.example.com/media/audio.mp3?dl=1".into()), "{urls:?}");
+
+    let spa = r#"<html><body><div id="root"></div><noscript>Please enable JavaScript</noscript><script src="/a.js"></script><script src="/b.js"></script></body></html>"#;
+    assert!(looks_dynamic_spa(spa));
+    assert!(!looks_dynamic_spa(html));
+}

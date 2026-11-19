@@ -21,6 +21,10 @@ export component ClipDialog inherits ThemedWindow {
     in property <string> video-title;
     in property <[string]> qualities;
     in-out property <int> quality: 0;
+    in property <[string]> sub-langs: [];
+    in-out property <int> sub-lang: 0;
+    in property <[string]> sub-modes: [@tr("No subtitles"), @tr("Separate file (.srt)"), @tr("Separate file (.vtt)"), @tr("Burned into the video")];
+    in-out property <int> sub-mode: 0;
     // seconds; 0 = the length is not known (type the times)
     in property <float> duration;
     in-out property <float> from: 0;
@@ -108,6 +112,26 @@ export component ClipDialog inherits ThemedWindow {
                     enabled: root.ready;
                     model: root.qualities;
                     current-index <=> root.quality;
+                }
+            }
+            if root.sub-langs.length > 0: HRow {
+                spacing: 8px;
+                Label {
+                    width: root.label-w;
+                    text: @tr("Subtitles:");
+                    vertical-alignment: center;
+                }
+                ComboBox {
+                    width: 190px;
+                    enabled: root.ready;
+                    model: root.sub-modes;
+                    current-index <=> root.sub-mode;
+                }
+                ComboBox {
+                    horizontal-stretch: 1;
+                    enabled: root.ready && root.sub-mode > 0;
+                    model: root.sub-langs;
+                    current-index <=> root.sub-lang;
                 }
             }
             ClipControls {

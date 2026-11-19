@@ -1,28 +1,19 @@
-// Instant YouTube subtitle extraction, network/HLS subtitle heuristics, and 429-resilient browser fetching.
+// Universal subtitle track normalization, merging, 429/503 retries, and translation fallback.
 
-const SUB_COMMON_LANGS = ["ar", "en", "fr", "de", "es", "tr", "pt", "ru", "it", "ja", "ko", "zh-Hans"];
-const SUB_FALLBACK_NAMES = {
-  ar: "Arabic", en: "English", "en-orig": "English", fr: "French", de: "German",
-  es: "Spanish", tr: "Turkish", pt: "Portuguese", ru: "Russian", it: "Italian",
-  ja: "Japanese", ko: "Korean", zh: "Chinese", "zh-Hans": "Chinese (Simplified)",
-  "zh-Hant": "Chinese (Traditional)", hi: "Hindi", id: "Indonesian", und: "Subtitles",
-};
-const YT_SUB_CACHE = new Map();
-const YT_SUB_PENDING = new Map();
 const RAW_SUB_CACHE = new Map();
 
 function subNameFor(code) {
   const c = String(code || "").trim();
   if (!c || c === "und") return "Subtitles";
   const base = c.split(/[-_]/)[0].toLowerCase();
-  if (SUB_FALLBACK_NAMES[c]) return SUB_FALLBACK_NAMES[c];
+  if (typeof SUB_FALLBACK_NAMES !== "undefined" && SUB_FALLBACK_NAMES[c]) return SUB_FALLBACK_NAMES[c];
   try {
     if (typeof Intl !== "undefined" && Intl.DisplayNames) {
       const label = new Intl.DisplayNames(["en"], { type: "language" }).of(c) || new Intl.DisplayNames(["en"], { type: "language" }).of(base);
       if (label && label.toLowerCase() !== c.toLowerCase()) return label;
     }
   } catch {}
-  return SUB_FALLBACK_NAMES[base] || c.toUpperCase();
+  return (typeof SUB_FALLBACK_NAMES !== "undefined" && SUB_FALLBACK_NAMES[base]) || c.toUpperCase();
 }
 
 function isSpriteOrThumbUrl(url) {
@@ -54,109 +45,19 @@ function guessSubTrack(url, contentType) {
   return { lang, name: subNameFor(lang), url: u, ext, auto: u.includes("kind=asr") || u.includes("tlang=") };
 }
 
-function setSubFmt(baseUrl, fmt, tlang) {
-  let out = String(baseUrl || "").replace(/([?&])fmt=[^&]*/g, "$1").replace(/[?&]+$/, "").replace(/\?&/, "?");
-  out += `${out.includes("?") ? "&" : "?"}fmt=${encodeURIComponent(fmt || "json3")}`;
-  if (tlang) out += `&tlang=${encodeURIComponent(tlang)}`;
-  return out;
-}
-
-function extractBalancedJson(text, marker) {
-  const idx = text.indexOf(marker);
-  if (idx < 0) return null;
-  let i = idx + marker.length;
-  while (i < text.length && /\s/.test(text[i])) i += 1;
-  const open = text[i], close = open === "[" ? "]" : open === "{" ? "}" : "";
-  if (!close) return null;
-  let depth = 0, inStr = false, esc = false;
-  for (let j = i; j < text.length; j += 1) {
-    const ch = text[j];
-    if (inStr) {
-      if (esc) esc = false;
-      else if (ch === "\\") esc = true;
-      else if (ch === "\"") inStr = false;
-    } else if (ch === "\"") inStr = true;
-    else if (ch === open) depth += 1;
-    else if (ch === close && --depth === 0) {
-      try { return JSON.parse(text.slice(i, j + 1)); } catch { return null; }
-    }
-  }
-  return null;
-}
-
-function tracksFromRenderer(tracks, transLangs, fmt) {
-  if (!Array.isArray(tracks) || !tracks.length) return [];
-  const out = [], seen = new Set();
-  let pivot = null;
-  for (const t of tracks) {
-    if (!t || !t.baseUrl || !t.languageCode) continue;
-    const lang = String(t.languageCode);
-    const label = (t.name && (t.name.simpleText || (Array.isArray(t.name.runs) && t.name.runs.map((r) => r.text).join("")))) || subNameFor(lang);
-    const isAuto = t.kind === "asr", key = lang.toLowerCase();
-    if (!seen.has(key)) {
-      seen.add(key);
-      out.push({ lang, name: String(label).replace(/\s*\(auto-generated\)\s*/i, "").trim() || subNameFor(lang), url: setSubFmt(t.baseUrl, fmt), ext: fmt, auto: isAuto });
-    }
-    if (!pivot && t.isTranslatable !== false) pivot = t;
-    if (t.isTranslatable && (!pivot || !isAuto)) pivot = t;
-  }
-  if (pivot) {
-    const avail = Array.isArray(transLangs) && transLangs.length ? new Set(transLangs.map((x) => x && x.languageCode).filter(Boolean)) : null;
-    const navLang = typeof navigator !== "undefined" && navigator.language ? navigator.language.split("-")[0] : "";
-    for (const code of [navLang, ...SUB_COMMON_LANGS].filter(Boolean)) {
-      if (seen.has(code.toLowerCase()) || (avail && !avail.has(code))) continue;
-      seen.add(code.toLowerCase());
-      out.push({ lang: code, name: subNameFor(code), url: setSubFmt(pivot.baseUrl, fmt, code), ext: fmt, auto: true });
-    }
-  }
-  return out;
-}
-
-function parseYoutubeWatchSubs(html) {
-  return tracksFromRenderer(extractBalancedJson(html, "\"captionTracks\":"), extractBalancedJson(html, "\"translationLanguages\":"), "json3");
-}
-
-async function fetchYoutubeSubs(videoId) {
-  const id = String(videoId || "").trim();
-  if (!id) return [];
-  const cached = YT_SUB_CACHE.get(id);
-  if (cached && Date.now() - cached.at < 300_000) return cached.subs;
-  if (YT_SUB_PENDING.has(id)) return YT_SUB_PENDING.get(id);
-  const run = (async () => {
-    try {
-      let subs = [];
-      const apiResp = await plainFetch("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ videoId: id, context: { client: { clientName: "ANDROID", clientVersion: "20.10.38", androidSdkVersion: 34, hl: "en", gl: "US" } } }),
-      }, 8000).catch(() => null);
-      if (apiResp && apiResp.ok) {
-        const j = await apiResp.json().catch(() => null);
-        const rnd = j && j.captions && j.captions.playerCaptionsTracklistRenderer;
-        if (rnd) subs = tracksFromRenderer(rnd.captionTracks, rnd.translationLanguages, "json3");
-      }
-      if (!subs.length) {
-        const r = await plainFetch(`https://www.youtube.com/watch?v=${encodeURIComponent(id)}&hl=en`, { credentials: "include" }, 10000).catch(() => null);
-        if (r && r.ok) subs = parseYoutubeWatchSubs(await r.text());
-      }
-      if (subs.length) YT_SUB_CACHE.set(id, { at: Date.now(), subs });
-      return subs;
-    } catch { return []; } finally { YT_SUB_PENDING.delete(id); }
-  })();
-  YT_SUB_PENDING.set(id, run);
-  return run;
-}
-
 function mergeSubLists(...lists) {
   const map = new Map();
   for (const list of lists) {
     if (!Array.isArray(list)) continue;
     for (const s of list) {
-      if (!s || !s.url) continue;
+      if (!s || (!s.url && !s.body)) continue;
       const lang = String(s.lang || "und").trim() || "und";
-      const key = lang.toLowerCase() === "und" ? `und|${s.name || s.url}` : lang.toLowerCase();
-      const prev = map.get(key);
-      if (!prev || (prev.auto && !s.auto)) map.set(key, { ...s, lang, name: s.name || subNameFor(lang), ext: s.ext || "vtt" });
+      const low = lang.toLowerCase();
+      const variant = s.variant || (low === "und" ? s.name || s.url : "");
+      const key = `${low}|${s.auto ? 1 : 0}|${String(variant).toLowerCase()}`;
+      if (!map.has(key)) {
+        map.set(key, { ...s, lang, name: s.name || subNameFor(lang), ext: s.ext || "vtt" });
+      }
     }
   }
   return Array.from(map.values());
@@ -226,22 +127,57 @@ async function translateFallbackVtt(srcUrl, targetLang) {
   return `WEBVTT\n\n${cues.map((c, idx) => `${c.start} --> ${c.end}\n${out[idx] || c.text}\n`).join("\n")}`;
 }
 
-async function fetchSubBody(url) {
-  if (!url || !String(url).startsWith("http")) return "";
-  for (let i = 0; i < 2; i += 1) {
+function decodeSubDataUrl(url) {
+  const m = /^data:([^,]*),(.*)$/s.exec(String(url || ""));
+  if (!m) return "";
+  try {
+    if (/;base64/i.test(m[1])) return new TextDecoder().decode(Uint8Array.from(atob(m[2]), (c) => c.charCodeAt(0)));
+    return decodeURIComponent(m[2]);
+  } catch {
+    return "";
+  }
+}
+
+function retryAfterMs(r, fallbackMs) {
+  const raw = r && r.headers && typeof r.headers.get === "function" ? r.headers.get("retry-after") : "";
+  if (!raw) return fallbackMs;
+  const sec = Number(raw);
+  if (Number.isFinite(sec) && sec > 0) return Math.min(15000, Math.max(400, sec * 1000));
+  const at = Date.parse(raw);
+  return Number.isFinite(at) ? Math.min(15000, Math.max(400, at - Date.now())) : fallbackMs;
+}
+
+async function fetchSubBody(url, reqHeaders) {
+  if (!url) return "";
+  if (String(url).startsWith("data:")) return decodeSubDataUrl(url);
+  if (!String(url).startsWith("http")) return "";
+  const headers = {};
+  for (const [k, v] of reqHeaders || []) {
+    if (!/^(cookie|referer|origin|host|user-agent|sec-)/i.test(k) && v) headers[k] = v;
+  }
+  const init = Object.keys(headers).length ? { credentials: "include", headers } : { credentials: "include" };
+  const isYtTlang = /youtube\.com\/api\/timedtext/i.test(url) && /[?&]tlang=/.test(url);
+  const maxTries = isYtTlang ? 2 : 4;
+  for (let i = 0; i < maxTries; i += 1) {
     try {
-      const r = await plainFetch(url, { credentials: "include" }, 12000);
+      const r = await plainFetch(url, init, 12000);
       if (r && r.ok) {
         const text = await r.text();
         if (text && text.trim() && !/^\s*<!doctype|^\s*<html/i.test(text)) return text;
       }
-      if (!r || (r.status !== 429 && r.status !== 503)) break;
-    } catch { break; }
-    await new Promise((res) => setTimeout(res, 600));
+      if (!r || ![429, 502, 503, 504].includes(r.status)) break;
+      if (i + 1 < maxTries) await new Promise((res) => setTimeout(res, retryAfterMs(r, isYtTlang ? 350 : 1200 * (i + 1))));
+    } catch {
+      if (i + 1 >= maxTries) break;
+      await new Promise((res) => setTimeout(res, 800 * (i + 1)));
+    }
   }
   try {
     const u = new URL(url), tl = u.searchParams.get("tlang");
-    if (tl && u.hostname.endsWith("youtube.com") && u.pathname.includes("timedtext")) { u.searchParams.delete("tlang"); return await translateFallbackVtt(u.toString(), tl); }
+    if (tl && u.hostname.endsWith("youtube.com") && u.pathname.includes("timedtext")) {
+      u.searchParams.delete("tlang");
+      return await translateFallbackVtt(u.toString(), tl);
+    }
   } catch {}
   return "";
 }

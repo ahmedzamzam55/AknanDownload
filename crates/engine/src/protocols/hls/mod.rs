@@ -1,14 +1,11 @@
-//! HLS (.m3u8) video streams: download every part with several connections,
-//! decrypt AES-128 parts when needed, then join them into one video file.
-//!
-//! DRM protected streams (SAMPLE-AES, Widevine, FairPlay...) are refused on
-//! purpose. Live streams (no #EXT-X-ENDLIST) are refused too.
+//! HLS (.m3u8) video streams: download every part with up to 32 adaptive
+//! connections, decrypt AES-128 parts/maps when needed, strip spoofed headers,
+//! and join parts without discarding `.sgparts` before post-processing finishes.
 
 use crate::http::{Progress, Shared};
 use crate::http_download::{learned_limit, Cancelled};
-use crate::m3u8::{best_variant, parse_media};
 use crate::model::RequestHeaders;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, bail};
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicUsize, Ordering};
@@ -30,41 +27,26 @@ pub struct HlsJob {
     pub limiter: Arc<crate::limiter::SpeedLimiter>,
     /// only the parts that play between these seconds ("Download a part")
     pub clip: Option<(f64, f64)>,
+    /// optional pre-fetched playlist text (e.g. disguised #EXTM3U from probe)
+    pub initial_playlist: Option<String>,
 }
 
 mod fetch;
+mod prep;
+pub mod sanitize;
 mod worker;
-use fetch::{fetch_bytes, fetch_text, join_parts, part_file};
+
+use fetch::{join_parts, part_file};
+pub use sanitize::{HlsContainer, HlsOutcome};
 use worker::{ramp_task, run_worker, HlsPool};
 
-/// Gets the stream (or only the parts of `job.clip`) into `job.output`.
-/// Gives when the first part it took starts in the stream (seconds; 0
-/// without a clip): the clip starts that much later in the file.
-pub async fn run(
+async fn run_single(
     shared: Arc<Shared>,
-    job: HlsJob,
+    job: Arc<HlsJob>,
     progress: Arc<Progress>,
     cancel: CancellationToken,
-) -> anyhow::Result<f64> {
-    let job = Arc::new(job);
-    // 1. playlist (follow a master playlist to its best quality)
-    // the addresses in a list are relative to where it came from in the end
-    let (mut text, mut url) = fetch_text(&shared, &job, &job.url).await.context("could not load playlist")?;
-    if !text.trim_start().starts_with("#EXTM3U") {
-        bail!("not a valid HLS playlist");
-    }
-    if text.contains("#EXT-X-STREAM-INF") {
-        let variant = best_variant(&url, &text)?.ok_or_else(|| anyhow!("no video variant found"))?;
-        (text, url) = fetch_text(&shared, &job, &variant).await?;
-    }
-    let playlist = parse_media(&url, &text)?;
-    if !playlist.ended {
-        bail!("live streams are not supported (the playlist has no end)");
-    }
-    if playlist.parts.is_empty() {
-        bail!("the playlist has no parts");
-    }
-    // a part of the video: only the parts that play then
+) -> anyhow::Result<(f64, HlsContainer, Option<String>)> {
+    let (playlist, url, audio_url) = prep::load_playlist(&shared, &job).await?;
     let (chosen, first_at) = match job.clip {
         Some((a, b)) => {
             let (c, at) = playlist.parts_between(a, b);
@@ -75,14 +57,13 @@ pub async fn run(
         }
         None => ((0..playlist.parts.len()).collect(), 0.0),
     };
-    std::fs::create_dir_all(&job.temp_dir)?;
+    prep::prepare_resume_dir(&job.temp_dir, &url, playlist.parts.len())?;
 
-    // 2. keys (usually one for the whole stream)
     let mut keys: HashMap<String, Vec<u8>> = HashMap::new();
     for p in chosen.iter().map(|&i| &playlist.parts[i]) {
-        if let Some(k) = &p.key {
+        for k in p.key.iter().chain(p.init_key.iter()) {
             if !keys.contains_key(&k.uri) {
-                let bytes = fetch_bytes(&shared, &job, &k.uri).await.context("could not load key")?;
+                let bytes = prep::fetch_key_bytes(&shared, &job, &k.uri, &cancel).await?;
                 keys.insert(k.uri.clone(), bytes);
             }
         }
@@ -91,30 +72,29 @@ pub async fn run(
     let parts = Arc::new(playlist.parts);
     let chosen = Arc::new(chosen);
 
-    // 3. parts, several at a time; finished parts survive pause/resume
     let total = chosen.len();
     progress.reset_hls_workers();
     progress.parts_total.store(total as u32, Ordering::Relaxed);
-    let mut done_bytes = 0u64;
-    let mut done_dur_ms = 0u64;
-    let mut done = 0u32;
+    let (mut done_bytes, mut done_dur_ms, mut done) = (0u64, 0u64, 0u32);
     let mut todo = VecDeque::new();
     for &i in chosen.iter() {
         if let Ok(m) = std::fs::metadata(part_file(&job.temp_dir, i)) {
-            done += 1;
-            done_bytes += m.len();
-            done_dur_ms += (parts[i].duration.max(0.0) * 1000.0) as u64;
-        } else {
-            todo.push_back(i);
+            if m.len() > 0 {
+                done += 1;
+                done_bytes += m.len();
+                done_dur_ms += (parts[i].duration.max(0.0) * 1000.0) as u64;
+                continue;
+            }
         }
+        todo.push_back(i);
     }
     progress.parts_done.store(done, Ordering::Relaxed);
     progress.bytes.store(done_bytes, Ordering::Relaxed);
     progress.hls_workers[0].0.store(done_bytes, Ordering::Relaxed);
 
     let total_dur_ms: u64 = chosen.iter().map(|&i| (parts[i].duration.max(0.0) * 1000.0) as u64).sum();
-    let sample_url = chosen.first().map(|&i| parts[i].url.as_str()).unwrap_or(&url).to_string();
-    let max_workers = job.connections.clamp(1, 16).min(todo.len().max(1) as u32) as usize;
+    let sample_url = chosen.first().map(|&i| parts[i].url.clone()).unwrap_or(url);
+    let max_workers = job.connections.clamp(1, 32).min(todo.len().max(1) as u32) as usize;
     let learned = learned_limit(&sample_url).map(|n| (n as usize).clamp(1, max_workers));
     let initial_want = learned.unwrap_or_else(|| max_workers.min(2));
     let ceiling = learned.unwrap_or(max_workers);
@@ -132,6 +112,7 @@ pub async fn run(
         max_workers,
         ok_active: AtomicUsize::new(0),
         peak_ok: AtomicUsize::new(0),
+        consec_403: AtomicU32::new(0),
         last_throttled: AtomicU64::new(0),
         finished: AtomicBool::new(false),
         wake: Notify::new(),
@@ -169,7 +150,41 @@ pub async fn run(
         }
     }
     progress.est_total.store(pool.done_bytes.load(Ordering::Relaxed), Ordering::Relaxed);
-    join_parts(&shared, &job, &progress, playlist.init_url.as_deref(), playlist.init_range, chosen).await?;
+    let container = join_parts(&shared, &job, &progress, parts, keys, chosen).await?;
     progress.assembling.store(false, Ordering::Relaxed);
-    Ok(first_at)
+    Ok((first_at, container, audio_url))
+}
+
+/// Download the HLS stream (and separate `#EXT-X-MEDIA:TYPE=AUDIO` if present)
+/// into `job.output`. Caller deletes `outcome.temp_dir` after finalization.
+pub async fn run(
+    shared: Arc<Shared>,
+    job: HlsJob,
+    progress: Arc<Progress>,
+    cancel: CancellationToken,
+) -> anyhow::Result<HlsOutcome> {
+    let temp_dir = job.temp_dir.clone();
+    let job_arc = Arc::new(job);
+    let (first_at, container, audio_url) = run_single(shared.clone(), job_arc.clone(), progress.clone(), cancel.clone()).await?;
+    let mut audio_output = None;
+    if let Some(au) = audio_url {
+        let a_out = temp_dir.join("audio.joined");
+        let a_job = Arc::new(HlsJob {
+            url: au,
+            headers: job_arc.headers.clone(),
+            user_agent: job_arc.user_agent.clone(),
+            output: a_out.clone(),
+            temp_dir: temp_dir.join("audio_parts"),
+            connections: job_arc.connections,
+            retries: job_arc.retries,
+            limiter: job_arc.limiter.clone(),
+            clip: job_arc.clip,
+            initial_playlist: None,
+        });
+        let _ = run_single(shared, a_job, Arc::new(Progress::default()), cancel).await?;
+        if std::fs::metadata(&a_out).map(|m| m.len() > 0).unwrap_or(false) {
+            audio_output = Some(a_out);
+        }
+    }
+    Ok(HlsOutcome { first_at, container, audio_output, temp_dir })
 }

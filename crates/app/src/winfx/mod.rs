@@ -13,13 +13,14 @@ mod kbd_sync;
 mod opacity;
 mod placement;
 mod redraw;
+pub(crate) mod registry;
 mod shortcuts;
 mod taskbar;
 #[cfg(test)]
 mod tests;
 
 pub(crate) use dialogs::{file_box, is_own_window_front, msg_box, on_top_of};
-pub(crate) use drag::drag_file_out;
+pub(crate) use drag::{drag_file_out, drag_paths_out};
 #[cfg(windows)]
 pub(crate) use opacity::hwnd;
 pub(crate) use opacity::set_opacity;

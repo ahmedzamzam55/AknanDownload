@@ -424,5 +424,17 @@
  "Program": "Programa",
  "Sound": "Som",
  "All files": "Todos os arquivos",
- "Burning subtitles into the video": "Gravando as legendas no vídeo"
+ "Burning subtitles into the video": "Gravando as legendas no vídeo",
+ "auto": "automática",
+ "Choose quality and subtitles below": "Escolha a qualidade e as legendas abaixo",
+ "Subtitle file": "Arquivo de legenda",
+ "Subtitles everywhere: download videos with matching subtitles (separate SRT/VTT or burned in) or grab all available subtitle tracks in one click, with automatic retry on temporary site rate limits.": "Legendas em todo lugar: baixe vídeos com legendas correspondentes (SRT/VTT separado ou fixado) ou todas as faixas disponíveis com um clique, com nova tentativa automática em limites temporários.",
+ "YouTube Kids and faster qualities: Kids videos download smoothly now, and video quality options appear significantly faster across supported sites.": "YouTube Kids e qualidades mais rápidas: vídeos infantis agora são baixados normalmente e as opções de qualidade aparecem muito mais rápido.",
+ "Playlists upgraded: see per-video and total selected sizes, resize the video title column, number tracks oldest-first, and automatically skip videos you already downloaded.": "Playlists aprimoradas: veja o tamanho por vídeo e o total selecionado, redimensione a coluna do título, numere do mais antigo ao mais novo e pule vídeos já baixados.",
+ "Safer Add Download workflow: edit the final file name right inside Download File Info, resolve existing file conflicts inline (safe replace, auto-number, or rename), and keep pre-downloaded bytes safely in temporary files until you press Start.": "Fluxo de download mais seguro: edite o nome do arquivo direto na janela, resolva conflitos no local (substituição segura, numeração ou renomeação) e mantenha dados pré-baixados em arquivos temporários até clicar em Iniciar.",
+ "Safe replacement & cleaner windows: replacing an existing file keeps the old copy safe until the new one finishes 100%, and blank/transparent window glitches and post-cancel stalls are resolved.": "Substituição segura e janelas estáveis: ao substituir, o arquivo antigo permanece intacto até o novo concluir 100 %, e falhas de janelas em branco/transparentes e travamentos ao cancelar foram corrigidos.",
+ "Stronger Site Grabber & cleaner queues: discovers more hidden HTML/CSS/JSON links (plus a browser right-click guide for dynamic JS pages), while queue views show only unfinished items.": "Capturador mais forte e filas limpas: encontra mais links ocultos em HTML/CSS/JSON (com guia de clique direito para páginas JS dinâmicas), e as filas mostram apenas itens inacabados.",
+ "Drag & Move: drag completed files or folders straight from Aknan Download into Windows Explorer to move on the same drive or copy across drives just like Explorer.": "Arrastar e mover: arraste arquivos ou pastas concluídos direto para o Windows Explorer para mover no mesmo disco ou copiar entre discos.",
+ "Fewer antivirus false positives & verified builds: no background Windows CLI tools are spawned during runtime or setup, and every release includes SHA256SUMS.txt checksums.": "Menos falsos positivos de antivírus e builds verificados: nem o app nem o instalador executam ferramentas CLI em segundo plano, e cada versão traz SHA256SUMS.txt.",
+ "HLS & .ts video overhaul: handles UTF-8 BOM playlists, spoofed headers before sync bytes, separate audio tracks, fMP4 containers, inline keys, and reliable MP4 remuxing.": "Reforma completa de vídeos HLS e .ts: lida com BOM UTF-8, remove cabeçalhos falsos antes do sync TS, áudio separado, fMP4, chaves inline e conversão confiável para MP4."
 }

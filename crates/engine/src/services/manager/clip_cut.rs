@@ -69,8 +69,9 @@ pub(super) async fn cut_source(
             retries: work.retries,
             limiter,
             clip: Some((c.start, c.end)),
+            initial_playlist: None,
         };
-        let first_at = hls::run(shared.clone(), job, progress.clone(), cancel.clone()).await?;
+        let first_at = hls::run(shared.clone(), job, progress.clone(), cancel.clone()).await?.first_at;
         progress.assembling.store(true, Ordering::Relaxed);
         progress.set_step(Some(Step::Cut));
         (vec![work.joined.to_string_lossy().into_owned()], (c.start - first_at).max(0.0))
@@ -112,6 +113,7 @@ pub(super) async fn cut_source(
     progress.set_step(None);
     if hls && result.is_ok() {
         let _ = std::fs::remove_file(&work.joined);
+        let _ = std::fs::remove_dir_all(&work.parts);
     }
     result
 }

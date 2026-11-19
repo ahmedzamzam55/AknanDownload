@@ -26,6 +26,8 @@ fn row(it: &Item) -> LinkRow {
         rtl: crate::i18n::rtl_text(&it.name),
         kind: it.kind.into(),
         ext: ext.trim().into(),
+        size: SharedString::new(),
+        done: false,
         text: it.gone.clone().unwrap_or_else(|| it.text.clone()).into(),
         url: it.url.clone().into(),
     }
@@ -66,7 +68,6 @@ pub(super) fn reset(ui: &Ui, d: &GrabberDialog, links_mode: bool) {
     g.shown.clear();
     g.exploring = false;
     g.progress = None;
-    g.headers = RequestHeaders::default();
     g.incoming = Arc::new(Mutex::new(Vec::new()));
     if let Some(c) = g.asking_cancel.take() {
         c.cancel();
@@ -74,6 +75,7 @@ pub(super) fn reset(ui: &Ui, d: &GrabberDialog, links_mode: bool) {
     g.answers = Default::default();
     g.asking = Default::default();
     drop(g);
+    d.set_spa_hint(false);
     let s = ui.ctx.mgr.settings();
     d.set_links_mode(links_mode);
     d.set_exploring(false);

@@ -50,6 +50,7 @@ WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes
+AppMutex=AknanDownloadRunning
 RestartApplications=no
 
 ; the language of the setup is also the language of the program: asked
@@ -162,10 +163,6 @@ Filename: "{app}\{#MyAppExe}"; Description: "{cm:RunNow}"; Flags: nowait postins
 ; after an automatic update: start the new version again
 Filename: "{app}\{#MyAppExe}"; Flags: nowait; Check: IsAutoUpdate
 
-
-[UninstallRun]
-Filename: "{cmd}"; Parameters: "/C taskkill /IM {#MyAppExe} /F"; Flags: runhidden; RunOnceId: "StopAknan"
-Filename: "{cmd}"; Parameters: "/C taskkill /IM aknan-host-* /F"; Flags: runhidden; RunOnceId: "StopAknanHost"
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\extension"

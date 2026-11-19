@@ -17,6 +17,7 @@ use tokio::runtime::Handle;
 use tokio_util::sync::CancellationToken;
 
 mod add;
+mod atomic_swap;
 mod cleanup;
 mod clip_cut;
 mod clip_job;
@@ -34,11 +35,13 @@ mod remove;
 mod resolve;
 mod retarget;
 mod run_dash;
+mod run_dash_stream;
 mod run_ftp;
 mod run_http;
 mod run_torrent;
 mod runner;
 mod scheduler;
+mod sub_retry;
 mod tick;
 mod torrent_ops;
 mod views;
@@ -61,6 +64,8 @@ pub(super) struct Entry {
     pub(super) progress: Arc<Progress>,
     /// `Some` while a task is working on this download
     pub(super) task: Option<CancellationToken>,
+    /// wakes `finish_file` when an early pre-download is confirmed by the user
+    pub(super) release: Arc<tokio::sync::Notify>,
     pub(super) speed: SpeedMeter,
     /// bytes counted for the download quota so far
     pub(super) quota_prev: u64,

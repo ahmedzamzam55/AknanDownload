@@ -170,11 +170,14 @@ fn handle_api(ui: &Ui, event: api::ApiEvent) {
                 audio_url: req.audio_url,
                 source_page: req.source_page,
                 source_key: req.source_key,
+                subtitle: req.subtitle,
+                sub_convert: req.sub_convert,
+                sub_body: req.sub_body,
             };
             let s = ui.ctx.mgr.settings();
             if req.direct || (!s.show_start_dialog && ui.ctx.mgr.find_url(&req.url).is_none()) {
                 // straight to the list, without hiding behind the "Download File Info" window
-                let is_sub_file = req.sub_convert.is_some();
+                let is_sub_file = extra.sub_convert.is_some();
                 let id = ui.ctx.mgr.add(NewDownload {
                     url: req.url,
                     file_name: req.file_name,
@@ -183,9 +186,9 @@ fn handle_api(ui: &Ui, event: api::ApiEvent) {
                     source_page: extra.source_page,
                     source_key: extra.source_key,
                     group: req.group,
-                    subtitle: req.subtitle,
-                    sub_convert: req.sub_convert,
-                    sub_body: req.sub_body,
+                    subtitle: extra.subtitle,
+                    sub_convert: extra.sub_convert,
+                    sub_body: extra.sub_body,
                     start: true,
                     ..Default::default()
                 });

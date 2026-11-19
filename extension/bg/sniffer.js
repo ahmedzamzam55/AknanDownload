@@ -55,51 +55,74 @@ async function addSubTrack(tabId, track) {
   const key = `subs_${tabId}`;
   const list = (await chrome.storage.session.get(key))[key] || [];
   const norm = streamPathKey(track.url);
-  if (list.some((s) => s.url === track.url || (s.lang === track.lang && streamPathKey(s.url) === norm))) return;
+  if (list.some((s) => s.url === track.url || (s.lang === track.lang && !!s.auto === !!track.auto && streamPathKey(s.url) === norm))) return;
   const next = [...list, track];
   if (next.length > 40) next.shift();
   await chrome.storage.session.set({ [key]: next });
   pushToTab(tabId);
 }
 
+const activeHlsHosts = new Map();
+
+function markHlsHost(tabId, url) {
+  try {
+    const h = new URL(url).hostname.toLowerCase();
+    let set = activeHlsHosts.get(tabId);
+    if (!set) activeHlsHosts.set(tabId, (set = new Set()));
+    set.add(h);
+  } catch {}
+}
+
+function hasHlsHost(tabId, url) {
+  try {
+    const set = activeHlsHosts.get(tabId);
+    return !!(set && set.has(new URL(url).hostname.toLowerCase()));
+  } catch {
+    return false;
+  }
+}
+
 function onMediaHeadersReceived(d) {
-  if (d.tabId < 0 || d.statusCode < 200 || d.statusCode >= 300) return;
+  if (d.tabId < 0 || ((d.statusCode < 200 || d.statusCode >= 300) && d.statusCode !== 304)) return;
   const url = d.url;
   if (!/^https?:/i.test(url)) return;
   if (/googlevideo\.com/i.test(url)) return;
   if (isTelegramStream(url) || isAdMediaUrl(url)) return;
   const h = headerMap(d.responseHeaders);
   const type = (h["content-type"] || "").toLowerCase();
-  const subTrack = guessSubTrack(url, type);
-  if (subTrack) {
-    addSubTrack(d.tabId, { ...subTrack, frameId: d.frameId || 0, frameOrigin: originOf(d.documentUrl || d.initiator || ""), seenAt: Date.now() });
-    return;
-  }
-  const isHls = HLS_TYPE.test(type) || /\.m3u8(\?|$)/i.test(url) || DISGUISED_HLS.test(url);
-  const isDash = DASH_TYPE.test(type) || /\.mpd(\?|$)/i.test(url);
-  const isMedia = MEDIA_TYPE.test(type) && !type.includes("mp2t");
-  if (!isHls && !isDash && !isMedia) return;
   const reqHeaders = captureRequestHeaders(d);
   const frameId = d.frameId || 0;
   const frameOrigin = originOf(d.documentUrl || d.initiator || "");
   const seenAt = Date.now();
-  if (isDash) {
-    addMedia(d.tabId, { url, type: "DASH stream", size: 0, ext: "mp4", dash: true, reqHeaders, frameId, frameOrigin, seenAt });
+  const subTrack = guessSubTrack(url, type);
+  if (subTrack) {
+    addSubTrack(d.tabId, { ...subTrack, reqHeaders, frameId, frameOrigin, seenAt });
     return;
   }
-  if (/[?&](range|bytestart)=/i.test(url)) return;
-
+  const isHls = HLS_TYPE.test(type) || /\.m3u8(\?|$)/i.test(url) || DISGUISED_HLS.test(url);
+  const isDash = DASH_TYPE.test(type) || /\.mpd(\?|$)/i.test(url);
+  const isTs = type.includes("mp2t") || /\.ts(\?|$)/i.test(url);
   let size = 0;
   const cr = /\/(\d+)\s*$/.exec(h["content-range"] || "");
   if (cr) size = Number(cr[1]);
   else if (h["content-length"]) size = Number(h["content-length"]);
+  const isStandaloneTs = isTs && !isHls && size >= 5 * 1024 * 1024 && !hasHlsHost(d.tabId, url);
+  const isMedia = (MEDIA_TYPE.test(type) && !type.includes("mp2t")) || isStandaloneTs;
+  if (!isHls && !isDash && !isMedia) return;
+  if (isHls) markHlsHost(d.tabId, url);
+  if (isDash) {
+    addMedia(d.tabId, { url, type: "DASH stream", size: 0, ext: "mp4", dash: true, reqHeaders, frameId, frameOrigin, seenAt });
+    sniffDashSubs(d.tabId, url, reqHeaders).catch(() => {});
+    return;
+  }
+  if (/[?&](range|bytestart)=/i.test(url)) return;
   if (isMedia && size > 0 && size < 300 * 1024) return;
 
   addMedia(d.tabId, {
     url,
-    type: isHls ? "HLS stream" : type.split(";")[0],
+    type: isHls ? "HLS stream" : isStandaloneTs ? "video/mp2t" : type.split(";")[0],
     size,
-    ext: isHls ? "ts" : (type.split("/")[1] || "mp4").split(";")[0].replace("x-matroska", "mkv").replace("mpeg", "mp3"),
+    ext: isHls || isStandaloneTs ? "ts" : (type.split("/")[1] || "mp4").split(";")[0].replace("x-matroska", "mkv").replace("mpeg", "mp3"),
     reqHeaders,
     frameId,
     frameOrigin,

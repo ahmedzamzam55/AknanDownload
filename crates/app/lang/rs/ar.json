@@ -423,5 +423,17 @@
  "Program": "برنامج",
  "Sound": "ملف صوتي",
  "All files": "كل الملفات",
- "Burning subtitles into the video": "دمج الترجمة داخل الفيديو"
+ "Burning subtitles into the video": "دمج الترجمة داخل الفيديو",
+ "auto": "تلقائية",
+ "Choose quality and subtitles below": "اختر الجودة والترجمة من الأسفل",
+ "Subtitle file": "ملف ترجمة",
+ "Subtitles everywhere: download videos with matching subtitles (separate SRT/VTT or burned in) or grab all available subtitle tracks in one click, with automatic retry on temporary site rate limits.": "الترجمات في كل مكان: نزّل أي فيديو مع ترجمته (كملف SRT/VTT منفصل أو مدمجة في الصورة) أو حمّل كل الترجمات المتاحة بضغطة واحدة مع إعادة المحاولة تلقائياً عند التقييد المؤقت.",
+ "YouTube Kids and faster qualities: Kids videos download smoothly now, and video quality options appear significantly faster across supported sites.": "فيديوهات الأطفال وظهور الجودات أسرع: أصبحت فيديوهات YouTube Kids والمحتوى المخصص للأطفال تتحمل بسلاسة، وتظهر خيارات الجودات بسرعة أكبر بكثير.",
+ "Playlists upgraded: see per-video and total selected sizes, resize the video title column, number tracks oldest-first, and automatically skip videos you already downloaded.": "ترقية البلاي ليست: عرض حجم كل فيديو والحجم الكلي للمختار، وإمكانية تغيير عرض عمود الاسم، وترقيم «الأقدم أولاً»، وتخطي الفيديوهات المحملة مسبقاً تلقائياً.",
+ "Safer Add Download workflow: edit the final file name right inside Download File Info, resolve existing file conflicts inline (safe replace, auto-number, or rename), and keep pre-downloaded bytes safely in temporary files until you press Start.": "تحسين نافذة إضافة التحميل: إمكانية تعديل اسم الملف مباشرة داخل النافذة وحل تعارض الأسماء موضعياً (استبدال آمن أو ترقيم أو تغيير الاسم)، مع إبقاء التحميل المسبق في ملف مؤقت .sgpart حتى تضغط بدء التحميل.",
+ "Safe replacement & cleaner windows: replacing an existing file keeps the old copy safe until the new one finishes 100%, and blank/transparent window glitches and post-cancel stalls are resolved.": "استبدال آمن ونوافذ مستقرة: عند الاستبدال يبقى الملف القديم سالماً حتى يكتمل الجديد 100%، مع حل مشكلة النوافذ الفارغة أو الشفافة والتهنيج بعد الإلغاء.",
+ "Stronger Site Grabber & cleaner queues: discovers more hidden HTML/CSS/JSON links (plus a browser right-click guide for dynamic JS pages), while queue views show only unfinished items.": "جامع ملفات أقوى وقوائم انتظار أنظف: يكتشف روابط HTML/CSS/JSON أكثر (مع إرشاد لكليك يمين بالمتصفح للصفحات الديناميكية)، وقائمة الانتظار تعرض الملفات التي لم تكتمل بعد فقط.",
+ "Drag & Move: drag completed files or folders straight from Aknan Download into Windows Explorer to move on the same drive or copy across drives just like Explorer.": "اسحب وانقل: اسحب الملفات أو المجلدات المكتملة من البرنامج مباشرة إلى مستكشف ويندوز لتُنقَل على نفس الدرايف أو تُنسخ بين الدرايفات تماماً مثل الويندوز.",
+ "Fewer antivirus false positives & verified builds: no background Windows CLI tools are spawned during runtime or setup, and every release includes SHA256SUMS.txt checksums.": "تحذيرات أقل من برامج الحماية ونسخ موثقة: البرنامج والـ setup لا يشغلان أي أدوات ويندوز في الخلفية، ومع كل إصدار ملف بصمات SHA256SUMS.txt للتحقق من الأصالة.",
+ "HLS & .ts video overhaul: handles UTF-8 BOM playlists, spoofed headers before sync bytes, separate audio tracks, fMP4 containers, inline keys, and reliable MP4 remuxing.": "إصلاح شامل لتحميل فيديوهات .ts وHLS: دعم قوائم UTF-8 BOM، وتنظيف الشرائح المموهة قبل بايتات المزامنة، ومسارات الصوت المنفصلة، وحاويات fMP4، والمفاتيح المضمنة، وإعادة الدمج الموثوقة إلى MP4."
 }

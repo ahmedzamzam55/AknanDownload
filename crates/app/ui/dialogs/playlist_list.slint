@@ -6,6 +6,7 @@ import { LinkRow, Theme, HeaderCell, Cell, Glyph, HRow } from "../common.slint";
 export component PlaylistEntriesBox inherits Rectangle {
     in property <[LinkRow]> entries;
     in property <bool> busy;
+    in-out property <length> name-width: 400px;
     callback toggle(int);
     vertical-stretch: 1;
     background: Theme.panel;
@@ -23,15 +24,26 @@ export component PlaylistEntriesBox inherits Rectangle {
                 }
                 HeaderCell {
                     text: "#";
-                    width: 40px;
+                    width: 44px;
                 }
                 HeaderCell {
                     text: @tr("Video");
-                    horizontal-stretch: 1;
+                    width: root.name-width;
+                    adjustable: true;
+                    resized(w) => {
+                        root.name-width = clamp(w, 160px, 560px);
+                    }
+                }
+                HeaderCell {
+                    text: @tr("Size");
+                    width: 88px;
                 }
                 HeaderCell {
                     text: @tr("Length");
-                    width: 80px;
+                    width: 76px;
+                }
+                Rectangle {
+                    horizontal-stretch: 1;
                 }
             }
         }
@@ -39,7 +51,7 @@ export component PlaylistEntriesBox inherits Rectangle {
             vertical-stretch: 1;
             for e[i] in root.entries: Rectangle {
                 height: 24px;
-                background: ea.has-hover ? Theme.hover : transparent;
+                background: ea.has-hover ? Theme.hover : (e.done ? Theme.window : transparent);
                 ea := TouchArea {
                     clicked => {
                         root.toggle(i);
@@ -50,7 +62,7 @@ export component PlaylistEntriesBox inherits Rectangle {
                     padding-right: Theme.rtl ? (8px) : (0px);
                     spacing: 4px;
                     Rectangle {
-                        width: 26px;
+                        width: 22px;
                         Rectangle {
                             y: (parent.height - 14px) / 2;
                             width: 14px;
@@ -70,20 +82,30 @@ export component PlaylistEntriesBox inherits Rectangle {
                         }
                     }
                     Cell {
-                        text: e.text;
-                        width: 36px;
-                        color: Theme.muted;
+                        text: e.done ? "✓ " + e.text : e.text;
+                        width: 40px;
+                        color: e.done ? Theme.ok : Theme.muted;
                     }
                     Cell {
                         text: e.name;
+                        width: root.name-width - 4px;
+                        color: e.done ? Theme.muted : Theme.text;
                         horizontal-alignment: e.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
-                        horizontal-stretch: 1;
+                    }
+                    Cell {
+                        text: e.size;
+                        width: 84px;
+                        color: Theme.muted;
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.left : TextHorizontalAlignment.right;
                     }
                     Cell {
                         text: e.ext;
-                        width: 76px;
+                        width: 72px;
                         color: Theme.muted;
                         horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.left : TextHorizontalAlignment.right;
+                    }
+                    Rectangle {
+                        horizontal-stretch: 1;
                     }
                 }
             }

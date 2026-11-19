@@ -48,7 +48,8 @@ const resolving = new Map();
 
 async function askApp(page, referer, startApp = false, reqHeaders = null) {
   const { port } = await getOpts();
-  const pairs = reqHeaders && reqHeaders.length ? reqHeaders : (browserRequest(page) || []).map((h) => [h.name, h.value]);
+  const rawPairs = reqHeaders && reqHeaders.length ? reqHeaders : (browserRequest(page) || []).map((h) => [h.name, h.value]);
+  const pairs = isYoutube(page) ? rawPairs.filter(([k]) => !/^(user-agent|sec-fetch-)/i.test(k)) : rawPairs;
   const sentReferer = findHeader(pairs, "referer");
   const effRef = sentReferer || referer || null;
   const c1 = await cookieList(effRef || page);
@@ -60,16 +61,17 @@ async function askApp(page, referer, startApp = false, reqHeaders = null) {
       cookies = [...c1, ...c2.filter((c) => !seen.has(`${c.domain}|${c.name}|${c.path}`))];
     }
   }
-  const r = await fetchWithTimeout(
-    apiUrl(port, "/resolve"),
-    {
-      startApp,
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-SwiftGet": "1" },
-      body: JSON.stringify({ url: page, cookieList: cookies, referer: effRef, headers: pairs }),
-    },
-    90000
-  );
+  const payload = JSON.stringify({ url: page, cookieList: cookies, referer: effRef, headers: pairs });
+  let r;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    r = await fetchWithTimeout(
+      apiUrl(port, "/resolve"),
+      { startApp, method: "POST", headers: { "Content-Type": "application/json", "X-SwiftGet": "1" }, body: payload },
+      90000
+    );
+    if (r.status !== 429 || attempt === 2) break;
+    await new Promise((res) => setTimeout(res, 1200 * (attempt + 1)));
+  }
   const data = await r.json();
   return data.ok
     ? { resolved: { title: data.title, site: data.site, options: data.options, subtitles: data.subtitles || [] } }
@@ -87,21 +89,26 @@ async function patchYt(tabId, videoId, change) {
 
 async function resolveYoutube(tabId, pageUrl) {
   const videoId = videoIdOf(pageUrl);
-  if (!videoId || !/(^|\.)youtube\.com$/i.test(new URL(pageUrl).hostname)) return;
+  if (!videoId || !isYoutube(pageUrl)) return;
+  const host = /youtubekids\.com/i.test(pageUrl) ? "www.youtubekids.com" : "www.youtube.com";
   const key = `yt_${tabId}`;
   const state = (await chrome.storage.session.get(key))[key];
   if (state && state.videoId === videoId && (state.resolved || state.resolveError)) return;
   if (resolving.get(tabId) === videoId) return;
   resolving.set(tabId, videoId);
-  await patchYt(tabId, videoId, { resolving: true, resolveError: null });
-  fetchYoutubeSubs(videoId).then(async (subs) => {
-    if (!subs.length) return;
+  await patchYt(tabId, videoId, { resolving: true, resolveError: null, host });
+  fetchYoutubePlayer(videoId, pageUrl).then(async (p) => {
+    const patch = {};
+    if (p && p.subs && p.subs.length) patch.subs = p.subs;
+    if (p && p.quickOptions && p.quickOptions.length) patch.quickOptions = p.quickOptions;
+    if (p && p.title) patch.title = p.title;
+    if (!Object.keys(patch).length) return;
     const now = await chrome.tabs.get(tabId).catch(() => null);
-    if (now && videoIdOf(now.url) === videoId) await patchYt(tabId, videoId, { subs });
+    if (now && videoIdOf(now.url) === videoId) await patchYt(tabId, videoId, patch);
   });
   let change;
   try {
-    change = await askApp(`https://www.youtube.com/watch?v=${videoId}`);
+    change = await askApp(`https://${host}/watch?v=${videoId}`);
   } catch (e) {
     change = { resolveError: (await appAlive()) ? String((e && e.message) || e) : aknanI18n.t("Aknan Download is not running") };
   } finally {

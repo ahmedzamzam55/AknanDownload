@@ -75,6 +75,7 @@ fn yt_dlp_settings_files_and_options_are_never_used() {
 #[test]
 fn cookies_are_kept_per_site() {
     assert_eq!(site_of("https://www.youtube.com/watch?v=x"), "youtube.com");
+    assert_eq!(site_of("https://www.youtubekids.com/watch?v=x"), "youtube.com");
     assert_eq!(site_of("https://youtu.be/x"), "youtube.com");
     assert_eq!(site_of("https://m.youtube.com/watch?v=x"), "youtube.com");
     assert_eq!(site_of("https://www.bbc.co.uk/x"), "bbc.co.uk");

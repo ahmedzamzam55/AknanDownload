@@ -5,15 +5,17 @@ use crate::filename;
 use crate::model::RequestHeaders;
 use reqwest::Client;
 use std::collections::{HashSet, VecDeque};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use tokio_util::sync::CancellationToken;
 
+mod extract_extra;
 mod fetch;
 mod html;
 #[cfg(test)]
 mod tests;
 
+pub use extract_extra::looks_dynamic_spa;
 pub use fetch::{check_link, Checked};
 pub use html::{extract_links, is_page_ext, looks_like_download, template_exts};
 use fetch::{fetch_page, Fetched};
@@ -58,6 +60,7 @@ pub struct GrabProgress {
     pub pages_done: AtomicUsize,
     pub pages_queued: AtomicUsize,
     pub files: AtomicUsize,
+    pub dynamic_spa: AtomicBool,
     pub current: Mutex<String>,
 }
 
@@ -117,7 +120,12 @@ pub async fn crawl(
             let Ok((url, level, foreign, only_ask, page)) = res else { continue };
             progress.pages_done.fetch_add(1, Ordering::Relaxed);
             let (page_url, html) = match page {
-                Some(Fetched::Page(u, h)) if !only_ask => (u, h),
+                Some(Fetched::Page(u, h)) if !only_ask => {
+                    if level == 0 && looks_dynamic_spa(&h) {
+                        progress.dynamic_spa.store(true, Ordering::Relaxed);
+                    }
+                    (u, h)
+                }
                 Some(Fetched::File { url: file_url, name }) => {
                     let ext = filename::extension(&name);
                     let new = seen_files.insert(url.clone()) | seen_files.insert(file_url.clone());

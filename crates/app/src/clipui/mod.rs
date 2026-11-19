@@ -20,6 +20,7 @@ pub(super) struct State {
     pub(super) page: String,
     pub(super) title: String,
     pub(super) options: Vec<YtOption>,
+    pub(super) subtitles: Vec<ytdlp::YtSubtitle>,
     pub(super) preview: Option<CancellationToken>,
 }
 

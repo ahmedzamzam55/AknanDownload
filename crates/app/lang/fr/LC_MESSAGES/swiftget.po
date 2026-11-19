@@ -4,6 +4,9 @@ msgstr ""
 "Language: fr\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid "Aknan Download"
+msgstr "Aknan Download"
+
 msgid "Download a file from an address you type or paste (Ctrl+N)."
 msgstr "Télécharger un fichier depuis une adresse saisie ou collée (Ctrl+N)."
 
@@ -49,419 +52,44 @@ msgstr "Télécharger toutes les vidéos d'une playlist, ou une partie."
 msgid "Download a .torrent file or a magnet link."
 msgstr "Télécharger un fichier .torrent ou un lien magnet."
 
-msgid "Move to queue"
-msgstr "Déplacer vers la file"
-
-msgid "Delete from queue"
-msgstr "Retirer de la file"
-
-msgid "{} downloads selected"
-msgstr "{} téléchargements sélectionnés"
-
-msgid "Open"
-msgstr "Ouvrir"
-
-msgid "Show download progress"
-msgstr "Afficher la progression"
-
-msgid "Open with…"
-msgstr "Ouvrir avec…"
-
-msgid "Play while downloading"
-msgstr "Lire pendant le téléchargement"
-
-msgid "Download a part of it…"
-msgstr "Télécharger une partie…"
-
-msgid "Open folder"
-msgstr "Ouvrir le dossier"
-
-msgid "Resume download"
-msgstr "Reprendre le téléchargement"
-
-msgid "Stop download"
-msgstr "Arrêter le téléchargement"
-
-msgid "Redownload"
-msgstr "Retélécharger"
-
-msgid "Refresh download address…"
-msgstr "Actualiser l'adresse de téléchargement…"
-
-msgid "Move / Rename…"
-msgstr "Déplacer / Renommer…"
-
-msgid "Copy address"
-msgstr "Copier l'adresse"
-
-msgid "Check file (SHA-256)"
-msgstr "Vérifier le fichier (SHA-256)"
-
-msgid "Properties"
-msgstr "Propriétés"
-
-msgid "Remove"
-msgstr "Supprimer"
-
-msgid "Start queue"
-msgstr "Démarrer la file"
-
-msgid "Stop queue"
-msgstr "Arrêter la file"
-
-msgid "Edit queue / schedule…"
-msgstr "Modifier la file / la planification…"
-
-msgid "New queue…"
-msgstr "Nouvelle file…"
-
-msgid "Delete queue"
-msgstr "Supprimer la file"
-
-msgid "Add category…"
-msgstr "Ajouter une catégorie…"
-
-msgid "Delete category"
-msgstr "Supprimer la catégorie"
-
-msgid "Properties…"
-msgstr "Propriétés…"
-
-msgid "Aknan Download"
-msgstr "Aknan Download"
-
-msgid "File Name"
-msgstr "Nom du fichier"
-
-msgid "Q"
-msgstr "F"
-
-msgid "Size"
-msgstr "Taille"
-
-msgid "Status"
-msgstr "État"
-
-msgid "Time left"
-msgstr "Temps restant"
-
-msgid "Transfer rate"
-msgstr "Débit"
-
-msgid "Last Try Date"
-msgstr "Dernier essai"
-
-msgid "Description"
-msgstr "Description"
-
-msgid "Date Added"
-msgstr "Date d'ajout"
-
-msgid "Save To"
-msgstr "Enregistrer dans"
-
-msgid "Referer"
-msgstr "Référent"
-
-msgid "Parent Web Page"
-msgstr "Page web d'origine"
-
-msgid "Tasks"
-msgstr "Tâches"
-
-msgid "Add new download…"
-msgstr "Ajouter un téléchargement…"
-
-msgid "Add batch download…"
-msgstr "Ajouter un téléchargement groupé…"
-
-msgid "Add batch download from clipboard"
-msgstr "Ajouter un téléchargement groupé depuis le presse-papiers"
-
-msgid "Run site grabber…"
-msgstr "Lancer l'aspirateur de site…"
-
-msgid "Download a playlist…"
-msgstr "Télécharger une playlist…"
-
-msgid "Download a part of a video…"
-msgstr "Télécharger une partie d'une vidéo…"
-
-msgid "Add a torrent / magnet link…"
-msgstr "Ajouter un torrent / lien magnet…"
-
-msgid "Export"
-msgstr "Exporter"
-
-msgid "To download list file (.ef2)…"
-msgstr "Vers un fichier de liste (.ef2)…"
-
-msgid "To text file…"
-msgstr "Vers un fichier texte…"
-
-msgid "Import"
-msgstr "Importer"
-
-msgid "From download list file (.ef2)…"
-msgstr "Depuis un fichier de liste (.ef2)…"
-
-msgid "From text file…"
-msgstr "Depuis un fichier texte…"
-
-msgid "Open download folder"
-msgstr "Ouvrir le dossier des téléchargements"
-
-msgid "Exit"
-msgstr "Quitter"
-
-msgid "File"
-msgstr "Fichier"
-
-msgid "Download now"
-msgstr "Télécharger maintenant"
-
-msgid "Select all   Ctrl+A"
-msgstr "Tout sélectionner   Ctrl+A"
-
-msgid "Downloads"
-msgstr "Téléchargements"
-
-msgid "Resume all"
-msgstr "Tout reprendre"
-
-msgid "Stop all"
-msgstr "Tout arrêter"
-
-msgid "Delete all completed"
-msgstr "Supprimer tous les terminés"
-
-msgid "Find…   Ctrl+F"
-msgstr "Rechercher…   Ctrl+F"
-
-msgid "Find next   F3"
-msgstr "Rechercher le suivant   F3"
-
-msgid "Speed Limiter"
-msgstr "Limiteur de vitesse"
-
-msgid "Turn on"
-msgstr "Activer"
-
-msgid "Turn off"
-msgstr "Désactiver"
-
-msgid "Settings…"
-msgstr "Paramètres…"
-
-msgid "When all downloads finish"
-msgstr "Quand tous les téléchargements sont terminés"
-
-msgid "Do nothing"
-msgstr "Ne rien faire"
-
-msgid "Shut down the computer"
-msgstr "Éteindre l'ordinateur"
-
-msgid "Sleep"
-msgstr "Mettre en veille"
-
-msgid "Hibernate"
-msgstr "Mettre en veille prolongée"
-
-msgid "Exit Aknan Download"
-msgstr "Quitter Aknan Download"
-
-msgid "Scheduler…"
-msgstr "Planificateur…"
-
-msgid "Options…"
-msgstr "Options…"
-
-msgid "View"
-msgstr "Affichage"
-
-msgid "Show categories"
-msgstr "Afficher les catégories"
-
-msgid "Arrange files"
-msgstr "Trier les fichiers"
-
-msgid "By order of addition"
-msgstr "Par ordre d'ajout"
-
-msgid "File name"
-msgstr "Nom du fichier"
-
-msgid "Last try date"
-msgstr "Dernier essai"
-
-msgid "Save to"
-msgstr "Enregistrer dans"
-
-msgid "Parent web page"
-msgstr "Page web d'origine"
-
-msgid "Toolbar"
-msgstr "Barre d'outils"
-
-msgid "Large buttons"
-msgstr "Grands boutons"
-
-msgid "Small buttons"
-msgstr "Petits boutons"
-
-msgid "Columns…"
-msgstr "Colonnes…"
-
-msgid "Language"
-msgstr "Langue"
-
-msgid "Theme"
-msgstr "Thème"
-
-msgid "Light"
-msgstr "Clair"
-
-msgid "Dark"
-msgstr "Sombre"
-
-msgid "Ocean blue"
-msgstr "Bleu océan"
-
-msgid "Midnight purple"
-msgstr "Violet nuit"
-
-msgid "Forest green"
-msgstr "Vert forêt"
-
-msgid "Black"
-msgstr "Noir"
-
-msgid "Sunset"
-msgstr "Coucher de soleil"
-
-msgid "Teal night"
-msgstr "Nuit turquoise"
-
-msgid "Rose"
-msgstr "Rose"
-
-msgid "3D"
-msgstr "3D"
-
-msgid "Aurora glass"
-msgstr "Verre aurore"
-
-msgid "Soft clay"
-msgstr "Argile douce"
-
-msgid "Cyber neon"
-msgstr "Néon cyber"
-
-msgid "Appearance…"
-msgstr "Apparence…"
-
-msgid "Help"
-msgstr "Aide"
-
-msgid "Add Aknan Download to my browser…"
-msgstr "Ajouter Aknan Download à mon navigateur…"
-
-msgid "Tip of the day…"
-msgstr "Astuce du jour…"
-
-msgid "Check for updates"
-msgstr "Rechercher des mises à jour"
-
-msgid "Check for updates (video downloader)"
-msgstr "Rechercher des mises à jour (téléchargeur vidéo)"
-
 msgid "About Aknan Download"
 msgstr "À propos d'Aknan Download"
 
-msgid "Add URL"
-msgstr "Ajouter URL"
+msgid "Version {}"
+msgstr "Version {}"
 
-msgid "Add Batch"
-msgstr "Ajout groupé"
+msgid "Developed by Aknan"
+msgstr "Développé par Aknan"
 
-msgid "Resume"
-msgstr "Reprendre"
+msgid "© Aknan – All rights reserved"
+msgstr "© Aknan – Tous droits réservés"
 
-msgid "Stop"
-msgstr "Arrêter"
+msgid "Official website / GitHub"
+msgstr "Site officiel / GitHub"
 
-msgid "Stop All"
-msgstr "Tout arrêter"
-
-msgid "Delete"
-msgstr "Supprimer"
-
-msgid "Delete Done"
-msgstr "Suppr. terminés"
-
-msgid "Options"
-msgstr "Options"
-
-msgid "Scheduler"
-msgstr "Planificateur"
-
-msgid "Limiter: On"
-msgstr "Limiteur : activé"
-
-msgid "Limiter: Off"
-msgstr "Limiteur : désactivé"
-
-msgid "Start Queue"
-msgstr "Démarrer la file"
-
-msgid "Stop Queue"
-msgstr "Arrêter la file"
-
-msgid "Grabber"
-msgstr "Aspirateur"
-
-msgid "Playlist"
-msgstr "Playlist"
-
-msgid "Torrent"
-msgstr "Torrent"
-
-msgid "Filter the list…"
-msgstr "Filtrer la liste…"
-
-msgid "Categories"
-msgstr "Catégories"
-
-msgid "All Downloads"
-msgstr "Tous les téléchargements"
-
-msgid "Unfinished"
-msgstr "Non terminés"
-
-msgid "Finished"
-msgstr "Terminés"
-
-msgid "Queues"
-msgstr "Files d'attente"
-
-msgid "{} (running)"
-msgstr "{} (en cours)"
-
-msgid "New queue"
-msgstr "Nouvelle file"
-
-msgid "Edit"
-msgstr "Modifier"
-
-msgid "Nothing matches “{}”."
-msgstr "Rien ne correspond à « {} »."
-
-msgid "No downloads here.\nClick “Add URL”, copy a link, or download something in your browser."
-msgstr "Aucun téléchargement ici.\nCliquez sur « Ajouter URL », copiez un lien ou téléchargez quelque chose dans votre navigateur."
+msgid "Close"
+msgstr "Fermer"
 
 msgid "Download File Info"
 msgstr "Informations sur le fichier"
+
+msgid "No subtitles"
+msgstr "Sans sous-titres"
+
+msgid "Separate file (.srt)"
+msgstr "Fichier séparé (.srt)"
+
+msgid "Separate file (.vtt)"
+msgstr "Fichier séparé (.vtt)"
+
+msgid "Burned into the video"
+msgstr "Incrustés dans la vidéo"
+
+msgid "Subtitles only (.srt)"
+msgstr "Sous-titres seuls (.srt)"
+
+msgid "Subtitles only (.vtt)"
+msgstr "Sous-titres seuls (.vtt)"
 
 msgid "URL"
 msgstr "URL"
@@ -475,11 +103,17 @@ msgstr "Vérifier"
 msgid "Category"
 msgstr "Catégorie"
 
-msgid "Save As"
-msgstr "Enregistrer sous"
+msgid "File name"
+msgstr "Nom du fichier"
+
+msgid "Save to"
+msgstr "Enregistrer dans"
 
 msgid "Remember this path for \"{}\" category"
 msgstr "Mémoriser ce chemin pour la catégorie \"{}\""
+
+msgid "Description"
+msgstr "Description"
 
 msgid "optional note"
 msgstr "note facultative"
@@ -520,6 +154,27 @@ msgstr "Démarrer le téléchargement"
 msgid "Cancel"
 msgstr "Annuler"
 
+msgid "A file named “{}” already exists in this folder. Replace keeps the old file safe until the new download completes."
+msgstr "Un fichier nommé « {} » existe déjà dans ce dossier. « Remplacer en sécurité » conserve l'ancien fichier jusqu'à la fin du nouveau téléchargement."
+
+msgid "Replace safely"
+msgstr "Remplacer sûrement"
+
+msgid "Save as “{}”"
+msgstr "Enregistrer sous « {} »"
+
+msgid "Change name"
+msgstr "Changer le nom"
+
+msgid "Looking up video qualities and subtitles…"
+msgstr "Recherche des qualités vidéo et des sous-titres…"
+
+msgid "Quality:"
+msgstr "Qualité :"
+
+msgid "Subtitles:"
+msgstr "Sous-titres :"
+
 msgid "Add batch download"
 msgstr "Téléchargement groupé"
 
@@ -528,6 +183,18 @@ msgstr "Liste de liens"
 
 msgid "Address with a pattern (*)"
 msgstr "Adresse avec un modèle (*)"
+
+msgid "Save all to"
+msgstr "Tout enregistrer dans"
+
+msgid "automatic (by file type)"
+msgstr "automatique (selon le type de fichier)"
+
+msgid "Start the queue now"
+msgstr "Démarrer la file maintenant"
+
+msgid "Add"
+msgstr "Ajouter"
 
 msgid "Paste the links, one per line. They download one after another in the queue you choose."
 msgstr "Collez les liens, un par ligne. Ils sont téléchargés l'un après l'autre dans la file choisie."
@@ -559,140 +226,29 @@ msgstr "Une largeur de 3 donne 001, 002 … 010."
 msgid "optional"
 msgstr "facultatif"
 
-msgid "Save all to"
-msgstr "Tout enregistrer dans"
+msgid "Add Aknan Download to your browser"
+msgstr "Ajouter Aknan Download à votre navigateur"
 
-msgid "automatic (by file type)"
-msgstr "automatique (selon le type de fichier)"
+msgid "Click your browser:"
+msgstr "Cliquez sur votre navigateur :"
 
-msgid "Start the queue now"
-msgstr "Démarrer la file maintenant"
+msgid "Almost done:"
+msgstr "Presque terminé :"
 
-msgid "Add"
-msgstr "Ajouter"
+msgid "Test the link"
+msgstr "Tester la liaison"
 
-msgid "Download status"
-msgstr "État du téléchargement"
+msgid "Repair the add-in"
+msgstr "Réparer le module"
 
-msgid "Options on completion"
-msgstr "Options à la fin"
+msgid "Copy folder path"
+msgstr "Copier le chemin du dossier"
 
-msgid "File size"
-msgstr "Taille du fichier"
+msgid "Open folder"
+msgstr "Ouvrir le dossier"
 
-msgid "Downloaded"
-msgstr "Téléchargé"
-
-msgid "Resume capability"
-msgstr "Reprise possible"
-
-msgid "Use speed limiter for this download"
-msgstr "Limiter la vitesse de ce téléchargement"
-
-msgid "Maximum download speed (KB/s)"
-msgstr "Vitesse maximale (Ko/s)"
-
-msgid "{} MB/s"
-msgstr "{} Mo/s"
-
-msgid "{} KB/s"
-msgstr "{} Ko/s"
-
-msgid "Changes apply right away, even while downloading."
-msgstr "Les changements s'appliquent tout de suite, même pendant le téléchargement."
-
-msgid "When this download completes:"
-msgstr "Quand ce téléchargement est terminé :"
-
-msgid "Do nothing (keep the computer on)"
-msgstr "Ne rien faire (laisser l'ordinateur allumé)"
-
-msgid "Force programs to close when shutting down"
-msgstr "Forcer la fermeture des programmes à l'extinction"
-
-msgid "Show the \"Download complete\" window"
-msgstr "Afficher la fenêtre \"Téléchargement terminé\""
-
-msgid "You get 30 seconds to cancel before the computer shuts down, sleeps or hibernates."
-msgstr "Vous avez 30 secondes pour annuler avant que l'ordinateur s'éteigne ou se mette en veille."
-
-msgid "Files"
-msgstr "Fichiers"
-
-msgid "People"
-msgstr "Pairs"
-
-msgid "Trackers"
-msgstr "Trackers"
-
-msgid "Add tracker"
-msgstr "Ajouter un tracker"
-
-msgid "First and last pieces first"
-msgstr "Premiers et derniers morceaux d'abord"
-
-msgid "Check the files again"
-msgstr "Revérifier les fichiers"
-
-msgid "Copy magnet link"
-msgstr "Copier le lien magnet"
-
-msgid "<< Hide details"
-msgstr "<< Masquer les détails"
-
-msgid "Show details >>"
-msgstr "Afficher les détails >>"
-
-msgid "Next to the clock"
-msgstr "Près de l'horloge"
-
-msgid "Pause"
-msgstr "Pause"
-
-msgid "Close"
-msgstr "Fermer"
-
-msgid "Start positions and download progress by connections"
-msgstr "Positions de départ et progression par connexion"
-
-msgid "N."
-msgstr "N°"
-
-msgid "Info"
-msgstr "Infos"
-
-msgid "Drag me"
-msgstr "Glissez-moi"
-
-msgid "Download complete"
-msgstr "Téléchargement terminé"
-
-msgid "Address"
-msgstr "Adresse"
-
-msgid "Saved as"
-msgstr "Enregistré sous"
-
-msgid "Don't show this again"
-msgstr "Ne plus afficher"
-
-msgid "Columns"
-msgstr "Colonnes"
-
-msgid "Show these columns in the download list:"
-msgstr "Afficher ces colonnes dans la liste :"
-
-msgid "File Name (always shown)"
-msgstr "Nom du fichier (toujours affiché)"
-
-msgid "Q (queue number)"
-msgstr "F (numéro de file)"
-
-msgid "Reset"
-msgstr "Réinitialiser"
-
-msgid "OK"
-msgstr "OK"
+msgid "Not installed on this computer"
+msgstr "Non installé sur cet ordinateur"
 
 msgid "Add category"
 msgstr "Ajouter une catégorie"
@@ -727,6 +283,261 @@ msgstr "automatique (Téléchargements\\{})"
 msgid "Files with these extensions, or from these sites, are put into this category and saved to its folder."
 msgstr "Les fichiers avec ces extensions, ou venant de ces sites, vont dans cette catégorie et dans son dossier."
 
+msgid "OK"
+msgstr "OK"
+
+msgid "Download a part of a video"
+msgstr "Télécharger une partie d'une vidéo"
+
+msgid "Paste the address of the video (its page, or a link to the video or stream):"
+msgstr "Collez l'adresse de la vidéo (sa page, ou un lien vers la vidéo ou le flux) :"
+
+msgid "Looking…"
+msgstr "Recherche…"
+
+msgid "Get the video"
+msgstr "Récupérer la vidéo"
+
+msgid "From:"
+msgstr "De :"
+
+msgid "To:"
+msgstr "À :"
+
+msgid "Length:"
+msgstr "Durée :"
+
+msgid "Cut:"
+msgstr "Coupe :"
+
+msgid "Quick cut (recommended)"
+msgstr "Coupe rapide (recommandée)"
+
+msgid "Exact cut"
+msgstr "Coupe exacte"
+
+msgid "Quick cut"
+msgstr "Coupe rapide"
+
+msgid "Takes seconds and keeps the quality exactly as it is (nothing is made again). A video can only start on a whole picture, so the part may start a second or two before the time you chose."
+msgstr "Prend quelques secondes et garde la qualité telle quelle (rien n'est refait). Une vidéo ne peut commencer que sur une image complète : la partie peut donc commencer une ou deux secondes avant le moment choisi."
+
+msgid "Starts and ends on the very second you chose. The picture of the part is made again, so it takes longer (about as long as the part plays, or less) and works the processor. Sound alone is always cut exactly."
+msgstr "Commence et finit à la seconde exacte choisie. L'image de la partie est refaite : c'est plus long (environ la durée de la partie, ou moins) et cela sollicite le processeur. Le son seul est toujours coupé exactement."
+
+msgid "Preparing the preview…"
+msgstr "Préparation de l'aperçu…"
+
+msgid "Preview the part"
+msgstr "Aperçu de la partie"
+
+msgid "Download the part"
+msgstr "Télécharger la partie"
+
+msgid "Columns"
+msgstr "Colonnes"
+
+msgid "Show these columns in the download list:"
+msgstr "Afficher ces colonnes dans la liste :"
+
+msgid "File Name (always shown)"
+msgstr "Nom du fichier (toujours affiché)"
+
+msgid "Q (queue number)"
+msgstr "F (numéro de file)"
+
+msgid "Size"
+msgstr "Taille"
+
+msgid "Status"
+msgstr "État"
+
+msgid "Time left"
+msgstr "Temps restant"
+
+msgid "Transfer rate"
+msgstr "Débit"
+
+msgid "Last Try Date"
+msgstr "Dernier essai"
+
+msgid "Date Added"
+msgstr "Date d'ajout"
+
+msgid "Save To"
+msgstr "Enregistrer dans"
+
+msgid "Referer"
+msgstr "Référent"
+
+msgid "Parent Web Page"
+msgstr "Page web d'origine"
+
+msgid "Reset"
+msgstr "Réinitialiser"
+
+msgid "Download complete"
+msgstr "Téléchargement terminé"
+
+msgid "Address"
+msgstr "Adresse"
+
+msgid "File size"
+msgstr "Taille du fichier"
+
+msgid "Saved as"
+msgstr "Enregistré sous"
+
+msgid "Don't show this again"
+msgstr "Ne plus afficher"
+
+msgid "Open"
+msgstr "Ouvrir"
+
+msgid "Drag me"
+msgstr "Glissez-moi"
+
+msgid "Delete the downloaded files from the disk too (be careful)"
+msgstr "Supprimer aussi les fichiers téléchargés du disque (attention)"
+
+msgid "Don't show this question again"
+msgstr "Ne plus poser cette question"
+
+msgid "All downloads are finished."
+msgstr "Tous les téléchargements sont terminés."
+
+msgid "Aknan Download will {} in {} seconds."
+msgstr "Aknan Download va {} dans {} secondes."
+
+msgid "Now"
+msgstr "Maintenant"
+
+msgid "Stop"
+msgstr "Arrêter"
+
+msgid "Download status"
+msgstr "État du téléchargement"
+
+msgid "Speed Limiter"
+msgstr "Limiteur de vitesse"
+
+msgid "Options on completion"
+msgstr "Options à la fin"
+
+msgid "Torrent"
+msgstr "Torrent"
+
+msgid "Start positions and download progress by connections"
+msgstr "Positions de départ et progression par connexion"
+
+msgid "N."
+msgstr "N°"
+
+msgid "Downloaded"
+msgstr "Téléchargé"
+
+msgid "Info"
+msgstr "Infos"
+
+msgid "<< Hide details"
+msgstr "<< Masquer les détails"
+
+msgid "Show details >>"
+msgstr "Afficher les détails >>"
+
+msgid "Next to the clock"
+msgstr "Près de l'horloge"
+
+msgid "Pause"
+msgstr "Pause"
+
+msgid "Resume"
+msgstr "Reprendre"
+
+msgid "Use speed limiter for this download"
+msgstr "Limiter la vitesse de ce téléchargement"
+
+msgid "Maximum download speed (KB/s)"
+msgstr "Vitesse maximale (Ko/s)"
+
+msgid "{} MB/s"
+msgstr "{} Mo/s"
+
+msgid "{} KB/s"
+msgstr "{} Ko/s"
+
+msgid "Changes apply right away, even while downloading."
+msgstr "Les changements s'appliquent tout de suite, même pendant le téléchargement."
+
+msgid "When this download completes:"
+msgstr "Quand ce téléchargement est terminé :"
+
+msgid "Do nothing (keep the computer on)"
+msgstr "Ne rien faire (laisser l'ordinateur allumé)"
+
+msgid "Shut down the computer"
+msgstr "Éteindre l'ordinateur"
+
+msgid "Sleep"
+msgstr "Mettre en veille"
+
+msgid "Exit Aknan Download"
+msgstr "Quitter Aknan Download"
+
+msgid "Hibernate"
+msgstr "Mettre en veille prolongée"
+
+msgid "Force programs to close when shutting down"
+msgstr "Forcer la fermeture des programmes à l'extinction"
+
+msgid "Show the \"Download complete\" window"
+msgstr "Afficher la fenêtre \"Téléchargement terminé\""
+
+msgid "You get 30 seconds to cancel before the computer shuts down, sleeps or hibernates."
+msgstr "Vous avez 30 secondes pour annuler avant que l'ordinateur s'éteigne ou se mette en veille."
+
+msgid "Resume capability"
+msgstr "Reprise possible"
+
+msgid "Files"
+msgstr "Fichiers"
+
+msgid "People"
+msgstr "Pairs"
+
+msgid "Trackers"
+msgstr "Trackers"
+
+msgid "Add tracker"
+msgstr "Ajouter un tracker"
+
+msgid "First and last pieces first"
+msgstr "Premiers et derniers morceaux d'abord"
+
+msgid "Check the files again"
+msgstr "Revérifier les fichiers"
+
+msgid "Copy magnet link"
+msgstr "Copier le lien magnet"
+
+msgid "Duplicate download link"
+msgstr "Lien de téléchargement en double"
+
+msgid "This address is already in the download list:"
+msgstr "Cette adresse est déjà dans la liste des téléchargements :"
+
+msgid "Add it with a new name (numbered)"
+msgstr "L'ajouter avec un nouveau nom (numéroté)"
+
+msgid "Add it and replace the old download (overwrite the file)"
+msgstr "L'ajouter et remplacer l'ancien téléchargement (écraser le fichier)"
+
+msgid "If it is finished show it, if not resume it"
+msgstr "S'il est terminé l'afficher, sinon le reprendre"
+
+msgid "Remember my choice (Options > Downloads)"
+msgstr "Mémoriser mon choix (Options > Téléchargements)"
+
 msgid "Find file"
 msgstr "Rechercher un fichier"
 
@@ -748,146 +559,53 @@ msgstr "Chaîne entière"
 msgid "Find Next"
 msgstr "Suivant"
 
-msgid "File Properties – {}"
-msgstr "Propriétés du fichier – {}"
-
-msgid "Type"
-msgstr "Type"
-
-msgid "Date added"
-msgstr "Date d'ajout"
-
-msgid "Use authorization (server login)"
-msgstr "Utiliser une authentification (connexion au serveur)"
-
-msgid "Result: {}"
-msgstr "Résultat : {}"
-
-msgid "Duplicate download link"
-msgstr "Lien de téléchargement en double"
-
-msgid "This address is already in the download list:"
-msgstr "Cette adresse est déjà dans la liste des téléchargements :"
-
-msgid "Add it with a new name (numbered)"
-msgstr "L'ajouter avec un nouveau nom (numéroté)"
-
-msgid "Add it and replace the old download (overwrite the file)"
-msgstr "L'ajouter et remplacer l'ancien téléchargement (écraser le fichier)"
-
-msgid "If it is finished show it, if not resume it"
-msgstr "S'il est terminé l'afficher, sinon le reprendre"
-
-msgid "Remember my choice (Options > Downloads)"
-msgstr "Mémoriser mon choix (Options > Téléchargements)"
-
-msgid "Delete the downloaded files from the disk too (be careful)"
-msgstr "Supprimer aussi les fichiers téléchargés du disque (attention)"
-
-msgid "Don't show this question again"
-msgstr "Ne plus poser cette question"
-
-msgid "All downloads are finished."
-msgstr "Tous les téléchargements sont terminés."
-
-msgid "Aknan Download will {} in {} seconds."
-msgstr "Aknan Download va {} dans {} secondes."
-
-msgid "Now"
-msgstr "Maintenant"
-
-msgid "Queue name"
-msgstr "Nom de la file"
-
-msgid "Schedule"
-msgstr "Planification"
-
-msgid "Files in the queue"
-msgstr "Fichiers de la file"
-
-msgid "Start the queue automatically"
-msgstr "Démarrer la file automatiquement"
-
-msgid "Start time (HH:MM)"
-msgstr "Heure de début (HH:MM)"
-
-msgid "Daily"
-msgstr "Chaque jour"
-
-msgid "Once at (YYYY-MM-DD)"
-msgstr "Une fois le (AAAA-MM-JJ)"
-
-msgid "Mon"
-msgstr "Lun"
-
-msgid "Tue"
-msgstr "Mar"
-
-msgid "Wed"
-msgstr "Mer"
-
-msgid "Thu"
-msgstr "Jeu"
-
-msgid "Fri"
-msgstr "Ven"
-
-msgid "Sat"
-msgstr "Sam"
-
-msgid "Sun"
-msgstr "Dim"
-
-msgid "Wake the computer from sleep to start it"
-msgstr "Sortir l'ordinateur de veille pour la démarrer"
-
-msgid "Start the queue when Aknan Download starts"
-msgstr "Démarrer la file au lancement d'Aknan Download"
-
-msgid "Stop the queue at"
-msgstr "Arrêter la file à"
-
-msgid "When the queue is done"
-msgstr "Quand la file est terminée"
-
-msgid "For Sleep you may need to allow wake timers in the Windows power options, so the computer can wake up for the next start."
-msgstr "Pour la veille, il faut peut-être autoriser les minuteurs de réveil dans les options d'alimentation de Windows, pour que l'ordinateur se réveille au prochain démarrage."
-
-msgid "Move up"
-msgstr "Monter"
-
-msgid "Move down"
-msgstr "Descendre"
-
-msgid "Files download in this order. Add files with right click > Move to queue, Add Batch, or \"Download Later\"."
-msgstr "Les fichiers sont téléchargés dans cet ordre. Ajoutez des fichiers par clic droit > Déplacer vers la file, Ajout groupé ou \"Télécharger plus tard\"."
-
-msgid "Download"
-msgstr "Télécharger"
-
-msgid "files at the same time"
-msgstr "fichiers en même temps"
-
-msgid "Number of retries for each file if downloading failed"
-msgstr "Nombre d'essais par fichier en cas d'échec"
-
-msgid "Save all files of this queue to"
-msgstr "Enregistrer tous les fichiers de cette file dans"
-
-msgid "Open each file when it has finished downloading"
-msgstr "Ouvrir chaque fichier une fois téléchargé"
-
-msgid "Start now"
-msgstr "Démarrer maintenant"
-
-msgid "Apply"
-msgstr "Appliquer"
-
 msgid "Download all links"
 msgstr "Télécharger tous les liens"
 
 msgid "Site Grabber"
 msgstr "Aspirateur de site"
+
+msgid "Show"
+msgstr "Afficher"
+
+msgid "All types"
+msgstr "Tous les types"
+
+msgid "Images"
+msgstr "Images"
+
+msgid "Videos"
+msgstr "Vidéos"
+
+msgid "Music"
+msgstr "Musique"
+
+msgid "Archives / programs"
+msgstr "Archives / programmes"
+
+msgid "Documents"
+msgstr "Documents"
+
+msgid "Web pages"
+msgstr "Pages web"
+
+msgid "Filter by name or address…"
+msgstr "Filtrer par nom ou adresse…"
+
+msgid "Check all"
+msgstr "Tout cocher"
+
+msgid "Uncheck all"
+msgstr "Tout décocher"
+
+msgid "This site builds its links inside the browser. Open the page there, right-click and choose \"Download all links with Aknan Download\"."
+msgstr "Ce site génère ses liens dans le navigateur. Ouvrez la page, faites un clic droit et choisissez \"Download all links with Aknan Download\"."
+
+msgid "Use link texts as descriptions"
+msgstr "Utiliser le texte des liens comme description"
+
+msgid "Download checked"
+msgstr "Télécharger la sélection"
 
 msgid "Start page"
 msgstr "Page de départ"
@@ -940,38 +658,8 @@ msgstr "Autres sites aussi"
 msgid "Don't go to parent folders"
 msgstr "Ne pas remonter aux dossiers parents"
 
-msgid "Show"
-msgstr "Afficher"
-
-msgid "All types"
-msgstr "Tous les types"
-
-msgid "Images"
-msgstr "Images"
-
-msgid "Videos"
-msgstr "Vidéos"
-
-msgid "Music"
-msgstr "Musique"
-
-msgid "Archives / programs"
-msgstr "Archives / programmes"
-
-msgid "Documents"
-msgstr "Documents"
-
-msgid "Web pages"
-msgstr "Pages web"
-
-msgid "Filter by name or address…"
-msgstr "Filtrer par nom ou adresse…"
-
-msgid "Check all"
-msgstr "Tout cocher"
-
-msgid "Uncheck all"
-msgstr "Tout décocher"
+msgid "Type"
+msgstr "Type"
 
 msgid "Link text"
 msgstr "Texte du lien"
@@ -982,26 +670,107 @@ msgstr "Aucun lien sur cette page."
 msgid "Exploring…"
 msgstr "Exploration…"
 
+msgid "No static links were found. Right-click inside the browser page and choose \"Download all links with Aknan Download\"."
+msgstr "Aucun lien statique trouvé. Faites un clic droit dans la page du navigateur et choisissez \"Download all links with Aknan Download\"."
+
 msgid "Type a start page and click \"Start exploring\"."
 msgstr "Tapez une page de départ et cliquez sur \"Lancer l'exploration\"."
 
-msgid "Use link texts as descriptions"
-msgstr "Utiliser le texte des liens comme description"
+msgid "Download a playlist"
+msgstr "Télécharger une playlist"
 
-msgid "Download checked"
-msgstr "Télécharger la sélection"
+msgid "Paste the address of a playlist:"
+msgstr "Collez l'adresse d'une playlist :"
 
-msgid "Tip of the day"
-msgstr "Astuce du jour"
+msgid "https://…/playlist?list=…"
+msgstr "https://…/playlist?list=…"
 
-msgid "Did you know…"
-msgstr "Le saviez-vous…"
+msgid "Getting the list…"
+msgstr "Récupération de la liste…"
 
-msgid "Show tips at startup"
-msgstr "Afficher les astuces au démarrage"
+msgid "Get videos"
+msgstr "Récupérer les vidéos"
 
-msgid "Next tip"
-msgstr "Astuce suivante"
+msgid "Quality"
+msgstr "Qualité"
+
+msgid "Best quality (MP4)"
+msgstr "Meilleure qualité (MP4)"
+
+msgid "2160p 4K"
+msgstr "2160p 4K"
+
+msgid "1440p 2K"
+msgstr "1440p 2K"
+
+msgid "1080p Full HD"
+msgstr "1080p Full HD"
+
+msgid "720p HD"
+msgstr "720p HD"
+
+msgid "480p SD"
+msgstr "480p SD"
+
+msgid "360p SD"
+msgstr "360p SD"
+
+msgid "Audio only (M4A)"
+msgstr "Audio seulement (M4A)"
+
+msgid "Audio MP3"
+msgstr "Audio MP3"
+
+msgid "Files at the same time"
+msgstr "Fichiers en même temps"
+
+msgid "Subtitles"
+msgstr "Sous-titres"
+
+msgid "Burned into picture"
+msgstr "Incrustés dans l'image"
+
+msgid "Languages"
+msgstr "Langues"
+
+msgid "Number the files"
+msgstr "Numéroter les fichiers"
+
+msgid "Oldest first"
+msgstr "Plus anciens d'abord"
+
+msgid "Start now"
+msgstr "Démarrer maintenant"
+
+msgid "Download"
+msgstr "Télécharger"
+
+msgid "Video"
+msgstr "Vidéo"
+
+msgid "Length"
+msgstr "Durée"
+
+msgid "Getting the videos of the playlist…"
+msgstr "Récupération des vidéos de la playlist…"
+
+msgid "The videos of the playlist show up here."
+msgstr "Les vidéos de la playlist apparaissent ici."
+
+msgid "File Properties – {}"
+msgstr "Propriétés du fichier – {}"
+
+msgid "Use authorization (server login)"
+msgstr "Utiliser une authentification (connexion au serveur)"
+
+msgid "Date added"
+msgstr "Date d'ajout"
+
+msgid "Last try date"
+msgstr "Dernier essai"
+
+msgid "Result: {}"
+msgstr "Résultat : {}"
 
 msgid "Refresh download address"
 msgstr "Actualiser l'adresse de téléchargement"
@@ -1027,8 +796,104 @@ msgstr "Utiliser"
 msgid "Stop waiting"
 msgstr "Ne plus attendre"
 
-msgid "Play"
-msgstr "Lire"
+msgid "Scheduler"
+msgstr "Planificateur"
+
+msgid "Queue name"
+msgstr "Nom de la file"
+
+msgid "Schedule"
+msgstr "Planification"
+
+msgid "Files in the queue"
+msgstr "Fichiers de la file"
+
+msgid "Options"
+msgstr "Options"
+
+msgid "Apply"
+msgstr "Appliquer"
+
+msgid "Start the queue automatically"
+msgstr "Démarrer la file automatiquement"
+
+msgid "Start time (HH:MM)"
+msgstr "Heure de début (HH:MM)"
+
+msgid "Daily"
+msgstr "Chaque jour"
+
+msgid "Once at (YYYY-MM-DD)"
+msgstr "Une fois le (AAAA-MM-JJ)"
+
+msgid "Mon"
+msgstr "Lun"
+
+msgid "Tue"
+msgstr "Mar"
+
+msgid "Wed"
+msgstr "Mer"
+
+msgid "Thu"
+msgstr "Jeu"
+
+msgid "Fri"
+msgstr "Ven"
+
+msgid "Sat"
+msgstr "Sam"
+
+msgid "Sun"
+msgstr "Dim"
+
+msgid "Wake the computer from sleep to start it"
+msgstr "Sortir l'ordinateur de veille pour la démarrer"
+
+msgid "Start the queue when Aknan Download starts"
+msgstr "Démarrer la file au lancement d'Aknan Download"
+
+msgid "Stop the queue at"
+msgstr "Arrêter la file à"
+
+msgid "When the queue is done"
+msgstr "Quand la file est terminée"
+
+msgid "Do nothing"
+msgstr "Ne rien faire"
+
+msgid "For Sleep you may need to allow wake timers in the Windows power options, so the computer can wake up for the next start."
+msgstr "Pour la veille, il faut peut-être autoriser les minuteurs de réveil dans les options d'alimentation de Windows, pour que l'ordinateur se réveille au prochain démarrage."
+
+msgid "New queue"
+msgstr "Nouvelle file"
+
+msgid "Delete"
+msgstr "Supprimer"
+
+msgid "Move up"
+msgstr "Monter"
+
+msgid "Move down"
+msgstr "Descendre"
+
+msgid "Delete from queue"
+msgstr "Retirer de la file"
+
+msgid "Files download in this order. Add files with right click > Move to queue, Add Batch, or \"Download Later\"."
+msgstr "Les fichiers sont téléchargés dans cet ordre. Ajoutez des fichiers par clic droit > Déplacer vers la file, Ajout groupé ou \"Télécharger plus tard\"."
+
+msgid "files at the same time"
+msgstr "fichiers en même temps"
+
+msgid "Number of retries for each file if downloading failed"
+msgstr "Nombre d'essais par fichier en cas d'échec"
+
+msgid "Save all files of this queue to"
+msgstr "Enregistrer tous les fichiers de cette file dans"
+
+msgid "Open each file when it has finished downloading"
+msgstr "Ouvrir chaque fichier une fois téléchargé"
 
 msgid "Aknan Download – Options"
 msgstr "Aknan Download – Options"
@@ -1038,6 +903,9 @@ msgstr "Général"
 
 msgid "File Types"
 msgstr "Types de fichiers"
+
+msgid "Downloads"
+msgstr "Téléchargements"
 
 msgid "Connection"
 msgstr "Connexion"
@@ -1056,6 +924,48 @@ msgstr "Apparence"
 
 msgid "Torrents"
 msgstr "Torrents"
+
+msgid "Theme"
+msgstr "Thème"
+
+msgid "Light"
+msgstr "Clair"
+
+msgid "Dark"
+msgstr "Sombre"
+
+msgid "Ocean blue"
+msgstr "Bleu océan"
+
+msgid "Midnight purple"
+msgstr "Violet nuit"
+
+msgid "Forest green"
+msgstr "Vert forêt"
+
+msgid "Black"
+msgstr "Noir"
+
+msgid "Sunset"
+msgstr "Coucher de soleil"
+
+msgid "Teal night"
+msgstr "Nuit turquoise"
+
+msgid "Rose"
+msgstr "Rose"
+
+msgid "3D"
+msgstr "3D"
+
+msgid "Aurora glass"
+msgstr "Verre aurore"
+
+msgid "Soft clay"
+msgstr "Argile douce"
+
+msgid "Cyber neon"
+msgstr "Néon cyber"
 
 msgid "Window opacity"
 msgstr "Opacité de la fenêtre"
@@ -1078,110 +988,53 @@ msgstr "aucune (couleurs du thème)"
 msgid "Browse…"
 msgstr "Parcourir…"
 
+msgid "Remove"
+msgstr "Supprimer"
+
 msgid "Picture visibility"
 msgstr "Visibilité de l'image"
 
-msgid "Launch Aknan Download on Windows startup"
-msgstr "Lancer Aknan Download au démarrage de Windows"
+msgid "Connection type / speed"
+msgstr "Type / vitesse de connexion"
 
-msgid "Keep running next to the clock when the window is closed"
-msgstr "Rester à côté de l'horloge quand la fenêtre est fermée"
+msgid "Low speed (modem, mobile)"
+msgstr "Faible débit (modem, mobile)"
 
-msgid "Watch the clipboard for download links"
-msgstr "Surveiller le presse-papiers pour les liens de téléchargement"
+msgid "Medium speed (DSL)"
+msgstr "Débit moyen (ADSL)"
 
-msgid "Automatically start downloading links placed in the clipboard"
-msgstr "Démarrer automatiquement les liens copiés dans le presse-papiers"
+msgid "High speed (fiber, cable, LAN)"
+msgstr "Haut débit (fibre, câble, réseau local)"
 
-msgid "Draw the windows with the graphics card (uses more memory; after a restart)"
-msgstr "Dessiner les fenêtres avec la carte graphique (plus de mémoire ; après un redémarrage)"
+msgid "Default max. connections number"
+msgstr "Nombre max. de connexions par défaut"
 
-msgid "Show \"Tip of the day\" at startup"
-msgstr "Afficher \"l'Astuce du jour\" au démarrage"
+msgid "Downloads at the same time (0 = no limit)"
+msgstr "Téléchargements simultanés (0 = sans limite)"
 
-msgid "On double click on a download"
-msgstr "Double-clic sur un téléchargement"
+msgid "Retries on error"
+msgstr "Essais en cas d'erreur"
 
-msgid "Open the file / progress window"
-msgstr "Ouvrir le fichier / la fenêtre de progression"
+msgid "Exceptions: servers with their own number of connections"
+msgstr "Exceptions : serveurs avec leur propre nombre de connexions"
 
-msgid "Show properties"
-msgstr "Afficher les propriétés"
+msgid "Server"
+msgstr "Serveur"
 
-msgid "Browser integration"
-msgstr "Intégration au navigateur"
+msgid "example.com"
+msgstr "example.com"
 
-msgid "Chrome and Edge: load the \"extension\" folder in chrome://extensions (Developer mode > Load unpacked). Downloads, videos and the right click menu then go to Aknan Download."
-msgstr "Chrome et Edge : chargez le dossier \"extension\" dans chrome://extensions (Mode développeur > Charger l'extension non empaquetée). Les téléchargements, les vidéos et le menu du clic droit passent alors par Aknan Download."
+msgid "Download limits"
+msgstr "Limites de téléchargement"
 
-msgid "Hold this key to let the browser download by itself"
-msgstr "Maintenir cette touche pour laisser le navigateur télécharger lui-même"
+msgid "Download no more than"
+msgstr "Ne pas télécharger plus de"
 
-msgid "Alt"
-msgstr "Alt"
+msgid "MB every"
+msgstr "Mo toutes les"
 
-msgid "Ctrl"
-msgstr "Ctrl"
-
-msgid "Shift"
-msgstr "Maj"
-
-msgid "None"
-msgstr "Aucune"
-
-msgid "Hold this key to force Aknan Download to take a link"
-msgstr "Maintenir cette touche pour forcer Aknan Download à prendre un lien"
-
-msgid "Browser extension port"
-msgstr "Port de l'extension du navigateur"
-
-msgid "Automatically start downloading these file types (from the browser):"
-msgstr "Démarrer automatiquement le téléchargement de ces types (depuis le navigateur) :"
-
-msgid "Default"
-msgstr "Par défaut"
-
-msgid "Don't start downloading automatically from these sites:"
-msgstr "Ne pas démarrer automatiquement depuis ces sites :"
-
-msgid "*.update.microsoft.com  windowsupdate.com"
-msgstr "*.update.microsoft.com  windowsupdate.com"
-
-msgid "Don't start downloading these addresses (one per line, * allowed):"
-msgstr "Ne pas télécharger ces adresses (une par ligne, * autorisé) :"
-
-msgid "Show the \"Download this video\" panel on web players"
-msgstr "Afficher le panneau \"Télécharger cette vidéo\" sur les lecteurs web"
-
-msgid "Don't show it on these sites"
-msgstr "Ne pas l'afficher sur ces sites"
-
-msgid "Smallest video (KB)"
-msgstr "Vidéo minimale (Ko)"
-
-msgid "Smallest audio (KB)"
-msgstr "Audio minimal (Ko)"
-
-msgid "Main download folder"
-msgstr "Dossier principal des téléchargements"
-
-msgid "Sort files into folders by category (Video, Music, Programs, Compressed, Documents, Images…)"
-msgstr "Classer les fichiers dans des dossiers par catégorie (Vidéo, Musique, Programmes, Compressés, Documents, Images…)"
-
-msgid "Each category's own folder and file types: right click it in the sidebar > Properties."
-msgstr "Dossier et types de fichiers de chaque catégorie : clic droit dessus dans la barre latérale > Propriétés."
-
-msgid "Forget remembered category paths"
-msgstr "Oublier les chemins mémorisés des catégories"
-
-msgid "Temporary folder (parts while downloading)"
-msgstr "Dossier temporaire (morceaux pendant le téléchargement)"
-
-msgid "next to the file (default)"
-msgstr "à côté du fichier (par défaut)"
-
-msgid "Tip: a temporary folder on another drive than the download folder makes joining the parts faster."
-msgstr "Astuce : un dossier temporaire sur un autre disque que celui des téléchargements rend l'assemblage plus rapide."
+msgid "hours"
+msgstr "heures"
 
 msgid "Show the \"Download File Info\" window for downloads from the browser"
 msgstr "Afficher la fenêtre \"Informations sur le fichier\" pour les téléchargements du navigateur"
@@ -1249,47 +1102,110 @@ msgstr "[File] est remplacé par le fichier téléchargé."
 msgid "User-Agent for downloads added by hand"
 msgstr "User-Agent des téléchargements ajoutés à la main"
 
-msgid "Connection type / speed"
-msgstr "Type / vitesse de connexion"
+msgid "Automatically start downloading these file types (from the browser):"
+msgstr "Démarrer automatiquement le téléchargement de ces types (depuis le navigateur) :"
 
-msgid "Low speed (modem, mobile)"
-msgstr "Faible débit (modem, mobile)"
+msgid "Default"
+msgstr "Par défaut"
 
-msgid "Medium speed (DSL)"
-msgstr "Débit moyen (ADSL)"
+msgid "Don't start downloading automatically from these sites:"
+msgstr "Ne pas démarrer automatiquement depuis ces sites :"
 
-msgid "High speed (fiber, cable, LAN)"
-msgstr "Haut débit (fibre, câble, réseau local)"
+msgid "*.update.microsoft.com  windowsupdate.com"
+msgstr "*.update.microsoft.com  windowsupdate.com"
 
-msgid "Default max. connections number"
-msgstr "Nombre max. de connexions par défaut"
+msgid "Don't start downloading these addresses (one per line, * allowed):"
+msgstr "Ne pas télécharger ces adresses (une par ligne, * autorisé) :"
 
-msgid "Downloads at the same time (0 = no limit)"
-msgstr "Téléchargements simultanés (0 = sans limite)"
+msgid "Show the \"Download this video\" panel on web players"
+msgstr "Afficher le panneau \"Télécharger cette vidéo\" sur les lecteurs web"
 
-msgid "Retries on error"
-msgstr "Essais en cas d'erreur"
+msgid "Don't show it on these sites"
+msgstr "Ne pas l'afficher sur ces sites"
 
-msgid "Exceptions: servers with their own number of connections"
-msgstr "Exceptions : serveurs avec leur propre nombre de connexions"
+msgid "Smallest video (KB)"
+msgstr "Vidéo minimale (Ko)"
 
-msgid "Server"
-msgstr "Serveur"
+msgid "Smallest audio (KB)"
+msgstr "Audio minimal (Ko)"
 
-msgid "example.com"
-msgstr "example.com"
+msgid "Language"
+msgstr "Langue"
 
-msgid "Download limits"
-msgstr "Limites de téléchargement"
+msgid "Launch Aknan Download on Windows startup"
+msgstr "Lancer Aknan Download au démarrage de Windows"
 
-msgid "Download no more than"
-msgstr "Ne pas télécharger plus de"
+msgid "Keep running next to the clock when the window is closed"
+msgstr "Rester à côté de l'horloge quand la fenêtre est fermée"
 
-msgid "MB every"
-msgstr "Mo toutes les"
+msgid "Watch the clipboard for download links"
+msgstr "Surveiller le presse-papiers pour les liens de téléchargement"
 
-msgid "hours"
-msgstr "heures"
+msgid "Automatically start downloading links placed in the clipboard"
+msgstr "Démarrer automatiquement les liens copiés dans le presse-papiers"
+
+msgid "Draw the windows with the graphics card (uses more memory; after a restart)"
+msgstr "Dessiner les fenêtres avec la carte graphique (plus de mémoire ; après un redémarrage)"
+
+msgid "Show \"Tip of the day\" at startup"
+msgstr "Afficher \"l'Astuce du jour\" au démarrage"
+
+msgid "On double click on a download"
+msgstr "Double-clic sur un téléchargement"
+
+msgid "Open the file / progress window"
+msgstr "Ouvrir le fichier / la fenêtre de progression"
+
+msgid "Show properties"
+msgstr "Afficher les propriétés"
+
+msgid "Browser integration"
+msgstr "Intégration au navigateur"
+
+msgid "Chrome and Edge: load the \"extension\" folder in chrome://extensions (Developer mode > Load unpacked). Downloads, videos and the right click menu then go to Aknan Download."
+msgstr "Chrome et Edge : chargez le dossier \"extension\" dans chrome://extensions (Mode développeur > Charger l'extension non empaquetée). Les téléchargements, les vidéos et le menu du clic droit passent alors par Aknan Download."
+
+msgid "Add Aknan Download to my browser…"
+msgstr "Ajouter Aknan Download à mon navigateur…"
+
+msgid "Hold this key to let the browser download by itself"
+msgstr "Maintenir cette touche pour laisser le navigateur télécharger lui-même"
+
+msgid "Alt"
+msgstr "Alt"
+
+msgid "Ctrl"
+msgstr "Ctrl"
+
+msgid "Shift"
+msgstr "Maj"
+
+msgid "None"
+msgstr "Aucune"
+
+msgid "Hold this key to force Aknan Download to take a link"
+msgstr "Maintenir cette touche pour forcer Aknan Download à prendre un lien"
+
+msgid "Browser extension port"
+msgstr "Port de l'extension du navigateur"
+
+msgid "User names and passwords for sites that ask for them:"
+msgstr "Noms d'utilisateur et mots de passe des sites qui les demandent :"
+
+msgid "Site / path"
+msgstr "Site / chemin"
+
+msgid "User name"
+msgstr "Nom d'utilisateur"
+
+msgid "example.com/members"
+msgstr "example.com/members"
+
+msgid "Add / Update"
+msgstr "Ajouter / Mettre à jour"
+
+msgid "Saved in the settings file of your Windows user account."
+msgstr "Enregistré dans le fichier de paramètres de votre compte Windows."
 
 msgid "No proxy"
 msgstr "Pas de proxy"
@@ -1309,9 +1225,6 @@ msgstr "proxy.example.com"
 msgid "Port"
 msgstr "Port"
 
-msgid "User name"
-msgstr "Nom d'utilisateur"
-
 msgid "Don't use the proxy for"
 msgstr "Ne pas utiliser le proxy pour"
 
@@ -1321,20 +1234,29 @@ msgstr "localhost 127.0.0.1 *.local"
 msgid "Addresses separated by spaces. SOCKS proxies: use the system settings."
 msgstr "Adresses séparées par des espaces. Proxys SOCKS : utilisez les paramètres du système."
 
-msgid "User names and passwords for sites that ask for them:"
-msgstr "Noms d'utilisateur et mots de passe des sites qui les demandent :"
+msgid "Main download folder"
+msgstr "Dossier principal des téléchargements"
 
-msgid "Site / path"
-msgstr "Site / chemin"
+msgid "Sort files into folders by category (Video, Music, Programs, Compressed, Documents, Images…)"
+msgstr "Classer les fichiers dans des dossiers par catégorie (Vidéo, Musique, Programmes, Compressés, Documents, Images…)"
 
-msgid "example.com/members"
-msgstr "example.com/members"
+msgid "Each category's own folder and file types: right click it in the sidebar > Properties."
+msgstr "Dossier et types de fichiers de chaque catégorie : clic droit dessus dans la barre latérale > Propriétés."
 
-msgid "Add / Update"
-msgstr "Ajouter / Mettre à jour"
+msgid "Forget remembered category paths"
+msgstr "Oublier les chemins mémorisés des catégories"
 
-msgid "Saved in the settings file of your Windows user account."
-msgstr "Enregistré dans le fichier de paramètres de votre compte Windows."
+msgid "Temporary folder (parts while downloading)"
+msgstr "Dossier temporaire (morceaux pendant le téléchargement)"
+
+msgid "next to the file (default)"
+msgstr "à côté du fichier (par défaut)"
+
+msgid "Tip: a temporary folder on another drive than the download folder makes joining the parts faster."
+msgstr "Astuce : un dossier temporaire sur un autre disque que celui des téléchargements rend l'assemblage plus rapide."
+
+msgid "Play"
+msgstr "Lire"
 
 msgid "Play sounds"
 msgstr "Jouer des sons"
@@ -1387,6 +1309,18 @@ msgstr "Vitesse d'envoi maximale (Ko/s, 0 = sans limite)"
 msgid "While a torrent downloads it also sends pieces to others (that is how torrents work). A limit keeps your internet free for other things."
 msgstr "Pendant le téléchargement, un torrent envoie aussi des morceaux aux autres (c'est le principe des torrents). Une limite garde votre internet libre pour autre chose."
 
+msgid "Tip of the day"
+msgstr "Astuce du jour"
+
+msgid "Did you know…"
+msgstr "Le saviez-vous…"
+
+msgid "Show tips at startup"
+msgstr "Afficher les astuces au démarrage"
+
+msgid "Next tip"
+msgstr "Astuce suivante"
+
 msgid "Add a torrent"
 msgstr "Ajouter un torrent"
 
@@ -1399,167 +1333,281 @@ msgstr "magnet:?xt=urn:btih:…  ou  C:\\…\\file.torrent"
 msgid "Open .torrent file…"
 msgstr "Ouvrir un fichier .torrent…"
 
+msgid "File"
+msgstr "Fichier"
+
 msgid "A magnet link brings its file list from the other computers when it starts: all its files are downloaded."
 msgstr "Un lien magnet reçoit sa liste de fichiers des autres ordinateurs au démarrage : tous ses fichiers sont téléchargés."
 
 msgid "Paste a magnet link or open a .torrent file: what it shares shows up here."
 msgstr "Collez un lien magnet ou ouvrez un fichier .torrent : son contenu apparaît ici."
 
-msgid "Download a playlist"
-msgstr "Télécharger une playlist"
+msgid "Check for updates"
+msgstr "Rechercher des mises à jour"
 
-msgid "Paste the address of a playlist:"
-msgstr "Collez l'adresse d'une playlist :"
-
-msgid "https://…/playlist?list=…"
-msgstr "https://…/playlist?list=…"
-
-msgid "Getting the list…"
-msgstr "Récupération de la liste…"
-
-msgid "Get videos"
-msgstr "Récupérer les vidéos"
-
-msgid "Video"
-msgstr "Vidéo"
-
-msgid "Length"
-msgstr "Durée"
-
-msgid "Getting the videos of the playlist…"
-msgstr "Récupération des vidéos de la playlist…"
-
-msgid "The videos of the playlist show up here."
-msgstr "Les vidéos de la playlist apparaissent ici."
-
-msgid "Quality"
-msgstr "Qualité"
-
-msgid "Best quality (MP4)"
-msgstr "Meilleure qualité (MP4)"
-
-msgid "2160p 4K"
-msgstr "2160p 4K"
-
-msgid "1440p 2K"
-msgstr "1440p 2K"
-
-msgid "1080p Full HD"
-msgstr "1080p Full HD"
-
-msgid "720p HD"
-msgstr "720p HD"
-
-msgid "480p SD"
-msgstr "480p SD"
-
-msgid "360p SD"
-msgstr "360p SD"
-
-msgid "Audio only (M4A)"
-msgstr "Audio seulement (M4A)"
-
-msgid "Audio MP3"
-msgstr "Audio MP3"
-
-msgid "Files at the same time"
-msgstr "Fichiers en même temps"
-
-msgid "Number the files"
-msgstr "Numéroter les fichiers"
-
-msgid "Subtitles too"
-msgstr "Sous-titres aussi"
-
-msgid "Not installed on this computer"
-msgstr "Non installé sur cet ordinateur"
-
-msgid "Add Aknan Download to your browser"
-msgstr "Ajouter Aknan Download à votre navigateur"
-
-msgid "Click your browser:"
-msgstr "Cliquez sur votre navigateur :"
-
-msgid "Almost done:"
-msgstr "Presque terminé :"
-
-msgid "Test the link"
-msgstr "Tester la liaison"
-
-msgid "Repair the add-in"
-msgstr "Réparer le module"
-
-msgid "Copy folder path"
-msgstr "Copier le chemin du dossier"
-
-msgid "Version {}"
-msgstr "Version {}"
-
-msgid "Developed by Aknan"
-msgstr "Développé par Aknan"
-
-msgid "© Aknan – All rights reserved"
-msgstr "© Aknan – Tous droits réservés"
-
-msgid "Official website / GitHub"
-msgstr "Site officiel / GitHub"
-
-msgid "Download a part of a video"
-msgstr "Télécharger une partie d'une vidéo"
-
-msgid "Paste the address of the video (its page, or a link to the video or stream):"
-msgstr "Collez l'adresse de la vidéo (sa page, ou un lien vers la vidéo ou le flux) :"
-
-msgid "Looking…"
-msgstr "Recherche…"
-
-msgid "Get the video"
-msgstr "Récupérer la vidéo"
-
-msgid "Quality:"
-msgstr "Qualité :"
-
-msgid "From:"
-msgstr "De :"
-
-msgid "To:"
-msgstr "À :"
-
-msgid "Length:"
-msgstr "Durée :"
-
-msgid "Cut:"
-msgstr "Coupe :"
-
-msgid "Quick cut (recommended)"
-msgstr "Coupe rapide (recommandée)"
-
-msgid "Exact cut"
-msgstr "Coupe exacte"
-
-msgid "Quick cut"
-msgstr "Coupe rapide"
-
-msgid "Takes seconds and keeps the quality exactly as it is (nothing is made again). A video can only start on a whole picture, so the part may start a second or two before the time you chose."
-msgstr "Prend quelques secondes et garde la qualité telle quelle (rien n'est refait). Une vidéo ne peut commencer que sur une image complète : la partie peut donc commencer une ou deux secondes avant le moment choisi."
-
-msgid "Starts and ends on the very second you chose. The picture of the part is made again, so it takes longer (about as long as the part plays, or less) and works the processor. Sound alone is always cut exactly."
-msgstr "Commence et finit à la seconde exacte choisie. L'image de la partie est refaite : c'est plus long (environ la durée de la partie, ou moins) et cela sollicite le processeur. Le son seul est toujours coupé exactement."
-
-msgid "Preparing the preview…"
-msgstr "Préparation de l'aperçu…"
-
-msgid "Preview the part"
-msgstr "Aperçu de la partie"
-
-msgid "Download the part"
-msgstr "Télécharger la partie"
+msgid "Hide"
+msgstr "Masquer"
 
 msgid "What's new in Aknan Download"
 msgstr "Nouveautés de Aknan Download"
 
-msgid "Hide"
-msgstr "Masquer"
+msgid "Add new download…"
+msgstr "Ajouter un téléchargement…"
+
+msgid "Add batch download…"
+msgstr "Ajouter un téléchargement groupé…"
+
+msgid "Add batch download from clipboard"
+msgstr "Ajouter un téléchargement groupé depuis le presse-papiers"
+
+msgid "Run site grabber…"
+msgstr "Lancer l'aspirateur de site…"
+
+msgid "Download a playlist…"
+msgstr "Télécharger une playlist…"
+
+msgid "Download a part of a video…"
+msgstr "Télécharger une partie d'une vidéo…"
+
+msgid "Add a torrent / magnet link…"
+msgstr "Ajouter un torrent / lien magnet…"
+
+msgid "To download list file (.ef2)…"
+msgstr "Vers un fichier de liste (.ef2)…"
+
+msgid "To text file…"
+msgstr "Vers un fichier texte…"
+
+msgid "From download list file (.ef2)…"
+msgstr "Depuis un fichier de liste (.ef2)…"
+
+msgid "From text file…"
+msgstr "Depuis un fichier texte…"
+
+msgid "Open download folder"
+msgstr "Ouvrir le dossier des téléchargements"
+
+msgid "Exit"
+msgstr "Quitter"
+
+msgid "Download now"
+msgstr "Télécharger maintenant"
+
+msgid "Stop download"
+msgstr "Arrêter le téléchargement"
+
+msgid "Redownload"
+msgstr "Retélécharger"
+
+msgid "Refresh download address…"
+msgstr "Actualiser l'adresse de téléchargement…"
+
+msgid "Open with…"
+msgstr "Ouvrir avec…"
+
+msgid "Play while downloading"
+msgstr "Lire pendant le téléchargement"
+
+msgid "Move / Rename…"
+msgstr "Déplacer / Renommer…"
+
+msgid "Copy address"
+msgstr "Copier l'adresse"
+
+msgid "Resume all"
+msgstr "Tout reprendre"
+
+msgid "Stop all"
+msgstr "Tout arrêter"
+
+msgid "Delete all completed"
+msgstr "Supprimer tous les terminés"
+
+msgid "Find…   Ctrl+F"
+msgstr "Rechercher…   Ctrl+F"
+
+msgid "Find next   F3"
+msgstr "Rechercher le suivant   F3"
+
+msgid "By order of addition"
+msgstr "Par ordre d'ajout"
+
+msgid "Parent web page"
+msgstr "Page web d'origine"
+
+msgid "Tip of the day…"
+msgstr "Astuce du jour…"
+
+msgid "Check for updates (video downloader)"
+msgstr "Rechercher des mises à jour (téléchargeur vidéo)"
+
+msgid "Tasks"
+msgstr "Tâches"
+
+msgid "View"
+msgstr "Affichage"
+
+msgid "Help"
+msgstr "Aide"
+
+msgid "Export"
+msgstr "Exporter"
+
+msgid "Import"
+msgstr "Importer"
+
+msgid "Select all   Ctrl+A"
+msgstr "Tout sélectionner   Ctrl+A"
+
+msgid "Properties"
+msgstr "Propriétés"
+
+msgid "Start queue"
+msgstr "Démarrer la file"
+
+msgid "Stop queue"
+msgstr "Arrêter la file"
+
+msgid "Turn on"
+msgstr "Activer"
+
+msgid "Turn off"
+msgstr "Désactiver"
+
+msgid "Settings…"
+msgstr "Paramètres…"
+
+msgid "When all downloads finish"
+msgstr "Quand tous les téléchargements sont terminés"
+
+msgid "Scheduler…"
+msgstr "Planificateur…"
+
+msgid "Options…"
+msgstr "Options…"
+
+msgid "Show categories"
+msgstr "Afficher les catégories"
+
+msgid "Arrange files"
+msgstr "Trier les fichiers"
+
+msgid "Toolbar"
+msgstr "Barre d'outils"
+
+msgid "Large buttons"
+msgstr "Grands boutons"
+
+msgid "Small buttons"
+msgstr "Petits boutons"
+
+msgid "Columns…"
+msgstr "Colonnes…"
+
+msgid "Appearance…"
+msgstr "Apparence…"
+
+msgid "Categories"
+msgstr "Catégories"
+
+msgid "All Downloads"
+msgstr "Tous les téléchargements"
+
+msgid "Unfinished"
+msgstr "Non terminés"
+
+msgid "Finished"
+msgstr "Terminés"
+
+msgid "Queues"
+msgstr "Files d'attente"
+
+msgid "{} (running)"
+msgstr "{} (en cours)"
+
+msgid "Edit"
+msgstr "Modifier"
+
+msgid "Add URL"
+msgstr "Ajouter URL"
+
+msgid "Add Batch"
+msgstr "Ajout groupé"
+
+msgid "Stop All"
+msgstr "Tout arrêter"
+
+msgid "Delete Done"
+msgstr "Suppr. terminés"
+
+msgid "Limiter: On"
+msgstr "Limiteur : activé"
+
+msgid "Limiter: Off"
+msgstr "Limiteur : désactivé"
+
+msgid "Start Queue"
+msgstr "Démarrer la file"
+
+msgid "Stop Queue"
+msgstr "Arrêter la file"
+
+msgid "Grabber"
+msgstr "Aspirateur"
+
+msgid "Playlist"
+msgstr "Playlist"
+
+msgid "Filter the list…"
+msgstr "Filtrer la liste…"
+
+msgid "Edit queue / schedule…"
+msgstr "Modifier la file / la planification…"
+
+msgid "New queue…"
+msgstr "Nouvelle file…"
+
+msgid "Delete queue"
+msgstr "Supprimer la file"
+
+msgid "Add category…"
+msgstr "Ajouter une catégorie…"
+
+msgid "Delete category"
+msgstr "Supprimer la catégorie"
+
+msgid "Properties…"
+msgstr "Propriétés…"
+
+msgid "File Name"
+msgstr "Nom du fichier"
+
+msgid "Q"
+msgstr "F"
+
+msgid "Nothing matches “{}”."
+msgstr "Rien ne correspond à « {} »."
+
+msgid "No downloads here.\nClick “Add URL”, copy a link, or download something in your browser."
+msgstr "Aucun téléchargement ici.\nCliquez sur « Ajouter URL », copiez un lien ou téléchargez quelque chose dans votre navigateur."
+
+msgid "Move to queue"
+msgstr "Déplacer vers la file"
+
+msgid "{} downloads selected"
+msgstr "{} téléchargements sélectionnés"
+
+msgid "Show download progress"
+msgstr "Afficher la progression"
+
+msgid "Download a part of it…"
+msgstr "Télécharger une partie…"
+
+msgid "Resume download"
+msgstr "Reprendre le téléchargement"
+
+msgid "Check file (SHA-256)"
+msgstr "Vérifier le fichier (SHA-256)"
 
 msgid "Undo"
 msgstr "Annuler"

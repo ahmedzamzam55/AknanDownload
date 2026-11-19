@@ -67,27 +67,6 @@ pub fn set_file_time(path: &Path, t: chrono::DateTime<chrono::Utc>) {
     let _ = filetime::set_file_mtime(path, ft);
 }
 
-/// Run the virus checker on a finished file: `args` with "[File]" replaced.
-/// A program that comes with Windows, by its full path (System32), so a file
-/// with the same name somewhere else is never started instead.
-pub fn windows_tool(name: &str) -> std::path::PathBuf {
-    #[cfg(windows)]
-    {
-        let root = std::env::var_os("SystemRoot")
-            .or_else(|| std::env::var_os("windir"))
-            .map(std::path::PathBuf::from)
-            .unwrap_or_else(|| std::path::PathBuf::from(r"C:\Windows"));
-        if name.eq_ignore_ascii_case("explorer.exe") {
-            return root.join(name);
-        }
-        root.join("System32").join(name)
-    }
-    #[cfg(not(windows))]
-    {
-        std::path::PathBuf::from(name)
-    }
-}
-
 /// The address without a user name / password and without the "#..." part,
 /// for the "downloaded from" note of a file. None when it is not a web address.
 fn plain_web_url(u: &str) -> Option<String> {
@@ -130,6 +109,7 @@ pub fn mark_from_internet(file: &Path, host_url: &str, referrer: Option<&str>) {
     }
 }
 
+/// Run the virus checker on a finished file: `args` with "[File]" replaced.
 pub fn virus_scan(program: &str, args: &str, file: &Path) {
     let program = program.trim().trim_matches('"');
     if program.is_empty() {

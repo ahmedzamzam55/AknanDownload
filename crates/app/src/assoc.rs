@@ -1,7 +1,6 @@
 //! "Make Aknan Download the main program for torrents" (Options > Torrents):
 //! .torrent files and magnet: links of Windows open in Aknan Download, or
-//! no more. The same keys the setup writes (its "Torrents" choice), in the
-//! user's own part of the registry (no administrator needed).
+//! no more. Written directly via Win32 Registry APIs in HKCU (no admin, no CLI tools).
 
 /// On: Windows opens .torrent files and magnet: links with Aknan Download.
 /// Off: only what is Aknan Download's own goes (another program's choice
@@ -9,42 +8,37 @@
 pub(crate) fn torrents(on: bool) {
     #[cfg(windows)]
     {
+        use crate::winfx::registry::{delete_tree, delete_value, get_sz, set_sz};
         let Ok(exe) = std::env::current_exe() else { return };
         let exe = exe.display().to_string();
         let open = format!("\"{exe}\" \"%1\"");
         let icon = format!("{exe},0");
         if on {
             for (key, name, data) in [
-                (r"HKCU\Software\Classes\.torrent\OpenWithProgids", Some("AknanDownload.torrent"), ""),
-                (r"HKCU\Software\Classes\.torrent", None, "AknanDownload.torrent"),
-                (r"HKCU\Software\Classes\AknanDownload.torrent", None, "Torrent file"),
-                (r"HKCU\Software\Classes\AknanDownload.torrent\DefaultIcon", None, icon.as_str()),
-                (r"HKCU\Software\Classes\AknanDownload.torrent\shell\open\command", None, open.as_str()),
-                (r"HKCU\Software\Classes\magnet", None, "URL:Magnet link"),
-                (r"HKCU\Software\Classes\magnet", Some("URL Protocol"), ""),
-                (r"HKCU\Software\Classes\magnet\DefaultIcon", None, icon.as_str()),
-                (r"HKCU\Software\Classes\magnet\shell\open\command", None, open.as_str()),
+                (r"Software\Classes\.torrent\OpenWithProgids", Some("AknanDownload.torrent"), ""),
+                (r"Software\Classes\.torrent", None, "AknanDownload.torrent"),
+                (r"Software\Classes\AknanDownload.torrent", None, "Torrent file"),
+                (r"Software\Classes\AknanDownload.torrent\DefaultIcon", None, icon.as_str()),
+                (r"Software\Classes\AknanDownload.torrent\shell\open\command", None, open.as_str()),
+                (r"Software\Classes\magnet", None, "URL:Magnet link"),
+                (r"Software\Classes\magnet", Some("URL Protocol"), ""),
+                (r"Software\Classes\magnet\DefaultIcon", None, icon.as_str()),
+                (r"Software\Classes\magnet\shell\open\command", None, open.as_str()),
             ] {
-                let mut args = vec!["add", key];
-                match name {
-                    Some(n) => args.extend(["/v", n]),
-                    None => args.push("/ve"),
-                }
-                args.extend(["/d", data, "/f"]);
-                reg(&args);
+                set_sz(key, name, data);
             }
         } else {
-            // ours only: a .torrent / magnet that another program took stays
-            if query(r"HKCU\Software\Classes\.torrent", None).as_deref() == Some("AknanDownload.torrent") {
-                reg(&["delete", r"HKCU\Software\Classes\.torrent", "/ve", "/f"]);
+            if get_sz(r"Software\Classes\.torrent", None).as_deref() == Some("AknanDownload.torrent") {
+                delete_value(r"Software\Classes\.torrent", None);
             }
-            reg(&["delete", r"HKCU\Software\Classes\.torrent\OpenWithProgids", "/v", "AknanDownload.torrent", "/f"]);
-            reg(&["delete", r"HKCU\Software\Classes\AknanDownload.torrent", "/f"]);
-            if query(r"HKCU\Software\Classes\magnet\shell\open\command", None).is_some_and(|v| v.to_ascii_lowercase().contains("aknandownload.exe")) {
-                reg(&["delete", r"HKCU\Software\Classes\magnet", "/f"]);
+            delete_value(r"Software\Classes\.torrent\OpenWithProgids", Some("AknanDownload.torrent"));
+            delete_tree(r"Software\Classes\AknanDownload.torrent");
+            if get_sz(r"Software\Classes\magnet\shell\open\command", None)
+                .is_some_and(|v| v.to_ascii_lowercase().contains("aknandownload.exe"))
+            {
+                delete_tree(r"Software\Classes\magnet");
             }
         }
-        // Explorer learns of the change at once
         unsafe {
             use windows_sys::Win32::UI::Shell::{SHChangeNotify, SHCNE_ASSOCCHANGED, SHCNF_IDLIST};
             SHChangeNotify(SHCNE_ASSOCCHANGED as i32, SHCNF_IDLIST, std::ptr::null(), std::ptr::null());
@@ -52,27 +46,4 @@ pub(crate) fn torrents(on: bool) {
     }
     #[cfg(not(windows))]
     let _ = on;
-}
-
-#[cfg(windows)]
-pub(crate) fn reg(args: &[&str]) -> Option<std::process::Output> {
-    use std::os::windows::process::CommandExt;
-    const NO_WINDOW: u32 = 0x0800_0000;
-    std::process::Command::new(swiftget_engine::system::windows_tool("reg.exe")).args(args).creation_flags(NO_WINDOW).output().ok()
-}
-
-/// The value (None: the key's default) as `reg query` shows it.
-#[cfg(windows)]
-pub(crate) fn query(key: &str, name: Option<&str>) -> Option<String> {
-    let mut args = vec!["query", key];
-    match name {
-        Some(n) => args.extend(["/v", n]),
-        None => args.push("/ve"),
-    }
-    let out = reg(&args)?;
-    if !out.status.success() {
-        return None;
-    }
-    let text = String::from_utf8_lossy(&out.stdout).to_string();
-    text.lines().find_map(|l| l.split_once("REG_SZ").map(|(_, v)| v.trim().to_string()))
 }
